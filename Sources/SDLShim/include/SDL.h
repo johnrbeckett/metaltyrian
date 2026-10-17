@@ -341,7 +341,7 @@ Uint8 SDL_JoystickGetHat(SDL_Joystick *joystick, int hat);
 void SDL_JoystickUpdate(void);
 int SDL_JoystickEventState(int state);
 
-/* ---- Audio: reports "no audio" until phase 3 ------------------------------ */
+/* ---- Audio: one output device, pulled by the app (see sdl_shim.c) -------- */
 
 typedef Uint16 SDL_AudioFormat;
 typedef Uint32 SDL_AudioDeviceID;

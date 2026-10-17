@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow!
     var view: GameView!
     var renderer: Renderer!
+    var audio: Audio!
 
     private let defaults = UserDefaults.standard
     private var sharpItem: NSMenuItem!
@@ -77,6 +78,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setenv("XDG_CONFIG_HOME", support.path, 1)
 
         Gamepads.start()
+        audio = Audio()
+        audio.start()
 
         let args = ["metaltyrian", "-t", dataDir.path]
         var cargs = args.map { strdup($0) }
@@ -100,6 +103,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidResignActive(_ notification: Notification) {
         view?.releaseAllKeys()
+        audio?.muted = true
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        audio?.muted = false
     }
 
     // MARK: - Focus

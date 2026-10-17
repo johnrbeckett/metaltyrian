@@ -13,6 +13,7 @@
 #include "metaltyrian_host.h"
 
 #include <errno.h>
+#include <math.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -39,8 +40,6 @@ int SDL_SetError(const char *fmt, ...)
 
 int SDL_InitSubSystem(Uint32 flags)
 {
-	if (flags & SDL_INIT_AUDIO)
-		return SDL_SetError("MetalTyrian has no sound until phase 3");
 	initialized |= flags;
 	return 0;
 }
@@ -582,35 +581,243 @@ Uint8 SDL_JoystickGetHat(SDL_Joystick *joystick, int hat)
 void SDL_JoystickUpdate(void) {}
 int SDL_JoystickEventState(int state) { return state == SDL_QUERY ? SDL_IGNORE : state; }
 
-/* ---- Audio: none yet (SDL_InitSubSystem(SDL_INIT_AUDIO) fails) ------------- */
+/* ---- Audio: one output device, pulled by the app ---------------------------
+ *
+ * The game opens a device with a callback that mixes its music (emulated
+ * AdLib) and sound effects. Nothing plays here: the app's audio engine calls
+ * mt_audio_render() from its real-time thread, which runs the game's callback
+ * under the device lock, as SDL does. The rate is always MT_AUDIO_RATE, the
+ * rate the game asks for; macOS converts to the hardware rate. */
+
+static pthread_mutex_t audio_lock;
+static pthread_once_t audio_lock_once = PTHREAD_ONCE_INIT;
+static SDL_AudioSpec audio_spec;
+static int audio_open = 0;
+static int audio_paused = 1;
+static Sint16 *audio_scratch = NULL;
+static int audio_scratch_len = 0;
+
+static void audio_lock_init(void)
+{
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);  /* SDL's lock nests */
+	pthread_mutex_init(&audio_lock, &attr);
+	pthread_mutexattr_destroy(&attr);
+}
+
+static void audio_lock_take(void)
+{
+	pthread_once(&audio_lock_once, audio_lock_init);
+	pthread_mutex_lock(&audio_lock);
+}
+
+static void audio_lock_give(void)
+{
+	pthread_mutex_unlock(&audio_lock);
+}
 
 SDL_AudioDeviceID SDL_OpenAudioDevice(const char *device, int iscapture, const SDL_AudioSpec *desired,
                                       SDL_AudioSpec *obtained, int allowed_changes)
 {
-	(void)device; (void)iscapture; (void)desired; (void)obtained; (void)allowed_changes;
-	SDL_SetError("no audio yet");
-	return 0;
+	(void)device; (void)allowed_changes;
+	if (iscapture)
+	{
+		SDL_SetError("no recording");
+		return 0;
+	}
+	if (desired->format != AUDIO_S16SYS || desired->channels != 1 || desired->callback == NULL)
+	{
+		SDL_SetError("MetalTyrian audio supports mono 16-bit with a callback only");
+		return 0;
+	}
+	audio_lock_take();
+	if (audio_open)
+	{
+		audio_lock_give();
+		SDL_SetError("audio device already open");
+		return 0;
+	}
+	audio_spec = *desired;
+	audio_spec.freq = MT_AUDIO_RATE;
+	audio_spec.silence = 0;
+	audio_spec.size = audio_spec.samples * sizeof(Sint16);
+	audio_open = 1;
+	audio_paused = 1;
+	audio_lock_give();
+	if (obtained)
+		*obtained = audio_spec;
+	return 1;
 }
 
-void SDL_CloseAudioDevice(SDL_AudioDeviceID dev) { (void)dev; }
-void SDL_PauseAudioDevice(SDL_AudioDeviceID dev, int pause_on) { (void)dev; (void)pause_on; }
-void SDL_LockAudioDevice(SDL_AudioDeviceID dev) { (void)dev; }
-void SDL_UnlockAudioDevice(SDL_AudioDeviceID dev) { (void)dev; }
+void SDL_CloseAudioDevice(SDL_AudioDeviceID dev)
+{
+	(void)dev;
+	audio_lock_take();
+	audio_open = 0;
+	audio_paused = 1;
+	free(audio_scratch);
+	audio_scratch = NULL;
+	audio_scratch_len = 0;
+	audio_lock_give();
+}
+
+void SDL_PauseAudioDevice(SDL_AudioDeviceID dev, int pause_on)
+{
+	(void)dev;
+	audio_lock_take();
+	audio_paused = pause_on ? 1 : 0;
+	audio_lock_give();
+}
+
+void SDL_LockAudioDevice(SDL_AudioDeviceID dev) { (void)dev; audio_lock_take(); }
+void SDL_UnlockAudioDevice(SDL_AudioDeviceID dev) { (void)dev; audio_lock_give(); }
+
+void mt_audio_render(float *out, int frames)
+{
+	audio_lock_take();
+	if (!audio_open || audio_paused || frames <= 0)
+	{
+		audio_lock_give();
+		memset(out, 0, (size_t)(frames > 0 ? frames : 0) * sizeof(float));
+		return;
+	}
+	if (frames > audio_scratch_len)
+	{
+		/* Grows once or twice at start-up, to the largest buffer macOS asks for. */
+		Sint16 *bigger = realloc(audio_scratch, (size_t)frames * sizeof(Sint16));
+		if (bigger == NULL)
+		{
+			audio_lock_give();
+			memset(out, 0, (size_t)frames * sizeof(float));
+			return;
+		}
+		audio_scratch = bigger;
+		audio_scratch_len = frames;
+	}
+	audio_spec.callback(audio_spec.userdata, (Uint8 *)audio_scratch, frames * (int)sizeof(Sint16));
+	for (int i = 0; i < frames; i++)
+		out[i] = audio_scratch[i] * (1.0f / 32768.0f);
+	audio_lock_give();
+}
+
+/* Sample conversion. The game uses it once, at start-up, to turn its 8-bit
+ * 11025 Hz sound effects into 16-bit samples at the output rate. Mono only;
+ * the rate change uses a windowed-sinc filter (see SDL_ConvertAudio). */
+
+static int audio_format_bytes(SDL_AudioFormat f)
+{
+	return (f & 0xFF) / 8;
+}
+
+#define MT_SINC_ZEROS 8
+#define MT_KAISER_BETA 7.0
+
+static double sinc(double x)
+{
+	if (fabs(x) < 1e-9)
+		return 1.0;
+	return sin(M_PI * x) / (M_PI * x);
+}
+
+/* Zeroth-order modified Bessel function, for the Kaiser window. */
+static double bessel_i0(double x)
+{
+	double sum = 1.0, term = 1.0;
+	for (int k = 1; k < 30; k++)
+	{
+		term *= (x / (2.0 * k)) * (x / (2.0 * k));
+		sum += term;
+	}
+	return sum;
+}
+
+/* Kaiser window over t in -1..1. */
+static double kaiser(double t)
+{
+	if (t <= -1.0 || t >= 1.0)
+		return 0.0;
+	return bessel_i0(MT_KAISER_BETA * sqrt(1.0 - t * t)) / bessel_i0(MT_KAISER_BETA);
+}
 
 int SDL_BuildAudioCVT(SDL_AudioCVT *cvt, SDL_AudioFormat src_format, Uint8 src_channels, int src_rate,
                       SDL_AudioFormat dst_format, Uint8 dst_channels, int dst_rate)
 {
-	(void)src_channels; (void)dst_channels;
 	memset(cvt, 0, sizeof(*cvt));
+	if (src_channels != 1 || dst_channels != 1)
+		return SDL_SetError("MetalTyrian converts mono audio only");
+	if ((src_format != AUDIO_S8 && src_format != AUDIO_U8 && src_format != AUDIO_S16SYS) ||
+	    dst_format != AUDIO_S16SYS || src_rate <= 0 || dst_rate <= 0)
+		return SDL_SetError("unsupported audio conversion");
 	cvt->src_format = src_format;
 	cvt->dst_format = dst_format;
 	cvt->src_rate = src_rate;
 	cvt->dst_rate = dst_rate;
-	cvt->len_mult = 1;
-	return SDL_SetError("no audio yet");
+	cvt->rate_incr = (double)dst_rate / src_rate;
+	cvt->len_ratio = cvt->rate_incr * audio_format_bytes(dst_format) / audio_format_bytes(src_format);
+	/* The buffer must hold the input and the output; round up generously. */
+	cvt->len_mult = (int)(cvt->len_ratio + 1.0) + 1;
+	cvt->needed = (src_format != dst_format || src_rate != dst_rate) ? 1 : 0;
+	return cvt->needed;
 }
 
-int SDL_ConvertAudio(SDL_AudioCVT *cvt) { (void)cvt; return SDL_SetError("no audio yet"); }
+int SDL_ConvertAudio(SDL_AudioCVT *cvt)
+{
+	if (cvt->buf == NULL)
+		return SDL_SetError("no buffer");
+	const int in_bytes = audio_format_bytes(cvt->src_format);
+	const int n_in = cvt->len / in_bytes;
+	if (n_in <= 0)
+	{
+		cvt->len_cvt = 0;
+		return 0;
+	}
+
+	/* Read the input into 16-bit samples first, since output overwrites it. */
+	Sint16 *in = malloc((size_t)n_in * sizeof(Sint16));
+	if (in == NULL)
+		return SDL_SetError("out of memory");
+	for (int i = 0; i < n_in; i++)
+	{
+		switch (cvt->src_format)
+		{
+		case AUDIO_S8:  in[i] = (Sint16)(((Sint8)cvt->buf[i]) * 256); break;
+		case AUDIO_U8:  in[i] = (Sint16)((cvt->buf[i] - 128) * 256); break;
+		default:        in[i] = ((Sint16 *)cvt->buf)[i]; break;
+		}
+	}
+
+	/* Same length rule as SDL: n_out = n_in * dst / src, rounded down. The
+	 * rate change is a windowed-sinc low-pass (Kaiser window), like SDL's own
+	 * resampler, so effects sound as they do in OpenTyrian rather than with
+	 * the metallic edge of plain interpolation. */
+	const int n_out = (int)((long long)n_in * cvt->dst_rate / cvt->src_rate);
+	const double ratio = (double)cvt->src_rate / cvt->dst_rate;   /* input step per output sample */
+	const double cutoff = ratio < 1.0 ? 1.0 : 1.0 / ratio;        /* in input-rate terms */
+	const int half = (int)ceil(MT_SINC_ZEROS / cutoff);
+	Sint16 *out = (Sint16 *)cvt->buf;
+	for (int i = 0; i < n_out; i++)
+	{
+		const double pos = i * ratio;
+		const int centre = (int)floor(pos);
+		double acc = 0, wsum = 0;
+		for (int k = centre - half + 1; k <= centre + half; k++)
+		{
+			const double x = (pos - k) * cutoff;      /* in zero crossings */
+			if (fabs(x) >= MT_SINC_ZEROS)
+				continue;
+			const double w = sinc(x) * kaiser(x / MT_SINC_ZEROS);
+			wsum += w;
+			if (k >= 0 && k < n_in)
+				acc += in[k] * w;
+		}
+		const double v = wsum != 0 ? acc / wsum : 0;
+		out[i] = (Sint16)lrint(v < -32768 ? -32768 : v > 32767 ? 32767 : v);
+	}
+	free(in);
+	cvt->len_cvt = n_out * (int)sizeof(Sint16);
+	return 0;
+}
 
 /* ---- Host interface: frames ------------------------------------------------ */
 

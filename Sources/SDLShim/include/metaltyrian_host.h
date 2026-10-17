@@ -68,6 +68,12 @@ void mt_push_quit(void);
 #define MT_PAD_R3 11
 void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat);
 
+/* Sound. The app plays mono float samples at MT_AUDIO_RATE and calls
+ * mt_audio_render from its audio thread for each buffer; it writes silence
+ * until the game has opened and started its audio device. */
+#define MT_AUDIO_RATE 44100
+void mt_audio_render(float *out, int frames);
+
 /* Called by the game (from OpenTyrian's scale_and_flip) for every frame shown. */
 void mt_present_frame(const void *pixels, int pitch, const uint32_t *palette);
 
