@@ -87,11 +87,13 @@ void JE_starShowVGA(void)
 		src = game_screen->pixels;
 		src += 24;
 
+#ifndef METALTYRIAN
 		if (smoothScroll != 0 /*&& thisPlayerNum != 2*/)
 		{
 			wait_delay();
 			setDelay(frameCountMax);
 		}
+#endif
 
 		if (starShowVGASpecialCode == 1)
 		{
@@ -148,6 +150,21 @@ void JE_starShowVGA(void)
 			}
 		}
 		JE_showVGA();
+
+#ifdef METALTYRIAN
+		/* Lower latency: OpenTyrian waits for the frame's time slot and then
+		 * shows it, and reads input before that wait, so a press could take
+		 * two or three frames to show. MetalTyrian shows each frame as soon
+		 * as it is drawn, waits afterwards, and reads input straight after
+		 * the wait, so the next frame uses the freshest input. The game's
+		 * speed is unchanged. */
+		if (smoothScroll != 0)
+		{
+			wait_delay();
+			setDelay(frameCountMax);
+			service_SDL_events(false);
+		}
+#endif
 	}
 
 	quitRequested = false;

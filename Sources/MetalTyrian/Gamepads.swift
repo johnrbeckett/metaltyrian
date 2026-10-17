@@ -14,6 +14,20 @@ enum Gamepads {
         // Controllers that connect later show up in GCController.controllers()
         // without further work; this only makes macOS look for them promptly.
         GCController.startWirelessControllerDiscovery(completionHandler: nil)
+
+        // Lower latency: pass every stick or button change to the game at once,
+        // rather than waiting for the next display refresh.
+        GCController.controllers().forEach(watch)
+        NotificationCenter.default.addObserver(forName: .GCControllerDidConnect, object: nil, queue: .main) { note in
+            if let c = note.object as? GCController { watch(c) }
+        }
+    }
+
+    private static func watch(_ controller: GCController) {
+        controller.handlerQueue = .main
+        controller.extendedGamepad?.valueChangedHandler = { _, _ in
+            poll(active: NSApp.isActive && NSApp.keyWindow != nil)
+        }
     }
 
     static func poll(active: Bool) {

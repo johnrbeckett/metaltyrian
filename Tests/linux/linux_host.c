@@ -64,6 +64,8 @@ int main(int argc, char **argv)
 	{
 		usleep(100000);
 		last = mt_copy_frame(last, px, pal);
+		if (getenv("MT_FPS_LOG") && i % 10 == 9)
+			printf("t=%ds frames=%llu\n", (i + 1) / 10, (unsigned long long)last);
 	}
 	running = 0;
 	if (wav)
