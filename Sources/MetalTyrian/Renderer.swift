@@ -112,6 +112,7 @@ final class Renderer: NSObject, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     func draw(in view: MTKView) {
+        (view as? GameView)?.syncPointer()
         inFlight.wait()
 
         // Newest frame from the game thread, palette-converted on the CPU.
@@ -182,7 +183,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         cmd.commit()
     }
 
-    /// Where the game picture sits in the view, in view points, for mapping the mouse later.
+    /// Where the game picture sits in the view, in view points, for mapping the mouse.
     func pictureRect(in bounds: CGRect) -> CGRect {
         var w = bounds.width, h = bounds.width / 1.6
         if h > bounds.height { h = bounds.height; w = h * 1.6 }

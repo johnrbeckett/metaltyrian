@@ -38,6 +38,11 @@ void mt_push_text(const char *utf8);
 void mt_push_mouse_motion(int x, int y, int dx, int dy);
 void mt_push_mouse_button(int button, bool down, int x, int y); /* 1 left, 2 middle, 3 right */
 void mt_push_focus(bool focused);
+
+/* What the game wants from the Mac pointer. When relative mode is on (during
+ * play) the app hides and locks the pointer and sends only movement. */
+bool mt_cursor_wanted(void);
+bool mt_relative_mouse(void);
 void mt_push_quit(void);
 
 /* Called by the game (from OpenTyrian's scale_and_flip) for every frame shown. */

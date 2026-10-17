@@ -430,6 +430,14 @@ void mapWindowPointToScreen(Sint32 *const inout_x, Sint32 *const inout_y)
 /** Scales a distance in window coordinates to game screen coordinates. */
 void scaleWindowDistanceToScreen(Sint32 *const inout_x, Sint32 *const inout_y)
 {
+#ifdef METALTYRIAN
+	/* MetalTyrian sends mouse distances already in game pixels, with the
+	 * fractions carried over by the app. Scaling them again would round
+	 * small leftward and upward moves away. */
+	(void)inout_x;
+	(void)inout_y;
+	return;
+#endif
 	*inout_x = (2 * *inout_x + 1) * VGAScreen->w / (2 * last_output_rect.w);
 	*inout_y = (2 * *inout_y + 1) * VGAScreen->h / (2 * last_output_rect.h);
 }

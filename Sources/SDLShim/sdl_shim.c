@@ -316,7 +316,9 @@ int SDL_LockTexture(SDL_Texture *texture, const SDL_Rect *rect, void **pixels, i
 
 void SDL_UnlockTexture(SDL_Texture *texture) { (void)texture; }
 
-static int cursor_shown = 1;
+/* Set by the game thread, read by the app on the main thread. */
+static _Atomic int cursor_shown = 1;
+static _Atomic int relative_mouse = 0;
 
 int SDL_ShowCursor(int toggle)
 {
@@ -325,7 +327,14 @@ int SDL_ShowCursor(int toggle)
 	return cursor_shown;
 }
 
-int SDL_SetRelativeMouseMode(SDL_bool enabled) { (void)enabled; return 0; }
+int SDL_SetRelativeMouseMode(SDL_bool enabled)
+{
+	relative_mouse = enabled ? 1 : 0;
+	return 0;
+}
+
+bool mt_cursor_wanted(void) { return cursor_shown != 0; }
+bool mt_relative_mouse(void) { return relative_mouse != 0; }
 
 /* ---- Keyboard names ------------------------------------------------------- */
 

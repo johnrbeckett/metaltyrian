@@ -31,6 +31,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var sharpItem: NSMenuItem!
     private var vgaItem: NSMenuItem!
     private var hdrItem: NSMenuItem!
+    private var glowItems: [NSMenuItem] = []
+    static let glowLevels: [Float] = [1.0, 1.2, 1.5, 2.0]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
@@ -49,7 +51,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         renderer.display = DisplayMode(rawValue: defaults.integer(forKey: "displayMode")) ?? .sharp
         renderer.hdr = defaults.bool(forKey: "hdrGlow")
+        let savedGlow = defaults.float(forKey: "glowStrength")
+        renderer.glowStrength = Self.glowLevels.contains(savedGlow) ? savedGlow : 1.2
         view.delegate = renderer
+        view.pictureRect = { [unowned self] in self.renderer.pictureRect(in: self.view.bounds) }
 
         window = NSWindow(contentRect: rect,
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -87,6 +92,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        view?.releaseAllKeys()  // also frees the pointer if the game had it
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        view?.releaseAllKeys()
+    }
+
     // MARK: - Focus
 
     func windowDidBecomeKey(_ notification: Notification) {
@@ -120,6 +133,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         vgaItem = viewMenu.addItem(withTitle: "Authentic VGA", action: #selector(chooseVGA(_:)), keyEquivalent: "2")
         viewMenu.addItem(.separator())
         hdrItem = viewMenu.addItem(withTitle: "HDR Glow", action: #selector(toggleHDR(_:)), keyEquivalent: "g")
+        let glowMenu = NSMenu(title: "Glow Strength")
+        for level in Self.glowLevels {
+            let item = glowMenu.addItem(withTitle: String(format: "%.1f", level), action: #selector(chooseGlow(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = level
+            glowItems.append(item)
+        }
+        viewMenu.addItem(withTitle: "Glow Strength", action: nil, keyEquivalent: "").submenu = glowMenu
         viewMenu.addItem(.separator())
         let fs = viewMenu.addItem(withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
         fs.keyEquivalentModifierMask = [.command, .control]
@@ -147,7 +168,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         updateMenuChecks()
     }
 
+    @objc private func chooseGlow(_ sender: NSMenuItem) {
+        guard let level = sender.representedObject as? Float else { return }
+        renderer.glowStrength = level
+        defaults.set(level, forKey: "glowStrength")
+        if !renderer.hdr {
+            renderer.hdr = true
+            defaults.set(true, forKey: "hdrGlow")
+        }
+        updateMenuChecks()
+    }
+
     private func updateMenuChecks() {
+        for item in glowItems {
+            item.state = (item.representedObject as? Float) == renderer.glowStrength ? .on : .off
+        }
         sharpItem?.state = renderer.display == .sharp ? .on : .off
         vgaItem?.state = renderer.display == .vga ? .on : .off
         hdrItem?.state = renderer.hdr ? .on : .off
