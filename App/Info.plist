@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>MetalTyrian</string>
+	<key>CFBundleDisplayName</key>
+	<string>MetalTyrian</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.johnrbeckett.MetalTyrian</string>
+	<key>CFBundleExecutable</key>
+	<string>MetalTyrian</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>CFBundleVersion</key>
+	<string>__BUILD__</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.arcade-games</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>Unofficial port. Tyrian by Eclipse Software, freeware since 2004. Game code from OpenTyrian and OpenTyrian2000, GPLv2 or later.</string>
+</dict>
+</plist>

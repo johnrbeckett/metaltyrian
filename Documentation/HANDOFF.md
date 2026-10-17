@@ -5,8 +5,8 @@
 | Item | State |
 |---|---|
 | Folder | Created at `~/Developer/MetalTyrian/` |
-| Git repo | None yet. Name and visibility are John's call. |
-| Code | None. Plan first, John approves, then code. |
+| Git repo | Local repo on `main`, created 2026-10-17. GitHub remote not yet set up. |
+| Code | Phase 0 of `PLAN-V1.md` (approved 2026-10-17): app shell, build script, engine in `Engine/`. Not yet built on the Mac. |
 | Research | `Documentation/RESEARCH.md` |
 | OpenTyrian source | `Source/opentyrian/`, commit 624e2f2 (2026-10-09) |
 | OpenTyrian2000 source | `Source/opentyrian2000/`, commit aad5aca (2026-02-22) |
@@ -18,7 +18,15 @@
 
 ## Next
 
-`Documentation/PLAN-V1.md` is written and waiting for John's approval and three open decisions (repo name, universal build, app name). Base: OpenTyrian2000 plus two upstream fixes, Tyrian 2000 data bundled, SDL replaced underneath through a small compatible layer. No code until he approves.
+Phase 0: John runs `scripts/build-app.sh` and opens the app; the window title should list episodes 1 to 5. Then the GitHub repo (`johnrbeckett/metaltyrian`, private) and phase 1.
+
+## Commits
+
+| Commit | What | Pushed |
+|---|---|---|
+| 9924780 | Start MetalTyrian: research, plan and Tyrian 2000 data | No |
+| 8bba68c | Add OpenTyrian2000 as Engine/ (git subtree, aad5aca) | No |
+| d0460d4, 6629fbc | Upstream fixes: extra-ship crash, data-cube memory corruption | No |
 
 ## Notes
 
