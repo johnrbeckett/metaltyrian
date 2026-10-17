@@ -22,6 +22,7 @@ BIN="$(xcrun swift build -c release "${ARCHS[@]}" --package-path "$ROOT" --scrat
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/GameData"
 cp "$BIN/MetalTyrian" "$APP/Contents/MacOS/MetalTyrian"
+cp "$ROOT/App/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" "$ROOT/App/Info.plist" > "$APP/Contents/Info.plist"
 
 # Game data: the Tyrian 2000 data files only, not the DOS programs.
