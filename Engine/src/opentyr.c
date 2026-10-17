@@ -138,6 +138,15 @@ static const char *mtGlowItem(size_t i, char *buffer, size_t bufferSize)
 
 static const char *const mt_aspect_names[] = { "Original", "Square", "Exact" };
 static const char *const mt_border_names[] = { "Black", "Ambient" };
+static const char *const mt_momentum_names[] = { "Original", "Light", "Off" };
+
+static size_t mtMomentumCount(void) { return COUNTOF(mt_momentum_names); }
+
+static const char *mtMomentumItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_momentum_names[i];
+}
 
 static size_t mtAspectCount(void) { return COUNTOF(mt_aspect_names); }
 static size_t mtBorderCount(void) { return COUNTOF(mt_border_names); }
@@ -199,6 +208,7 @@ void setupMenu(void)
 		MENU_ITEM_KEY_SPEED,
 		MENU_ITEM_PAD_SPEED,
 		MENU_ITEM_MOUSE_SPEED,
+		MENU_ITEM_MOMENTUM,
 #endif
 	} MenuItemId;
 
@@ -281,6 +291,7 @@ void setupMenu(void)
 				{ MENU_ITEM_KEY_SPEED, "Keyboard Speed", "Arrow keys: 1 is the original game. Left/right to change." },
 				{ MENU_ITEM_PAD_SPEED, "Gamepad Speed", "Stick and d-pad at full tilt. Left/right to change." },
 				{ MENU_ITEM_MOUSE_SPEED, "Mouse Speed", "5 is the original game. Left/right to change." },
+				{ MENU_ITEM_MOMENTUM, "Momentum", "How far the ship drifts after you stop steering.", mtMomentumCount, mtMomentumItem },
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
 			},
@@ -403,6 +414,10 @@ void setupMenu(void)
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, buffer, normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 			}
+
+			case MENU_ITEM_MOMENTUM:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_momentum_names[mtClamp(mt_setting(MT_SETTING_MOMENTUM), COUNTOF(mt_momentum_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
 
 			case MENU_ITEM_ASPECT:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_aspect_names[mtClamp(mt_setting(MT_SETTING_ASPECT), COUNTOF(mt_aspect_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
@@ -534,6 +549,7 @@ void setupMenu(void)
 									case MENU_ITEM_KEY_SPEED:
 									case MENU_ITEM_PAD_SPEED:
 									case MENU_ITEM_MOUSE_SPEED:
+									case MENU_ITEM_MOMENTUM:
 #endif
 									{
 										action = true;
@@ -823,6 +839,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_BORDERS), COUNTOF(mt_border_names));
 					break;
 				}
+				case MENU_ITEM_MOMENTUM:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_MOMENTUM), COUNTOF(mt_momentum_names));
+					break;
+				}
 #endif
 				case MENU_ITEM_MUSIC_VOLUME:
 				{
@@ -966,6 +990,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_BORDERS:
 					mt_set_setting(MT_SETTING_BORDERS, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_MOMENTUM:
+					mt_set_setting(MT_SETTING_MOMENTUM, (int)pickerSelectedIndex);
 					break;
 #else
 				case MENU_ITEM_DISPLAY:

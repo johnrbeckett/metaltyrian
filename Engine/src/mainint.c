@@ -1522,8 +1522,40 @@ void JE_doInGameSetup(void)
  * for keys and the d-pad. 1 is the original game. */
 static int mt_key_speed(void)
 {
+	if (play_demo || record_demo)
+		return CURRENT_KEY_SPEED;  /* demos replay with the original physics */
 	int s = mt_setting(MT_SETTING_KEY_SPEED);
 	return s < 1 ? 1 : s > 5 ? 5 : s;
+}
+
+/* MetalTyrian's Momentum (Setup > Controls). It only changes the drift that
+ * comes from the player's own steering. Pushes from the level (magnets,
+ * currents, knockback from hits and shots) keep the original physics, so the
+ * game's mechanics are unchanged.
+ *   0 Original: steering builds the ship's velocity, which decays slowly.
+ *   1 Light:    steering drift is tracked separately, capped at 2 pixels
+ *               per frame and decays every frame, so the ship stops within
+ *               two frames of letting go.
+ *   2 Off:      no steering drift; the ship moves only while steered. */
+static int mt_momentum(void)
+{
+	if (play_demo || record_demo)
+		return 0;
+	int m = mt_setting(MT_SETTING_MOMENTUM);
+	return m < 0 ? 0 : m > 2 ? 2 : m;
+}
+
+static int mt_steer_vx[2], mt_steer_vy[2];
+
+void mt_reset_momentum(void)
+{
+	mt_steer_vx[0] = mt_steer_vx[1] = 0;
+	mt_steer_vy[0] = mt_steer_vy[1] = 0;
+}
+
+static int mt_decay(int v)
+{
+	return v > 0 ? v - 1 : v < 0 ? v + 1 : 0;
 }
 #define MT_KEY_SPEED mt_key_speed()
 #else
@@ -4098,14 +4130,38 @@ redo:
 					--this_player->y_velocity;
 			}
 
+#ifdef METALTYRIAN
+			const int mtMomentum = mt_momentum();
+			const int mtP = (this_player - player) & 1;
+			if (mtMomentum == 0)
+			{
+				this_player->x_velocity += accelXC;
+				this_player->y_velocity += accelYC;
+				mt_steer_vx[mtP] = mt_steer_vy[mtP] = 0;
+			}
+			else if (mtMomentum == 1)
+			{
+				mt_steer_vx[mtP] = MIN(MAX(-2, mt_decay(mt_steer_vx[mtP]) + accelXC), 2);
+				mt_steer_vy[mtP] = MIN(MAX(-2, mt_decay(mt_steer_vy[mtP]) + accelYC), 2);
+			}
+			else
+			{
+				mt_steer_vx[mtP] = mt_steer_vy[mtP] = 0;
+			}
+#else
 			this_player->x_velocity += accelXC;
 			this_player->y_velocity += accelYC;
+#endif
 
 			this_player->x_velocity = MIN(MAX(-4, this_player->x_velocity), 4);
 			this_player->y_velocity = MIN(MAX(-4, this_player->y_velocity), 4);
 
 			this_player->x += this_player->x_velocity;
 			this_player->y += this_player->y_velocity;
+#ifdef METALTYRIAN
+			this_player->x += mt_steer_vx[mtP];
+			this_player->y += mt_steer_vy[mtP];
+#endif
 
 			// if player moved, add new ship x, y history entry
 			if (this_player->x - *mouseX_ != 0 || this_player->y - *mouseY_ != 0)

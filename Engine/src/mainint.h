@@ -86,4 +86,8 @@ const char *JE_getName(JE_byte pnum);
 
 void JE_playerCollide(Player *this_player, JE_byte playerNum);
 
+#ifdef METALTYRIAN
+void mt_reset_momentum(void);
+#endif
+
 #endif /* MAININT_H */

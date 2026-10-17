@@ -79,7 +79,8 @@ void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat);
 #define MT_SETTING_KEY_SPEED 5    /* 1-5, 1 = original: ship's step per frame for keys and d-pad */
 #define MT_SETTING_PAD_SPEED 6    /* 1-10: analog stick speed at full tilt */
 #define MT_SETTING_MOUSE_SPEED 7  /* 1-10, 5 = original: mouse movement scale (applied by the app) */
-#define MT_SETTING_COUNT 8
+#define MT_SETTING_MOMENTUM 8     /* 0 original, 1 light, 2 off: drift from the player's own steering */
+#define MT_SETTING_COUNT 9
 int mt_setting(int which);
 void mt_set_setting(int which, int value);
 

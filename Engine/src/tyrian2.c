@@ -836,6 +836,9 @@ start_level_first:
 
 		player[i].invulnerable_ticks = 100;
 	}
+#ifdef METALTYRIAN
+	mt_reset_momentum();
+#endif
 
 	newkey = newmouse = false;
 
