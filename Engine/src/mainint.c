@@ -1547,10 +1547,24 @@ static int mt_momentum(void)
 
 static int mt_steer_vx[2], mt_steer_vy[2];
 
+/* MetalTyrian's Mouse Mode (Setup > Controls). Direct: an invisible pointer
+ * moves with the mouse over the area the ship can reach, and the ship flies
+ * towards it at the game's top mouse speed. The pointer starts at the ship
+ * whenever the mouse takes over, and the keyboard or a gamepad hands control
+ * back. Level pushes still move the ship; it then returns to the pointer. */
+static bool mt_mouse_direct(void)
+{
+	return !play_demo && !record_demo && mt_setting(MT_SETTING_MOUSE_MODE) == 1;
+}
+
+static bool mt_pointer_live[2];
+static int mt_pointer_x[2], mt_pointer_y[2];
+
 void mt_reset_momentum(void)
 {
 	mt_steer_vx[0] = mt_steer_vx[1] = 0;
 	mt_steer_vy[0] = mt_steer_vy[1] = 0;
+	mt_pointer_live[0] = mt_pointer_live[1] = false;
 }
 
 static int mt_decay(int v)
@@ -3796,8 +3810,40 @@ redo:
 					Sint32 mouseXR;
 					Sint32 mouseYR;
 					mouseGetRelativePosition(&mouseXR, &mouseYR);
-					mouseXC += mouseXR;
-					mouseYC += mouseYR;
+#ifdef METALTYRIAN
+					if (mt_mouse_direct())
+					{
+						const int p = (this_player - player) & 1;
+						if (mouseXC != 0 || mouseYC != 0)
+							mt_pointer_live[p] = false;  /* a gamepad is steering */
+						if (mouseXR != 0 || mouseYR != 0)
+						{
+							if (!mt_pointer_live[p])
+							{
+								mt_pointer_live[p] = true;
+								mt_pointer_x[p] = this_player->x;
+								mt_pointer_y[p] = this_player->y;
+							}
+							mt_pointer_x[p] = MIN(MAX(40, mt_pointer_x[p] + mouseXR), 256);
+							mt_pointer_y[p] = MIN(MAX(10, mt_pointer_y[p] + (smoothies[9-1] ? -mouseYR : mouseYR)), 160);
+						}
+						if (mt_pointer_live[p])
+						{
+							/* The game moves the ship a quarter of mouseXC per frame
+							 * (up to 8 pixels), so 4x the gap means "go there". The
+							 * reversed-controls level effect flips mouseYC below. */
+							mouseXC = (mt_pointer_x[p] - this_player->x) * 4;
+							mouseYC = (mt_pointer_y[p] - this_player->y) * 4;
+							if (smoothies[9-1])
+								mouseYC = -mouseYC;
+						}
+					}
+					else
+#endif
+					{
+						mouseXC += mouseXR;
+						mouseYC += mouseYR;
+					}
 				}
 
 				/* keyboard input */
@@ -3812,6 +3858,11 @@ redo:
 						this_player->x -= MT_KEY_SPEED;
 					if (keysactive[keySettings[KEY_SETTING_RIGHT]])
 						this_player->x += MT_KEY_SPEED;
+#ifdef METALTYRIAN
+					if (keysactive[keySettings[KEY_SETTING_UP]] || keysactive[keySettings[KEY_SETTING_DOWN]] ||
+					    keysactive[keySettings[KEY_SETTING_LEFT]] || keysactive[keySettings[KEY_SETTING_RIGHT]])
+						mt_pointer_live[(this_player - player) & 1] = false;  /* keys take over */
+#endif
 
 					button[0] = button[0] || keysactive[keySettings[KEY_SETTING_FIRE]];
 					button[3] = button[3] || keysactive[keySettings[KEY_SETTING_CHANGE_FIRE]];
@@ -3892,6 +3943,16 @@ redo:
 					accelYC++;
 				else if (mouseYC < -2)
 					accelYC--;
+
+#ifdef METALTYRIAN
+				/* Direct mouse: the ship heads straight for the pointer, so no
+				 * steering drift (it would only overshoot). */
+				if (mt_mouse_direct() && mt_pointer_live[(this_player - player) & 1])
+				{
+					accelXC = 0;
+					accelYC = 0;
+				}
+#endif
 
 			}   /*endLevel*/
 

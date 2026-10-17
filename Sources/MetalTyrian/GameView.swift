@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import GameController
 import MetalKit
 import SDLShim
 
@@ -17,6 +18,15 @@ final class GameView: MTKView {
     private var carryY: CGFloat = 0
     private var pointerLocked = false
     private var pointerHidden = false
+
+    // Direct mouse mode reads raw mouse movement (no macOS acceleration) from
+    // GameController, so the same hand position always means the same spot.
+    private var lastRawTime: TimeInterval = 0
+    private var lastEventDY: CGFloat = 0
+    private var lastEventTime: TimeInterval = 0
+    private var rawYSign: CGFloat = 0          // learnt by comparing with AppKit's deltas
+    private var rawYVotes: CGFloat = 0
+    private var directMode: Bool { mt_setting(MT_SETTING_MOUSE_MODE) == 1 }
 
     override var acceptsFirstResponder: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
@@ -105,26 +115,67 @@ final class GameView: MTKView {
     private func motion(_ event: NSEvent) {
         guard window?.isKeyWindow == true else { return }
         if pointerLocked {
+            lastEventDY = event.deltaY
+            lastEventTime = event.timestamp
+            // Raw movement is arriving: Direct mode uses that instead.
+            if directMode && ProcessInfo.processInfo.systemUptime - lastRawTime < 0.25 { return }
             // During play the game wants movement only, in game pixels, at the
             // same scale as the picture on screen. Fractions carry over.
             let r = pictureRect()
             guard r.width > 0, r.height > 0 else { return }
-            // Mouse Speed (Setup > Controls): 5 is the original; each step is about 19%.
-            let speed = max(1, min(10, Int(mt_setting(MT_SETTING_MOUSE_SPEED))))
-            let scale = CGFloat(pow(2.0, Double(speed - 5) / 4.0))
-            carryX += event.deltaX * 320 / r.width * scale
-            carryY += event.deltaY * 200 / r.height * scale   // deltaY is already downwards
-            let dx = carryX.rounded(.towardZero), dy = carryY.rounded(.towardZero)
-            carryX -= dx
-            carryY -= dy
-            if dx != 0 || dy != 0 {
-                mt_push_mouse_motion(lastGamePoint.x, lastGamePoint.y, Int32(dx), Int32(dy))
-            }
+            sendMovement(dx: event.deltaX * 320 / r.width, dy: event.deltaY * 200 / r.height)   // deltaY is already downwards
         } else {
             let p = gamePoint(event)
             lastGamePoint = p
             mt_push_mouse_motion(p.x, p.y, 0, 0)
         }
+    }
+
+    /// Mouse movement in game pixels at the original scale, adjusted by Mouse Speed.
+    private func sendMovement(dx: CGFloat, dy: CGFloat) {
+        // Mouse Speed (Setup > Controls): 5 is the original; each step is about 19%.
+        let speed = max(1, min(10, Int(mt_setting(MT_SETTING_MOUSE_SPEED))))
+        let scale = CGFloat(pow(2.0, Double(speed - 5) / 4.0))
+        carryX += dx * scale
+        carryY += dy * scale
+        let ix = carryX.rounded(.towardZero), iy = carryY.rounded(.towardZero)
+        carryX -= ix
+        carryY -= iy
+        if ix != 0 || iy != 0 {
+            mt_push_mouse_motion(lastGamePoint.x, lastGamePoint.y, Int32(ix), Int32(iy))
+        }
+    }
+
+    /// Raw mouse movement for Direct mode. Counts are scaled so a typical
+    /// mouse crosses the playfield with a comfortable sweep at Mouse Speed 5.
+    func startRawMouse() {
+        let hook: (GCMouse) -> Void = { [weak self] mouse in
+            mouse.handlerQueue = .main
+            mouse.mouseInput?.mouseMovedHandler = { _, dx, dy in
+                self?.rawMoved(dx: CGFloat(dx), dy: CGFloat(dy))
+            }
+        }
+        GCMouse.mice().forEach(hook)
+        NotificationCenter.default.addObserver(forName: .GCMouseDidConnect, object: nil, queue: .main) { note in
+            if let m = note.object as? GCMouse { hook(m) }
+        }
+    }
+
+    private func rawMoved(dx: CGFloat, dy: CGFloat) {
+        guard pointerLocked, directMode, window?.isKeyWindow == true else { return }
+        // Which way is up in raw counts? Learn it from AppKit's own deltas
+        // (downwards positive) arriving at the same moment.
+        let now = ProcessInfo.processInfo.systemUptime
+        if rawYSign == 0 {
+            if dy != 0, lastEventDY != 0, abs(lastEventTime - now) < 0.05 {
+                rawYVotes += (dy * lastEventDY > 0) ? 1 : -1
+                if abs(rawYVotes) >= 8 { rawYSign = rawYVotes > 0 ? 1 : -1 }
+            }
+            return   // AppKit's deltas drive the ship until the direction is known
+        }
+        lastRawTime = now
+        let perCount: CGFloat = 0.12   // game pixels per raw count
+        sendMovement(dx: dx * perCount, dy: dy * rawYSign * perCount)
     }
 
     private func button(_ event: NSEvent, down: Bool) {

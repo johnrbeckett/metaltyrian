@@ -142,6 +142,16 @@ static const char *const mt_momentum_names[] = { "Original", "Light", "Off" };
 
 static size_t mtMomentumCount(void) { return COUNTOF(mt_momentum_names); }
 
+static const char *const mt_mouse_mode_names[] = { "Original", "Direct" };
+
+static size_t mtMouseModeCount(void) { return COUNTOF(mt_mouse_mode_names); }
+
+static const char *mtMouseModeItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_mouse_mode_names[i];
+}
+
 static const char *mtMomentumItem(size_t i, char *buffer, size_t bufferSize)
 {
 	(void)buffer, (void)bufferSize;
@@ -209,6 +219,7 @@ void setupMenu(void)
 		MENU_ITEM_PAD_SPEED,
 		MENU_ITEM_MOUSE_SPEED,
 		MENU_ITEM_MOMENTUM,
+		MENU_ITEM_MOUSE_MODE,
 #endif
 	} MenuItemId;
 
@@ -290,7 +301,8 @@ void setupMenu(void)
 			.items = {
 				{ MENU_ITEM_KEY_SPEED, "Keyboard Speed", "Arrow keys: 1 is the original game. Left/right to change." },
 				{ MENU_ITEM_PAD_SPEED, "Gamepad Speed", "Stick and d-pad at full tilt. Left/right to change." },
-				{ MENU_ITEM_MOUSE_SPEED, "Mouse Speed", "5 is the original game. Left/right to change." },
+				{ MENU_ITEM_MOUSE_MODE, "Mouse Mode", "Direct: the ship flies to where you point.", mtMouseModeCount, mtMouseModeItem },
+				{ MENU_ITEM_MOUSE_SPEED, "Mouse Speed", "How far the ship goes for your hand's movement." },
 				{ MENU_ITEM_MOMENTUM, "Momentum", "How far the ship drifts after you stop steering.", mtMomentumCount, mtMomentumItem },
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
@@ -414,6 +426,10 @@ void setupMenu(void)
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, buffer, normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 			}
+
+			case MENU_ITEM_MOUSE_MODE:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_mouse_mode_names[mtClamp(mt_setting(MT_SETTING_MOUSE_MODE), COUNTOF(mt_mouse_mode_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
 
 			case MENU_ITEM_MOMENTUM:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_momentum_names[mtClamp(mt_setting(MT_SETTING_MOMENTUM), COUNTOF(mt_momentum_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
@@ -550,6 +566,7 @@ void setupMenu(void)
 									case MENU_ITEM_PAD_SPEED:
 									case MENU_ITEM_MOUSE_SPEED:
 									case MENU_ITEM_MOMENTUM:
+									case MENU_ITEM_MOUSE_MODE:
 #endif
 									{
 										action = true;
@@ -839,6 +856,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_BORDERS), COUNTOF(mt_border_names));
 					break;
 				}
+				case MENU_ITEM_MOUSE_MODE:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_MOUSE_MODE), COUNTOF(mt_mouse_mode_names));
+					break;
+				}
 				case MENU_ITEM_MOMENTUM:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -993,6 +1018,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_MOMENTUM:
 					mt_set_setting(MT_SETTING_MOMENTUM, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_MOUSE_MODE:
+					mt_set_setting(MT_SETTING_MOUSE_MODE, (int)pickerSelectedIndex);
 					break;
 #else
 				case MENU_ITEM_DISPLAY:

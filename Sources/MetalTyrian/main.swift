@@ -41,7 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     static let speedSettings: [(Int32, String)] = [(MT_SETTING_KEY_SPEED, "keySpeed"),
                                                    (MT_SETTING_PAD_SPEED, "padSpeed"),
                                                    (MT_SETTING_MOUSE_SPEED, "mouseSpeed"),
-                                                   (MT_SETTING_MOMENTUM, "momentum")]
+                                                   (MT_SETTING_MOMENTUM, "momentum"),
+                                                   (MT_SETTING_MOUSE_MODE, "mouseMode")]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
@@ -63,7 +64,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                      "aspect": Aspect.square.rawValue, "borders": Borders.black.rawValue,
                                      // Controls, tuned for fun: keys start faster than the original 1.
                                      "keySpeed": 2, "padSpeed": 5, "mouseSpeed": 5,
-                                     "momentum": 1])  // Light
+                                     "momentum": 1,     // Light
+                                     "mouseMode": 1])   // Direct
         for (setting, key) in Self.speedSettings {
             mt_set_setting(setting, Int32(defaults.integer(forKey: key)))
         }
@@ -104,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setenv("XDG_CONFIG_HOME", support.path, 1)
 
         Gamepads.start()
+        view.startRawMouse()
         audio = Audio()
         audio.start()
 
