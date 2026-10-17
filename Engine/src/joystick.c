@@ -28,6 +28,10 @@
 #include "varz.h"
 #include "video.h"
 
+#ifdef METALTYRIAN
+#include "metaltyrian_host.h"
+#endif
+
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
@@ -74,7 +78,18 @@ int joystick_axis_reduce(int j, int value)
 	if (value == 0)
 		return 0;
 	
+#ifdef METALTYRIAN
+	/* Gamepad Speed (Setup > Controls), 1-10: full tilt asks the ship for a
+	 * step of about 2 pixels per frame at 1 up to 8 (the game's limit) at 10;
+	 * the game adds its own momentum on top. */
+	int speed = mt_setting(MT_SETTING_PAD_SPEED);
+	speed = speed < 1 ? 1 : speed > 10 ? 10 : speed;
+	const int full = 5 + (speed - 1) * 25 / 9;   /* 5..30, the game's movement units */
+	const int range = joystick_analog_max - joystick[j].threshold * 1000;
+	return range > 0 ? value * full / range : 0;
+#else
 	return value / (3000 - 200 * joystick[j].sensitivity);
+#endif
 }
 
 // converts analog joystick axes to an angle

@@ -109,8 +109,11 @@ final class GameView: MTKView {
             // same scale as the picture on screen. Fractions carry over.
             let r = pictureRect()
             guard r.width > 0, r.height > 0 else { return }
-            carryX += event.deltaX * 320 / r.width
-            carryY += event.deltaY * 200 / r.height   // deltaY is already downwards
+            // Mouse Speed (Setup > Controls): 5 is the original; each step is about 19%.
+            let speed = max(1, min(10, Int(mt_setting(MT_SETTING_MOUSE_SPEED))))
+            let scale = CGFloat(pow(2.0, Double(speed - 5) / 4.0))
+            carryX += event.deltaX * 320 / r.width * scale
+            carryY += event.deltaY * 200 / r.height * scale   // deltaY is already downwards
             let dx = carryX.rounded(.towardZero), dy = carryY.rounded(.towardZero)
             carryX -= dx
             carryY -= dy

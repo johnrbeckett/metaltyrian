@@ -37,6 +37,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var borderItems: [NSMenuItem] = []
     static let glowLevels: [Float] = [1.0, 1.2, 1.5, 2.0]
     private var fullScreenChanging = false
+    /// Setup > Controls in the game; saved here.
+    static let speedSettings: [(Int32, String)] = [(MT_SETTING_KEY_SPEED, "keySpeed"),
+                                                   (MT_SETTING_PAD_SPEED, "padSpeed"),
+                                                   (MT_SETTING_MOUSE_SPEED, "mouseSpeed")]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
@@ -55,7 +59,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         // First-run look, John's pick 2026-10-17: authentic VGA with HDR glow at 2.0.
         defaults.register(defaults: ["displayMode": DisplayMode.vga.rawValue, "hdrGlow": true, "glowStrength": Float(2.0),
-                                     "aspect": Aspect.square.rawValue, "borders": Borders.black.rawValue])
+                                     "aspect": Aspect.square.rawValue, "borders": Borders.black.rawValue,
+                                     // Controls, tuned for fun: keys start faster than the original 1.
+                                     "keySpeed": 2, "padSpeed": 5, "mouseSpeed": 5])
+        for (setting, key) in Self.speedSettings {
+            mt_set_setting(setting, Int32(defaults.integer(forKey: key)))
+        }
         renderer.display = DisplayMode(rawValue: defaults.integer(forKey: "displayMode")) ?? .vga
         renderer.hdr = defaults.bool(forKey: "hdrGlow")
         renderer.aspect = Aspect(rawValue: defaults.integer(forKey: "aspect")) ?? .square
@@ -189,6 +198,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         if changed { updateMenuChecks() }
+
+        for (setting, key) in Self.speedSettings {
+            let v = Int(mt_setting(setting))
+            if v != defaults.integer(forKey: key) { defaults.set(v, forKey: key) }
+        }
 
         let wantFull = mt_setting(MT_SETTING_FULLSCREEN) != 0
         if !fullScreenChanging, wantFull != window.styleMask.contains(.fullScreen) {

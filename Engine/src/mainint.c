@@ -1515,6 +1515,21 @@ void JE_doInGameSetup(void)
 	mouseSetRelative(true);
 }
 
+#ifdef METALTYRIAN
+#include "metaltyrian_host.h"
+
+/* MetalTyrian's Keyboard Speed (Setup > Controls): the ship's step per frame
+ * for keys and the d-pad. 1 is the original game. */
+static int mt_key_speed(void)
+{
+	int s = mt_setting(MT_SETTING_KEY_SPEED);
+	return s < 1 ? 1 : s > 5 ? 5 : s;
+}
+#define MT_KEY_SPEED mt_key_speed()
+#else
+#define MT_KEY_SPEED CURRENT_KEY_SPEED
+#endif
+
 JE_boolean JE_inGameSetup(void)
 {
 	bool result = false;
@@ -3709,7 +3724,11 @@ redo:
 					{
 						poll_joystick(j);
 
+#ifdef METALTYRIAN
+						if (true)  /* analog always: speed follows the stick's tilt */
+#else
 						if (joystick[j].analog)
+#endif
 						{
 							mouseXC += joystick_axis_reduce(j, joystick[j].x);
 							mouseYC += joystick_axis_reduce(j, joystick[j].y);
@@ -3718,8 +3737,8 @@ redo:
 						}
 						else
 						{
-							this_player->x += (joystick[j].direction[3] ? -CURRENT_KEY_SPEED : 0) + (joystick[j].direction[1] ? CURRENT_KEY_SPEED : 0);
-							this_player->y += (joystick[j].direction[0] ? -CURRENT_KEY_SPEED : 0) + (joystick[j].direction[2] ? CURRENT_KEY_SPEED : 0);
+							this_player->x += (joystick[j].direction[3] ? -MT_KEY_SPEED : 0) + (joystick[j].direction[1] ? MT_KEY_SPEED : 0);
+							this_player->y += (joystick[j].direction[0] ? -MT_KEY_SPEED : 0) + (joystick[j].direction[2] ? MT_KEY_SPEED : 0);
 						}
 
 						button[0] |= joystick[j].action[0];
@@ -3753,14 +3772,14 @@ redo:
 				if ((inputDevice == 0 || inputDevice == 1) && !play_demo)
 				{
 					if (keysactive[keySettings[KEY_SETTING_UP]])
-						this_player->y -= CURRENT_KEY_SPEED;
+						this_player->y -= MT_KEY_SPEED;
 					if (keysactive[keySettings[KEY_SETTING_DOWN]])
-						this_player->y += CURRENT_KEY_SPEED;
+						this_player->y += MT_KEY_SPEED;
 
 					if (keysactive[keySettings[KEY_SETTING_LEFT]])
-						this_player->x -= CURRENT_KEY_SPEED;
+						this_player->x -= MT_KEY_SPEED;
 					if (keysactive[keySettings[KEY_SETTING_RIGHT]])
-						this_player->x += CURRENT_KEY_SPEED;
+						this_player->x += MT_KEY_SPEED;
 
 					button[0] = button[0] || keysactive[keySettings[KEY_SETTING_FIRE]];
 					button[3] = button[3] || keysactive[keySettings[KEY_SETTING_CHANGE_FIRE]];

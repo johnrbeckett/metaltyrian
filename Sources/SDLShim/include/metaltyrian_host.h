@@ -76,7 +76,10 @@ void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat);
 #define MT_SETTING_GLOW 2         /* 0 off, 1-4 = strength 1.0, 1.2, 1.5, 2.0 */
 #define MT_SETTING_ASPECT 3       /* 0 original 4:3, 1 square pixels 16:10, 2 exact whole-pixel scale */
 #define MT_SETTING_BORDERS 4      /* 0 black, 1 ambient */
-#define MT_SETTING_COUNT 5
+#define MT_SETTING_KEY_SPEED 5    /* 1-5, 1 = original: ship's step per frame for keys and d-pad */
+#define MT_SETTING_PAD_SPEED 6    /* 1-10: analog stick speed at full tilt */
+#define MT_SETTING_MOUSE_SPEED 7  /* 1-10, 5 = original: mouse movement scale (applied by the app) */
+#define MT_SETTING_COUNT 8
 int mt_setting(int which);
 void mt_set_setting(int which, int value);
 

@@ -154,6 +154,23 @@ static const char *mtBorderItem(size_t i, char *buffer, size_t bufferSize)
 	return mt_border_names[i];
 }
 
+/* Controls: speeds shown as numbers, changed with left/right or a click. */
+static int mtSpeedMax(int which)
+{
+	return which == MT_SETTING_KEY_SPEED ? 5 : 10;
+}
+
+static void mtAdjustSpeed(int which, int delta, bool wrap)
+{
+	const int max = mtSpeedMax(which);
+	int v = mt_setting(which) + delta;
+	if (wrap)
+		v = v > max ? 1 : v < 1 ? max : v;
+	else
+		v = v > max ? max : v < 1 ? 1 : v;
+	mt_set_setting(which, v);
+}
+
 static size_t mtClamp(int value, size_t count)
 {
 	return value < 0 ? 0 : (size_t)value >= count ? count - 1 : (size_t)value;
@@ -178,6 +195,10 @@ void setupMenu(void)
 #ifdef METALTYRIAN
 		MENU_ITEM_ASPECT,
 		MENU_ITEM_BORDERS,
+		MENU_ITEM_CONTROLS,
+		MENU_ITEM_KEY_SPEED,
+		MENU_ITEM_PAD_SPEED,
+		MENU_ITEM_MOUSE_SPEED,
 #endif
 	} MenuItemId;
 
@@ -187,6 +208,9 @@ void setupMenu(void)
 		MENU_SETUP,
 		MENU_GRAPHICS,
 		MENU_SOUND,
+#ifdef METALTYRIAN
+		MENU_CONTROLS,
+#endif
 	} MenuId;
 
 	typedef struct
@@ -214,6 +238,9 @@ void setupMenu(void)
 			.items = {
 				{ MENU_ITEM_GRAPHICS, "Graphics...", "Change the graphics settings." },
 				{ MENU_ITEM_SOUND, "Sound...", "Change the sound settings." },
+#ifdef METALTYRIAN
+				{ MENU_ITEM_CONTROLS, "Controls...", "Change how fast the ship moves." },
+#endif
 				{ MENU_ITEM_JUKEBOX, "Jukebox", "Listen to the music of Tyrian." },
 				// { MENU_ITEM_DESTRUCT, "Destruct", "Play a bonus mini-game." },
 				{ MENU_ITEM_DONE, "Done", "Return to the main menu." },
@@ -247,6 +274,18 @@ void setupMenu(void)
 				{ -1 }
 			},
 		},
+#ifdef METALTYRIAN
+		[MENU_CONTROLS] = {
+			.header = "Controls",
+			.items = {
+				{ MENU_ITEM_KEY_SPEED, "Keyboard Speed", "Arrow keys: 1 is the original game. Left/right to change." },
+				{ MENU_ITEM_PAD_SPEED, "Gamepad Speed", "Stick and d-pad at full tilt. Left/right to change." },
+				{ MENU_ITEM_MOUSE_SPEED, "Mouse Speed", "5 is the original game. Left/right to change." },
+				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
+				{ -1 }
+			},
+		},
+#endif
 	};
 
 	char buffer[100];
@@ -353,6 +392,18 @@ void setupMenu(void)
 				break;
 
 #ifdef METALTYRIAN
+			case MENU_ITEM_KEY_SPEED:
+			case MENU_ITEM_PAD_SPEED:
+			case MENU_ITEM_MOUSE_SPEED:
+			{
+				const int which = menuItem->id == MENU_ITEM_KEY_SPEED ? MT_SETTING_KEY_SPEED
+				                : menuItem->id == MENU_ITEM_PAD_SPEED ? MT_SETTING_PAD_SPEED
+				                : MT_SETTING_MOUSE_SPEED;
+				snprintf(buffer, sizeof(buffer), "%d", mt_setting(which));
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, buffer, normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
+			}
+
 			case MENU_ITEM_ASPECT:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_aspect_names[mtClamp(mt_setting(MT_SETTING_ASPECT), COUNTOF(mt_aspect_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
@@ -480,6 +531,9 @@ void setupMenu(void)
 #ifdef METALTYRIAN
 									case MENU_ITEM_ASPECT:
 									case MENU_ITEM_BORDERS:
+									case MENU_ITEM_KEY_SPEED:
+									case MENU_ITEM_PAD_SPEED:
+									case MENU_ITEM_MOUSE_SPEED:
 #endif
 									{
 										action = true;
@@ -566,6 +620,20 @@ void setupMenu(void)
 						JE_playSampleNum(S_CURSOR);
 						break;
 					}
+#ifdef METALTYRIAN
+					case MENU_ITEM_KEY_SPEED:
+						JE_playSampleNum(S_CURSOR);
+						mtAdjustSpeed(MT_SETTING_KEY_SPEED, -1, false);
+						break;
+					case MENU_ITEM_PAD_SPEED:
+						JE_playSampleNum(S_CURSOR);
+						mtAdjustSpeed(MT_SETTING_PAD_SPEED, -1, false);
+						break;
+					case MENU_ITEM_MOUSE_SPEED:
+						JE_playSampleNum(S_CURSOR);
+						mtAdjustSpeed(MT_SETTING_MOUSE_SPEED, -1, false);
+						break;
+#endif
 					default:
 						break;
 					}
@@ -589,6 +657,20 @@ void setupMenu(void)
 						JE_playSampleNum(S_CURSOR);
 						break;
 					}
+#ifdef METALTYRIAN
+					case MENU_ITEM_KEY_SPEED:
+						JE_playSampleNum(S_CURSOR);
+						mtAdjustSpeed(MT_SETTING_KEY_SPEED, 1, false);
+						break;
+					case MENU_ITEM_PAD_SPEED:
+						JE_playSampleNum(S_CURSOR);
+						mtAdjustSpeed(MT_SETTING_PAD_SPEED, 1, false);
+						break;
+					case MENU_ITEM_MOUSE_SPEED:
+						JE_playSampleNum(S_CURSOR);
+						mtAdjustSpeed(MT_SETTING_MOUSE_SPEED, 1, false);
+						break;
+#endif
 					default:
 						break;
 					}
@@ -643,6 +725,29 @@ void setupMenu(void)
 					selectedMenuItemIndexes[currentMenu] = 0;
 					break;
 				}
+#ifdef METALTYRIAN
+				case MENU_ITEM_CONTROLS:
+				{
+					JE_playSampleNum(S_SELECT);
+
+					menuParents[MENU_CONTROLS] = currentMenu;
+					currentMenu = MENU_CONTROLS;
+					selectedMenuItemIndexes[currentMenu] = 0;
+					break;
+				}
+				case MENU_ITEM_KEY_SPEED:
+					JE_playSampleNum(S_CURSOR);
+					mtAdjustSpeed(MT_SETTING_KEY_SPEED, 1, true);
+					break;
+				case MENU_ITEM_PAD_SPEED:
+					JE_playSampleNum(S_CURSOR);
+					mtAdjustSpeed(MT_SETTING_PAD_SPEED, 1, true);
+					break;
+				case MENU_ITEM_MOUSE_SPEED:
+					JE_playSampleNum(S_CURSOR);
+					mtAdjustSpeed(MT_SETTING_MOUSE_SPEED, 1, true);
+					break;
+#endif
 				case MENU_ITEM_JUKEBOX:
 				{
 					JE_playSampleNum(S_SELECT);
