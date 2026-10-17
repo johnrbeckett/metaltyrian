@@ -68,6 +68,16 @@ void mt_push_quit(void);
 #define MT_PAD_R3 11
 void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat);
 
+/* Display settings, shared by the game's Graphics menu and the Mac View menu.
+ * Either side may change one; the app watches for changes, applies them and
+ * saves them. */
+#define MT_SETTING_FULLSCREEN 0   /* 0 window, 1 full screen */
+#define MT_SETTING_LOOK 1         /* 0 sharp pixels, 1 authentic VGA */
+#define MT_SETTING_GLOW 2         /* 0 off, 1-4 = strength 1.0, 1.2, 1.5, 2.0 */
+#define MT_SETTING_COUNT 3
+int mt_setting(int which);
+void mt_set_setting(int which, int value);
+
 /* Sound. The app plays mono float samples at MT_AUDIO_RATE and calls
  * mt_audio_render from its audio thread for each buffer; it writes silence
  * until the game has opened and started its audio device. */

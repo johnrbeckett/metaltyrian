@@ -1534,6 +1534,18 @@ JE_boolean JE_inGameSetup(void)
 
 	const size_t helpIndexes[] = { 14, 14, 27, 28, 25, 26 };
 
+#ifdef METALTYRIAN
+	/* MetalTyrian fixes the detail level at its highest (see
+	 * JE_initProcessorType), so its row is hidden and the rows below move up. */
+#define MT_HIDDEN(i) ((i) == MENU_ITEM_DETAIL_LEVEL)
+#define MT_ROW(i) ((int)(i) - ((i) > MENU_ITEM_DETAIL_LEVEL ? 1 : 0))
+	const int mtBoxShrink = 20;
+#else
+#define MT_HIDDEN(i) false
+#define MT_ROW(i) ((int)(i))
+	const int mtBoxShrink = 0;
+#endif
+
 	if (shopSpriteSheet.data == NULL)
 		JE_loadCompShapes(&shopSpriteSheet, '1');  // need mouse pointer sprites
 
@@ -1557,8 +1569,8 @@ JE_boolean JE_inGameSetup(void)
 		if (restart)
 		{
 			// Main box
-			JE_barShade(VGAScreen, 3, 13, 217, 137);
-			JE_barShade(VGAScreen, 5, 15, 215, 135);
+			JE_barShade(VGAScreen, 3, 13, 217, 137 - mtBoxShrink);
+			JE_barShade(VGAScreen, 5, 15, 215, 135 - mtBoxShrink);
 
 			// Help box
 			JE_barShade(VGAScreen, 3, 143, 257, 157);
@@ -1577,7 +1589,10 @@ JE_boolean JE_inGameSetup(void)
 		// Draw menu items.
 		for (size_t i = 0; i < menuItemsCount; ++i)
 		{
-			const int y = yMenuItems + dyMenuItems * i;
+			if (MT_HIDDEN(i))
+				continue;
+
+			const int y = yMenuItems + dyMenuItems * MT_ROW(i);
 
 			const char *const name = inGameText[i];
 
@@ -1648,7 +1663,10 @@ JE_boolean JE_inGameSetup(void)
 			{
 				for (size_t i = 0; i < menuItemsCount; ++i)
 				{
-					const int yMenuItem = yMenuItems + dyMenuItems * i;
+					if (MT_HIDDEN(i))
+						continue;
+
+					const int yMenuItem = yMenuItems + dyMenuItems * MT_ROW(i);
 					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
 					{
 						if (selectedIndex != i)
@@ -1735,6 +1753,8 @@ JE_boolean JE_inGameSetup(void)
 				selectedIndex = selectedIndex == 0
 					? menuItemsCount - 1
 					: selectedIndex - 1;
+				if (MT_HIDDEN(selectedIndex))
+					selectedIndex -= 1;
 				break;
 			}
 			case SDL_SCANCODE_DOWN:
@@ -1744,6 +1764,8 @@ JE_boolean JE_inGameSetup(void)
 				selectedIndex = selectedIndex == menuItemsCount - 1
 					? 0
 					: selectedIndex + 1;
+				if (MT_HIDDEN(selectedIndex))
+					selectedIndex += 1;
 				break;
 			}
 			case SDL_SCANCODE_LEFT:
@@ -1916,6 +1938,8 @@ JE_boolean JE_inGameSetup(void)
 
 	return result;
 }
+#undef MT_HIDDEN
+#undef MT_ROW
 
 void JE_inGameHelp(void)
 {

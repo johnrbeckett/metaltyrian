@@ -22,7 +22,12 @@ John to build and try sound and a gamepad. Then phase 4: Mac polish (window size
 
 Sound check, 2026-10-17: stock OpenTyrian2000 (aad5aca, SDL 2.30.0 built from source, disk audio driver) and MetalTyrian's headless build (`MT_WAV=out.wav Tests/linux/run.sh ...`) produce bit-identical music for the first 25 seconds from the first note; they part only when the demo's sound effects start at slightly different moments. Effect resampling (11025 to 44100 Hz) matches SDL's own converter to 41 dB. Scratch build of SDL and stock OpenTyrian2000 is in `Research/audio-check/` (ignored by git).
 
-Engine changes so far, all under `#ifdef METALTYRIAN` in `Engine/src/video.c`: frame handover at the top of `scale_and_flip`, and `scaleWindowDistanceToScreen` passing mouse distances through unchanged (the app sends them in game pixels).
+Engine changes so far, all under `#ifdef METALTYRIAN`:
+
+- `video.c`: frame handover at the top of `scale_and_flip`; `scaleWindowDistanceToScreen` passes mouse distances through unchanged (the app sends them in game pixels); `toggle_fullscreen` (Alt+Return) flips the shared full-screen setting.
+- `opentyr.c`: the Setup → Graphics menu shows MetalTyrian's settings (Display: Window/Full Screen, Look: Sharp Pixels/Authentic VGA, HDR Glow: Off/1.0/1.2/1.5/2.0), shared with the Mac View menu through `mt_setting`/`mt_set_setting`. OpenTyrian's Scaler and Scaling Mode are gone from it.
+- `config.c`: detail level fixed at 4 ("Pentium", the highest regular level) in `JE_initProcessorType`; John, 2026-10-17: not a setting.
+- `mainint.c`: the in-flight options menu hides the Detail row.
 
 ## Commits
 

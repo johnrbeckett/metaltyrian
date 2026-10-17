@@ -29,6 +29,8 @@ struct BlurParams {
 /// Pulls the newest 320x200 frame from the game thread and shows it with Metal.
 final class Renderer: NSObject, MTKViewDelegate {
     weak var window: NSWindow?
+    /// Runs on the main thread at the start of every display refresh.
+    var onFrame: (() -> Void)?
 
     var display: DisplayMode = .sharp
     var hdr = false
@@ -112,6 +114,7 @@ final class Renderer: NSObject, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
 
     func draw(in view: MTKView) {
+        onFrame?()
         (view as? GameView)?.syncPointer()
         Gamepads.poll(active: NSApp.isActive && window?.isKeyWindow == true)
         inFlight.wait()

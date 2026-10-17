@@ -34,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var hdrItem: NSMenuItem!
     private var glowItems: [NSMenuItem] = []
     static let glowLevels: [Float] = [1.0, 1.2, 1.5, 2.0]
+    private var fullScreenChanging = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
@@ -58,11 +59,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         renderer.glowStrength = Self.glowLevels.contains(savedGlow) ? savedGlow : 2.0
         view.delegate = renderer
         view.pictureRect = { [unowned self] in self.renderer.pictureRect(in: self.view.bounds) }
+        renderer.onFrame = { [unowned self] in self.followGameSettings() }
 
         window = NSWindow(contentRect: rect,
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered, defer: false)
         window.title = "MetalTyrian"
+        // A game window: black title bar with white text, in light mode too.
+        window.appearance = NSAppearance(named: .darkAqua)
+        window.titlebarAppearsTransparent = true
+        window.backgroundColor = .black
         window.contentView = view
         window.contentMinSize = NSSize(width: 640, height: 400)
         window.collectionBehavior = [.fullScreenPrimary]
@@ -72,6 +78,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         buildMenus()
         updateMenuChecks()
+        // Back to full screen if that's how the game was left.
+        mt_set_setting(MT_SETTING_FULLSCREEN, defaults.bool(forKey: "fullScreen") ? 1 : 0)
 
         // Saves and settings: ~/Library/Application Support/MetalTyrian.
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -121,6 +129,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func windowDidResignKey(_ notification: Notification) {
         view?.releaseAllKeys()
         mt_push_focus(false)
+    }
+
+    // MARK: - Full screen
+
+    func windowWillEnterFullScreen(_ notification: Notification) { fullScreenChanging = true }
+    func windowWillExitFullScreen(_ notification: Notification) { fullScreenChanging = true }
+
+    func windowDidEnterFullScreen(_ notification: Notification) { fullScreenChanged(true) }
+    func windowDidExitFullScreen(_ notification: Notification) { fullScreenChanged(false) }
+    func windowDidFailToEnterFullScreen(_ window: NSWindow) { fullScreenChanged(false) }
+    func windowDidFailToExitFullScreen(_ window: NSWindow) { fullScreenChanged(true) }
+
+    private func fullScreenChanged(_ on: Bool) {
+        fullScreenChanging = false
+        mt_set_setting(MT_SETTING_FULLSCREEN, on ? 1 : 0)
+        defaults.set(on, forKey: "fullScreen")
+    }
+
+    // MARK: - Settings shared with the game's Graphics menu
+
+    /// Applies any change made in the game's Graphics menu (or Alt+Return).
+    private func followGameSettings() {
+        var changed = false
+
+        let look = DisplayMode(rawValue: Int(mt_setting(MT_SETTING_LOOK))) ?? renderer.display
+        if look != renderer.display {
+            renderer.display = look
+            defaults.set(look.rawValue, forKey: "displayMode")
+            changed = true
+        }
+
+        let glow = Int(mt_setting(MT_SETTING_GLOW))
+        if glow != glowSetting() {
+            renderer.hdr = glow > 0
+            if glow > 0, glow <= Self.glowLevels.count {
+                renderer.glowStrength = Self.glowLevels[glow - 1]
+                defaults.set(renderer.glowStrength, forKey: "glowStrength")
+            }
+            defaults.set(renderer.hdr, forKey: "hdrGlow")
+            changed = true
+        }
+
+        if changed { updateMenuChecks() }
+
+        let wantFull = mt_setting(MT_SETTING_FULLSCREEN) != 0
+        if !fullScreenChanging, wantFull != window.styleMask.contains(.fullScreen) {
+            fullScreenChanging = true
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    /// The glow as the game's menu numbers it: 0 off, 1-4 the strengths.
+    private func glowSetting() -> Int {
+        guard renderer.hdr, let i = Self.glowLevels.firstIndex(of: renderer.glowStrength) else { return 0 }
+        return i + 1
     }
 
     // MARK: - Menus
@@ -192,6 +255,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     private func updateMenuChecks() {
+        // Keep the game's Graphics menu showing the same settings.
+        mt_set_setting(MT_SETTING_LOOK, Int32(renderer.display.rawValue))
+        mt_set_setting(MT_SETTING_GLOW, Int32(glowSetting()))
         for item in glowItems {
             item.state = (item.representedObject as? Float) == renderer.glowStrength ? .on : .off
         }

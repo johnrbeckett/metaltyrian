@@ -250,6 +250,10 @@ void video_on_win_resize(void)
 
 void toggle_fullscreen(void)
 {
+#ifdef METALTYRIAN
+	mt_set_setting(MT_SETTING_FULLSCREEN, !mt_setting(MT_SETTING_FULLSCREEN));
+	return;
+#endif
 	if (fullscreen_display != -1)
 		reinit_fullscreen(-1);
 	else

@@ -48,6 +48,10 @@
 #include "video_scale.h"
 #include "xmas.h"
 
+#ifdef METALTYRIAN
+#include "metaltyrian_host.h"
+#endif
+
 #include "SDL.h"
 
 #include <assert.h>
@@ -96,6 +100,44 @@ static const char *getScalingModePickerItem(size_t i, char *buffer, size_t buffe
 
 	return scaling_mode_names[i];
 }
+
+#ifdef METALTYRIAN
+/* MetalTyrian's Graphics menu: the settings its Metal renderer actually has,
+ * shared with the Mac View menu. It reuses the three picker slots of
+ * OpenTyrian's Display, Scaler and Scaling Mode items, which drive SDL's
+ * renderer and do nothing here. */
+
+static const char *const mt_display_names[] = { "Window", "Full Screen" };
+static const char *const mt_look_names[] = { "Sharp Pixels", "Authentic VGA" };
+static const char *const mt_glow_names[] = { "Off", "1.0", "1.2", "1.5", "2.0" };
+
+static size_t mtDisplayCount(void) { return COUNTOF(mt_display_names); }
+static size_t mtLookCount(void) { return COUNTOF(mt_look_names); }
+static size_t mtGlowCount(void) { return COUNTOF(mt_glow_names); }
+
+static const char *mtDisplayItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_display_names[i];
+}
+
+static const char *mtLookItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_look_names[i];
+}
+
+static const char *mtGlowItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_glow_names[i];
+}
+
+static size_t mtClamp(int value, size_t count)
+{
+	return value < 0 ? 0 : (size_t)value >= count ? count - 1 : (size_t)value;
+}
+#endif
 
 void setupMenu(void)
 {
@@ -152,9 +194,15 @@ void setupMenu(void)
 		[MENU_GRAPHICS] = {
 			.header = "Graphics",
 			.items = {
+#ifdef METALTYRIAN
+				{ MENU_ITEM_DISPLAY, "Display:", "Play in a window or full screen.", mtDisplayCount, mtDisplayItem },
+				{ MENU_ITEM_SCALER, "Look:", "Crisp square pixels, or a VGA monitor's scanlines.", mtLookCount, mtLookItem },
+				{ MENU_ITEM_SCALING_MODE, "HDR Glow:", "Light bloom around shots and explosions.", mtGlowCount, mtGlowItem },
+#else
 				{ MENU_ITEM_DISPLAY, "Display:", "Change the display mode.", getDisplayPickerItemsCount, getDisplayPickerItem },
 				{ MENU_ITEM_SCALER, "Scaler:", "Change the pixel art scaling algorithm.", getScalerPickerItemsCount, getScalerPickerItem },
 				{ MENU_ITEM_SCALING_MODE, "Scaling Mode:", "Change the scaling mode.", getScalingModePickerItemsCount, getScalingModePickerItem },
+#endif
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
 			},
@@ -243,22 +291,34 @@ void setupMenu(void)
 			switch (menuItem->id)
 			{
 			case MENU_ITEM_DISPLAY:;
+#ifdef METALTYRIAN
+				const char *value = mt_display_names[mtClamp(mt_setting(MT_SETTING_FULLSCREEN), COUNTOF(mt_display_names))];
+#else
 				const char *value = "Window";
 				if (fullscreen_display >= 0)
 				{
 					snprintf(buffer, sizeof(buffer), "Display %d", fullscreen_display + 1);
 					value = buffer;
 				}
+#endif
 
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, value, normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 
 			case MENU_ITEM_SCALER:
+#ifdef METALTYRIAN
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_look_names[mtClamp(mt_setting(MT_SETTING_LOOK), COUNTOF(mt_look_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+#else
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, scalers[scaler].name, normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+#endif
 				break;
 
 			case MENU_ITEM_SCALING_MODE:
+#ifdef METALTYRIAN
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_glow_names[mtClamp(mt_setting(MT_SETTING_GLOW), COUNTOF(mt_glow_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+#else
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, scaling_mode_names[scaling_mode], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+#endif
 				break;
 
 			case MENU_ITEM_MUSIC_VOLUME:
@@ -565,7 +625,11 @@ void setupMenu(void)
 					JE_playSampleNum(S_CLICK);
 
 					currentPicker = selectedMenuItemId;
+#ifdef METALTYRIAN
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_FULLSCREEN), COUNTOF(mt_display_names));
+#else
 					pickerSelectedIndex = (size_t)(fullscreen_display + 1);
+#endif
 					break;
 				}
 				case MENU_ITEM_SCALER:
@@ -573,7 +637,11 @@ void setupMenu(void)
 					JE_playSampleNum(S_CLICK);
 
 					currentPicker = selectedMenuItemId;
+#ifdef METALTYRIAN
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_LOOK), COUNTOF(mt_look_names));
+#else
 					pickerSelectedIndex = scaler;
+#endif
 					break;
 				}
 				case MENU_ITEM_SCALING_MODE:
@@ -581,7 +649,11 @@ void setupMenu(void)
 					JE_playSampleNum(S_CLICK);
 
 					currentPicker = selectedMenuItemId;
+#ifdef METALTYRIAN
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_GLOW), COUNTOF(mt_glow_names));
+#else
 					pickerSelectedIndex = scaling_mode;
+#endif
 					break;
 				}
 				case MENU_ITEM_MUSIC_VOLUME:
@@ -711,6 +783,17 @@ void setupMenu(void)
 
 				switch (selectedMenuItem->id)
 				{
+#ifdef METALTYRIAN
+				case MENU_ITEM_DISPLAY:
+					mt_set_setting(MT_SETTING_FULLSCREEN, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_SCALER:
+					mt_set_setting(MT_SETTING_LOOK, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_SCALING_MODE:
+					mt_set_setting(MT_SETTING_GLOW, (int)pickerSelectedIndex);
+					break;
+#else
 				case MENU_ITEM_DISPLAY:
 				{
 					if ((int)pickerSelectedIndex - 1 != fullscreen_display)
@@ -735,6 +818,7 @@ void setupMenu(void)
 					scaling_mode = pickerSelectedIndex;
 					break;
 				}
+#endif
 				default:
 					break;
 				}

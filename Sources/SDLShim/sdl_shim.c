@@ -333,6 +333,21 @@ int SDL_SetRelativeMouseMode(SDL_bool enabled)
 }
 
 bool mt_cursor_wanted(void) { return cursor_shown != 0; }
+
+/* ---- Display settings shared with the app ---------------------------------- */
+
+static _Atomic int settings[MT_SETTING_COUNT];
+
+int mt_setting(int which)
+{
+	return which >= 0 && which < MT_SETTING_COUNT ? settings[which] : 0;
+}
+
+void mt_set_setting(int which, int value)
+{
+	if (which >= 0 && which < MT_SETTING_COUNT)
+		settings[which] = value;
+}
 bool mt_relative_mouse(void) { return relative_mouse != 0; }
 
 /* ---- Keyboard names ------------------------------------------------------- */

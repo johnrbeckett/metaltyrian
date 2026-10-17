@@ -513,6 +513,12 @@ void JE_initProcessorType(void)
 	/* SYN: Originally this proc looked at your hardware specs and chose appropriate options. We don't care, so I'll just set
 	   decent defaults here. */
 
+#ifdef METALTYRIAN
+	/* MetalTyrian always uses the highest regular detail level ("Pentium"),
+	 * so every level shows all its effects. It is not a setting. */
+	processorType = 4;
+#endif
+
 	wild = false;
 	superWild = false;
 	smoothScroll = true;
