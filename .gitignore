@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Build output (builds go to ~/Library/Caches/MetalTyrian-build)
+.build/
+build/
+*.app
+*.dmg
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Reference material kept beside the repo, not in it
+Source/
+Research/
+Art/
+GameData/*.zip
+GameData/tyrian21/
+
+# DOS programs from the Tyrian 2000 archive; the port only needs the data
+GameData/tyrian2000/*.exe
+GameData/tyrian2000/*.pif
+GameData/tyrian2000/*.ovl
+GameData/tyrian2000/*.ico
+
+# Secrets
+.env
