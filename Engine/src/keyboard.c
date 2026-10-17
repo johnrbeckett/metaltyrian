@@ -26,6 +26,10 @@
 #include "video.h"
 #include "video_scale.h"
 
+#ifdef METALTYRIAN
+#include "varz.h"
+#endif
+
 #include "SDL.h"
 
 #include <stdio.h>
@@ -273,6 +277,12 @@ void service_SDL_events(JE_boolean clear_new)
 				break;
 
 			case SDL_QUIT:
+#ifdef METALTYRIAN
+				/* The Mac app is quitting (Command-Q or closing the window): save
+				 * settings, high scores and saved games first, as the game's own
+				 * Quit does. */
+				JE_tyrianHalt(0);
+#endif
 				/* TODO: Call the cleanup code here. */
 				exit(0);
 				break;

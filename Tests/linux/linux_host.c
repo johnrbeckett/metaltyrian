@@ -67,6 +67,13 @@ int main(int argc, char **argv)
 		if (getenv("MT_FPS_LOG") && i % 10 == 9)
 			printf("t=%ds frames=%llu\n", (i + 1) / 10, (unsigned long long)last);
 	}
+	if (getenv("MT_QUIT"))
+	{
+		/* As the Mac app does on Command-Q: the game saves, then exits the process. */
+		mt_push_quit();
+		sleep(5);
+		printf("game did not quit\n");
+	}
 	running = 0;
 	if (wav)
 		pthread_join(at, NULL);

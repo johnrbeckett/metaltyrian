@@ -126,6 +126,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
+    /// Quitting from the Mac (Command-Q or the close button) asks the game to
+    /// quit, so it saves its settings, high scores and saved games first.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if mt_game_finished() { return .terminateNow }
+        mt_push_quit()
+        // If the game is busy and doesn't get to it, quit anyway.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            NSApp.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         view?.releaseAllKeys()  // also frees the pointer if the game had it
     }
@@ -170,6 +182,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     /// Applies any change made in the game's Graphics menu (or Alt+Return).
     private func followGameSettings() {
+        if mt_game_finished() {
+            NSApp.terminate(nil)
+            return
+        }
         var changed = false
 
         let look = DisplayMode(rawValue: Int(mt_setting(MT_SETTING_LOOK))) ?? renderer.display

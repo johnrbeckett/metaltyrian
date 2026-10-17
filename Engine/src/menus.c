@@ -55,7 +55,12 @@ bool gameplaySelect(void)
 
 	bool restart = true;
 
+#ifdef METALTYRIAN
+	/* No network play in MetalTyrian: the Network row (the last one) is not shown. */
+	const size_t menuItemsCount = MENU_ITEM_NETWORK;
+#else
 	const size_t menuItemsCount = COUNTOF(gameplay_name) - 1;
+#endif
 	size_t selectedIndex = MENU_ITEM_1_PLAYER_FULL_GAME;
 
 	const int xCenter = 320 / 2;

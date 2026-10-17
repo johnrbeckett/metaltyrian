@@ -31,6 +31,8 @@ Engine changes so far, all under `#ifdef METALTYRIAN`:
 - `tyrian2.c`: `JE_starShowVGA` shows each frame as soon as it is drawn, then waits for the frame's time slot and reads input; OpenTyrian waited first and read input before the wait (2-3 frames of lag). Game speed checked unchanged on Linux (about 33 frames a second in the demo, before and after).
 - `mainint.c` also: Momentum (Setup > Controls; Original, Light, Off). Only the drift from the player's own steering changes; level pushes (magnets, currents, hit knockback) keep the original velocity physics. Demos always use the original physics. `tyrian2.c` resets it at level start.
 - `mainint.c` also: Mouse Mode Direct (default): an invisible pointer moves over the ship's reachable area (x 40-256, y 10-160) and the ship flies to it at the game's top mouse speed; keys or a gamepad hand control back; no steering drift while the mouse drives; reversed-controls levels still flip it. The app feeds Direct mode raw GCMouse deltas (no macOS acceleration), learning the raw y direction from AppKit's deltas.
+- `menus.c`: the game-type menu hides Network (no network play).
+- `keyboard.c`: SDL_QUIT (pushed by the app on Command-Q or closing the window) runs `JE_tyrianHalt(0)`, which saves `opentyrian.cfg`, `tyrian.cfg` and `tyrian.sav` before exiting; checked on Linux. The app also quits when the game ends (title-screen Quit).
 - `joystick.c`: `joystick_axis_reduce` scales the stick by Gamepad Speed instead of the joystick sensitivity.
 - `opentyr.c` also: Setup > Controls (Keyboard Speed 1-5, Gamepad Speed 1-10, Mouse Speed 1-10); Graphics gained Aspect (Original, Square, Exact) and Borders (Black, Ambient).
 
