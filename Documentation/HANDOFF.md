@@ -5,7 +5,7 @@
 | Item | State |
 |---|---|
 | Folder | Created at `~/Developer/MetalTyrian/` |
-| Git repo | Local repo on `main`, created 2026-10-17. GitHub remote not yet set up. |
+| Git repo | Local repo on `main`, created 2026-10-17. GitHub repo `johnrbeckett/metaltyrian` (private) created 2026-10-17 with `GITHUB_TOKEN_ORBIT_ANGEL`; the token has no access to it until John grants it, so nothing is pushed yet. |
 | Code | Phase 0 of `PLAN-V1.md` (approved 2026-10-17): app shell, build script, engine in `Engine/`. Not yet built on the Mac. |
 | Research | `Documentation/RESEARCH.md` |
 | OpenTyrian source | `Source/opentyrian/`, commit 624e2f2 (2026-10-09) |
