@@ -23,6 +23,10 @@
 #include "palette.h"
 #include "video_scale.h"
 
+#ifdef METALTYRIAN
+#include "metaltyrian_host.h"
+#endif
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -382,6 +386,15 @@ static void calc_dst_render_rect(SDL_Surface *const src_surface, SDL_Rect *const
 static void scale_and_flip(SDL_Surface *src_surface)
 {
 	assert(src_surface->format->BitsPerPixel == 8);
+
+#ifdef METALTYRIAN
+	// MetalTyrian: hand the 8-bit frame and palette to the Mac app, which scales
+	// and shows it with Metal. Mouse input arrives in game coordinates, so the
+	// output rectangle is the game screen itself.
+	mt_present_frame(src_surface->pixels, src_surface->pitch, rgb_palette);
+	last_output_rect = (SDL_Rect){ 0, 0, vga_width, vga_height };
+	return;
+#endif
 
 	// Do software scaling
 	assert(scaler_function != NULL);

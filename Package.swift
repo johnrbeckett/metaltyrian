@@ -7,8 +7,33 @@ let package = Package(
     name: "MetalTyrian",
     platforms: [.macOS(.v13)],
     targets: [
+        // MetalTyrian's own small implementation of the SDL 2 functions the game
+        // uses, plus the interface the Swift app talks to (metaltyrian_host.h).
+        .target(
+            name: "SDLShim",
+            path: "Sources/SDLShim"
+        ),
+        // OpenTyrian2000's game code, unchanged apart from the frame handover in
+        // video.c. Its main() is renamed so the app can run it on its own thread.
+        .target(
+            name: "TyrianCore",
+            dependencies: ["SDLShim"],
+            path: "Engine",
+            sources: ["src"],
+            publicHeadersPath: "include",
+            cSettings: [
+                .define("METALTYRIAN"),
+                .define("NDEBUG"),
+                .define("TARGET_UNIX"),
+                .define("TYRIAN_DIR", to: "\".\""),
+                .define("OPENTYRIAN_VERSION", to: "\"metaltyrian\""),
+                .define("main", to: "tyrian_main"),
+                .unsafeFlags(["-std=gnu99"]),
+            ]
+        ),
         .executableTarget(
             name: "MetalTyrian",
+            dependencies: ["SDLShim", "TyrianCore"],
             path: "Sources/MetalTyrian"
         ),
     ]

@@ -1,100 +1,170 @@
-// MetalTyrian, phase 0: the app shell. Opens a Metal window and checks that
-// the Tyrian 2000 data is inside the app. The game arrives in phase 1.
+// MetalTyrian: Tyrian 2000 on OpenTyrian2000's game code, drawn with Metal.
+//
+// The game runs on its own thread (see SDLShim). This file sets up the app,
+// the window and the menus, then starts the game.
 
 import AppKit
 import MetalKit
+import SDLShim
 
 /// Finds the Tyrian 2000 data: inside the app bundle, or a folder given on the command line.
 enum GameData {
     static func locate() -> URL? {
         let args = CommandLine.arguments
-        if args.count > 1 {
+        if args.count > 1, !args[1].hasPrefix("-") {
             return URL(fileURLWithPath: args[1], isDirectory: true)
         }
         return Bundle.main.resourceURL?.appendingPathComponent("GameData", isDirectory: true)
     }
 
-    /// Episodes present, by the same test the game uses: levelsN.dat exists.
-    static func episodes(in dir: URL) -> [Int] {
-        (1...5).filter {
-            FileManager.default.fileExists(atPath: dir.appendingPathComponent("levels\($0).dat").path)
-        }
+    static func isPresent(in dir: URL) -> Bool {
+        FileManager.default.fileExists(atPath: dir.appendingPathComponent("tyrian1.lvl").path)
     }
 }
 
-final class ClearRenderer: NSObject, MTKViewDelegate {
-    private let queue: MTLCommandQueue
-
-    init?(device: MTLDevice) {
-        guard let q = device.makeCommandQueue() else { return nil }
-        queue = q
-    }
-
-    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
-
-    func draw(in view: MTKView) {
-        guard let rpd = view.currentRenderPassDescriptor,
-              let drawable = view.currentDrawable,
-              let cmd = queue.makeCommandBuffer(),
-              let enc = cmd.makeRenderCommandEncoder(descriptor: rpd) else { return }
-        enc.endEncoding()
-        cmd.present(drawable)
-        cmd.commit()
-    }
-}
-
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow!
-    var renderer: ClearRenderer!
+    var view: GameView!
+    var renderer: Renderer!
+
+    private let defaults = UserDefaults.standard
+    private var sharpItem: NSMenuItem!
+    private var vgaItem: NSMenuItem!
+    private var hdrItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
-
-        var status = "no game data found"
-        if let dir = GameData.locate() {
-            let eps = GameData.episodes(in: dir)
-            status = eps.isEmpty ? "no game data in \(dir.path)" : "Tyrian 2000 data: episodes \(eps.map(String.init).joined(separator: ", "))"
+        guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
+            fail("The Tyrian 2000 game data is missing from the app.")
         }
-
-        guard let device = MTLCreateSystemDefaultDevice(), let r = ClearRenderer(device: device) else {
-            let alert = NSAlert()
-            alert.messageText = "MetalTyrian needs a Mac with Metal."
-            alert.runModal()
-            exit(1)
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            fail("MetalTyrian needs a Mac with Metal.")
         }
-        renderer = r
 
         let rect = NSRect(x: 0, y: 0, width: 1280, height: 800)
-        let view = MTKView(frame: rect, device: device)
-        view.clearColor = MTLClearColor(red: 0.02, green: 0.02, blue: 0.05, alpha: 1)
+        view = GameView(frame: rect, device: device)
+        do {
+            renderer = try Renderer(view: view)
+        } catch {
+            fail("\(error)")
+        }
+        renderer.display = DisplayMode(rawValue: defaults.integer(forKey: "displayMode")) ?? .sharp
+        renderer.hdr = defaults.bool(forKey: "hdrGlow")
         view.delegate = renderer
 
         window = NSWindow(contentRect: rect,
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered, defer: false)
-        window.title = "MetalTyrian \(version)   |   \(status)"
+        window.title = "MetalTyrian"
         window.contentView = view
+        window.contentMinSize = NSSize(width: 640, height: 400)
         window.collectionBehavior = [.fullScreenPrimary]
+        window.delegate = self
         window.center()
+        renderer.window = window
+
+        buildMenus()
+        updateMenuChecks()
+
+        // Saves and settings: ~/Library/Application Support/MetalTyrian.
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("MetalTyrian", isDirectory: true)
+        try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        setenv("XDG_CONFIG_HOME", support.path, 1)
+
+        let args = ["metaltyrian", "-t", dataDir.path]
+        var cargs = args.map { strdup($0) }
+        cargs.withUnsafeMutableBufferPointer { buf in
+            buf.baseAddress!.withMemoryRebound(to: UnsafePointer<CChar>?.self, capacity: buf.count) {
+                mt_start_game(Int32(args.count), $0)
+            }
+        }
+        cargs.forEach { free($0) }
+
         window.makeKeyAndOrderFront(nil)
+        window.makeFirstResponder(view)
         NSApp.activate(ignoringOtherApps: true)
-        print("MetalTyrian \(version): \(status)")
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+
+    // MARK: - Focus
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        mt_push_focus(true)
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        view?.releaseAllKeys()
+        mt_push_focus(false)
+    }
+
+    // MARK: - Menus
+
+    private func buildMenus() {
+        let main = NSMenu()
+
+        let appItem = NSMenuItem()
+        main.addItem(appItem)
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About MetalTyrian", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Hide MetalTyrian", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Quit MetalTyrian", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appItem.submenu = appMenu
+
+        let viewItem = NSMenuItem()
+        main.addItem(viewItem)
+        let viewMenu = NSMenu(title: "View")
+        sharpItem = viewMenu.addItem(withTitle: "Sharp Pixels", action: #selector(chooseSharp(_:)), keyEquivalent: "1")
+        vgaItem = viewMenu.addItem(withTitle: "Authentic VGA", action: #selector(chooseVGA(_:)), keyEquivalent: "2")
+        viewMenu.addItem(.separator())
+        hdrItem = viewMenu.addItem(withTitle: "HDR Glow", action: #selector(toggleHDR(_:)), keyEquivalent: "g")
+        viewMenu.addItem(.separator())
+        let fs = viewMenu.addItem(withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
+        fs.keyEquivalentModifierMask = [.command, .control]
+        for item in [sharpItem, vgaItem, hdrItem] { item?.target = self }
+        viewItem.submenu = viewMenu
+
+        NSApp.mainMenu = main
+    }
+
+    @objc private func chooseSharp(_ sender: Any?) {
+        renderer.display = .sharp
+        defaults.set(DisplayMode.sharp.rawValue, forKey: "displayMode")
+        updateMenuChecks()
+    }
+
+    @objc private func chooseVGA(_ sender: Any?) {
+        renderer.display = .vga
+        defaults.set(DisplayMode.vga.rawValue, forKey: "displayMode")
+        updateMenuChecks()
+    }
+
+    @objc private func toggleHDR(_ sender: Any?) {
+        renderer.hdr.toggle()
+        defaults.set(renderer.hdr, forKey: "hdrGlow")
+        updateMenuChecks()
+    }
+
+    private func updateMenuChecks() {
+        sharpItem?.state = renderer.display == .sharp ? .on : .off
+        vgaItem?.state = renderer.display == .vga ? .on : .off
+        hdrItem?.state = renderer.hdr ? .on : .off
+    }
+
+    private func fail(_ message: String) -> Never {
+        print("MetalTyrian: \(message)")
+        let alert = NSAlert()
+        alert.messageText = "MetalTyrian could not start"
+        alert.informativeText = message
+        alert.runModal()
+        exit(1)
+    }
 }
 
 let app = NSApplication.shared
 app.setActivationPolicy(.regular)
-
-let mainMenu = NSMenu()
-let appItem = NSMenuItem()
-mainMenu.addItem(appItem)
-let appMenu = NSMenu()
-appMenu.addItem(withTitle: "Quit MetalTyrian", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-appItem.submenu = appMenu
-app.mainMenu = mainMenu
-
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
