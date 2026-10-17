@@ -63,6 +63,7 @@
 const char *opentyrian_str = "OpenTyrian2000";
 const char *opentyrian_version = OPENTYRIAN_VERSION;
 
+#ifndef METALTYRIAN
 static size_t getDisplayPickerItemsCount(void)
 {
 	return 1 + (size_t)SDL_GetNumVideoDisplays();
@@ -100,6 +101,8 @@ static const char *getScalingModePickerItem(size_t i, char *buffer, size_t buffe
 
 	return scaling_mode_names[i];
 }
+
+#endif
 
 #ifdef METALTYRIAN
 /* MetalTyrian's Graphics menu: the settings its Metal renderer actually has,
