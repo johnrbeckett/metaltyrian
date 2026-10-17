@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var vgaItem: NSMenuItem!
     private var hdrItem: NSMenuItem!
     private var glowItems: [NSMenuItem] = []
+    private var aspectItems: [NSMenuItem] = []
+    private var borderItems: [NSMenuItem] = []
     static let glowLevels: [Float] = [1.0, 1.2, 1.5, 2.0]
     private var fullScreenChanging = false
 
@@ -52,13 +54,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             fail("\(error)")
         }
         // First-run look, John's pick 2026-10-17: authentic VGA with HDR glow at 2.0.
-        defaults.register(defaults: ["displayMode": DisplayMode.vga.rawValue, "hdrGlow": true, "glowStrength": Float(2.0)])
+        defaults.register(defaults: ["displayMode": DisplayMode.vga.rawValue, "hdrGlow": true, "glowStrength": Float(2.0),
+                                     "aspect": Aspect.square.rawValue, "borders": Borders.black.rawValue])
         renderer.display = DisplayMode(rawValue: defaults.integer(forKey: "displayMode")) ?? .vga
         renderer.hdr = defaults.bool(forKey: "hdrGlow")
+        renderer.aspect = Aspect(rawValue: defaults.integer(forKey: "aspect")) ?? .square
+        renderer.borders = Borders(rawValue: defaults.integer(forKey: "borders")) ?? .black
         let savedGlow = defaults.float(forKey: "glowStrength")
         renderer.glowStrength = Self.glowLevels.contains(savedGlow) ? savedGlow : 2.0
         view.delegate = renderer
-        view.pictureRect = { [unowned self] in self.renderer.pictureRect(in: self.view.bounds) }
+        view.pictureRect = { [unowned self] in self.renderer.pictureRect(in: self.view) }
         renderer.onFrame = { [unowned self] in self.followGameSettings() }
 
         window = NSWindow(contentRect: rect,
@@ -171,6 +176,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             changed = true
         }
 
+        if let a = Aspect(rawValue: Int(mt_setting(MT_SETTING_ASPECT))), a != renderer.aspect {
+            renderer.aspect = a
+            defaults.set(a.rawValue, forKey: "aspect")
+            changed = true
+        }
+
+        if let b = Borders(rawValue: Int(mt_setting(MT_SETTING_BORDERS))), b != renderer.borders {
+            renderer.borders = b
+            defaults.set(b.rawValue, forKey: "borders")
+            changed = true
+        }
+
         if changed { updateMenuChecks() }
 
         let wantFull = mt_setting(MT_SETTING_FULLSCREEN) != 0
@@ -217,6 +234,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         viewMenu.addItem(withTitle: "Glow Strength", action: nil, keyEquivalent: "").submenu = glowMenu
         viewMenu.addItem(.separator())
+
+        let aspectMenu = NSMenu(title: "Aspect")
+        for (a, title) in [(Aspect.original, "Original (4:3)"), (.square, "Square Pixels (16:10)"), (.exact, "Exact Pixels")] {
+            let item = aspectMenu.addItem(withTitle: title, action: #selector(chooseAspect(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = a.rawValue
+            aspectItems.append(item)
+        }
+        viewMenu.addItem(withTitle: "Aspect", action: nil, keyEquivalent: "").submenu = aspectMenu
+
+        let borderMenu = NSMenu(title: "Borders")
+        for (b, title) in [(Borders.black, "Black"), (.ambient, "Ambient")] {
+            let item = borderMenu.addItem(withTitle: title, action: #selector(chooseBorders(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = b.rawValue
+            borderItems.append(item)
+        }
+        viewMenu.addItem(withTitle: "Borders", action: nil, keyEquivalent: "").submenu = borderMenu
+        viewMenu.addItem(.separator())
         let fs = viewMenu.addItem(withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
         fs.keyEquivalentModifierMask = [.command, .control]
         for item in [sharpItem, vgaItem, hdrItem] { item?.target = self }
@@ -254,7 +290,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         updateMenuChecks()
     }
 
+    @objc private func chooseAspect(_ sender: NSMenuItem) {
+        guard let a = Aspect(rawValue: sender.tag) else { return }
+        renderer.aspect = a
+        defaults.set(a.rawValue, forKey: "aspect")
+        updateMenuChecks()
+    }
+
+    @objc private func chooseBorders(_ sender: NSMenuItem) {
+        guard let b = Borders(rawValue: sender.tag) else { return }
+        renderer.borders = b
+        defaults.set(b.rawValue, forKey: "borders")
+        updateMenuChecks()
+    }
+
     private func updateMenuChecks() {
+        for item in aspectItems { item.state = item.tag == renderer.aspect.rawValue ? .on : .off }
+        for item in borderItems { item.state = item.tag == renderer.borders.rawValue ? .on : .off }
+        mt_set_setting(MT_SETTING_ASPECT, Int32(renderer.aspect.rawValue))
+        mt_set_setting(MT_SETTING_BORDERS, Int32(renderer.borders.rawValue))
         // Keep the game's Graphics menu showing the same settings.
         mt_set_setting(MT_SETTING_LOOK, Int32(renderer.display.rawValue))
         mt_set_setting(MT_SETTING_GLOW, Int32(glowSetting()))

@@ -74,6 +74,26 @@ fragment float4 display_frag(VOut in [[stage_in]],
     return float4(linc, 1.0);
 }
 
+struct AmbientParams {
+    float2 origin;    // picture's top-left corner in the drawable, pixels
+    float2 size;      // picture's size in the drawable, pixels
+};
+
+// Ambient borders: a heavily blurred copy of the picture, edge colours carried
+// outwards and dimmed with distance, like light spilling from a screen.
+fragment float4 ambient_frag(VOut in [[stage_in]],
+                             texture2d<float> amb [[texture(0)]],
+                             constant AmbientParams &a [[buffer(0)]]) {
+    constexpr sampler lin(filter::linear, address::clamp_to_edge);
+    float2 uv = (in.pos.xy - a.origin) / a.size;
+    float3 c = pow(amb.sample(lin, uv).rgb, float3(2.2));
+    // Distance outside the picture, in picture heights.
+    float2 out2 = max(max(-uv, uv - 1.0), 0.0) * float2(a.size.x / a.size.y, 1.0);
+    float d = length(out2);
+    float fade = 0.38 * exp(-d * 2.2);
+    return float4(c * fade, 1.0);
+}
+
 // Bright pass at source resolution: keep only hot, saturated pixels, in linear light.
 fragment float4 bright_frag(VOut in [[stage_in]], texture2d<float> src [[texture(0)]]) {
     constexpr sampler pt(filter::nearest, address::clamp_to_edge);

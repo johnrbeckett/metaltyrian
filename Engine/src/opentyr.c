@@ -136,6 +136,24 @@ static const char *mtGlowItem(size_t i, char *buffer, size_t bufferSize)
 	return mt_glow_names[i];
 }
 
+static const char *const mt_aspect_names[] = { "Original", "Square", "Exact" };
+static const char *const mt_border_names[] = { "Black", "Ambient" };
+
+static size_t mtAspectCount(void) { return COUNTOF(mt_aspect_names); }
+static size_t mtBorderCount(void) { return COUNTOF(mt_border_names); }
+
+static const char *mtAspectItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_aspect_names[i];
+}
+
+static const char *mtBorderItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_border_names[i];
+}
+
 static size_t mtClamp(int value, size_t count)
 {
 	return value < 0 ? 0 : (size_t)value >= count ? count - 1 : (size_t)value;
@@ -157,6 +175,10 @@ void setupMenu(void)
 		MENU_ITEM_SCALING_MODE,
 		MENU_ITEM_MUSIC_VOLUME,
 		MENU_ITEM_SOUND_VOLUME,
+#ifdef METALTYRIAN
+		MENU_ITEM_ASPECT,
+		MENU_ITEM_BORDERS,
+#endif
 	} MenuItemId;
 
 	typedef enum
@@ -179,7 +201,11 @@ void setupMenu(void)
 	typedef struct
 	{
 		const char *header;
+#ifdef METALTYRIAN
+		const MenuItem items[8];
+#else
 		const MenuItem items[6];
+#endif
 	} Menu;
 
 	static const Menu menus[] = {
@@ -201,6 +227,8 @@ void setupMenu(void)
 				{ MENU_ITEM_DISPLAY, "Display:", "Play in a window or full screen.", mtDisplayCount, mtDisplayItem },
 				{ MENU_ITEM_SCALER, "Look:", "Sharp square pixels, or an old VGA monitor's scanlines.", mtLookCount, mtLookItem },
 				{ MENU_ITEM_SCALING_MODE, "Glow:", "Light bloom around shots and explosions.", mtGlowCount, mtGlowItem },
+				{ MENU_ITEM_ASPECT, "Aspect:", "Original 4:3, square pixels, or exact pixel sizes.", mtAspectCount, mtAspectItem },
+				{ MENU_ITEM_BORDERS, "Borders:", "Black bars, or the picture's colours spilling out.", mtBorderCount, mtBorderItem },
 #else
 				{ MENU_ITEM_DISPLAY, "Display:", "Change the display mode.", getDisplayPickerItemsCount, getDisplayPickerItem },
 				{ MENU_ITEM_SCALER, "Scaler:", "Change the pixel art scaling algorithm.", getScalerPickerItemsCount, getScalerPickerItem },
@@ -324,6 +352,16 @@ void setupMenu(void)
 #endif
 				break;
 
+#ifdef METALTYRIAN
+			case MENU_ITEM_ASPECT:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_aspect_names[mtClamp(mt_setting(MT_SETTING_ASPECT), COUNTOF(mt_aspect_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
+
+			case MENU_ITEM_BORDERS:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_border_names[mtClamp(mt_setting(MT_SETTING_BORDERS), COUNTOF(mt_border_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
+#endif
+
 			case MENU_ITEM_MUSIC_VOLUME:
 				JE_barDrawShadow(VGAScreen, xMenuItemValue, y, 1, music_disabled ? 170 : 174, (tyrMusicVolume + 4) / 8, 2, 10);
 				JE_rectangle(VGAScreen, xMenuItemValue - 2, y - 2, xMenuItemValue + 96, y + 11, 242);
@@ -439,6 +477,10 @@ void setupMenu(void)
 									case MENU_ITEM_DISPLAY:
 									case MENU_ITEM_SCALER:
 									case MENU_ITEM_SCALING_MODE:
+#ifdef METALTYRIAN
+									case MENU_ITEM_ASPECT:
+									case MENU_ITEM_BORDERS:
+#endif
 									{
 										action = true;
 										break;
@@ -659,6 +701,24 @@ void setupMenu(void)
 #endif
 					break;
 				}
+#ifdef METALTYRIAN
+				case MENU_ITEM_ASPECT:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_ASPECT), COUNTOF(mt_aspect_names));
+					break;
+				}
+				case MENU_ITEM_BORDERS:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_BORDERS), COUNTOF(mt_border_names));
+					break;
+				}
+#endif
 				case MENU_ITEM_MUSIC_VOLUME:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -795,6 +855,12 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_SCALING_MODE:
 					mt_set_setting(MT_SETTING_GLOW, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_ASPECT:
+					mt_set_setting(MT_SETTING_ASPECT, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_BORDERS:
+					mt_set_setting(MT_SETTING_BORDERS, (int)pickerSelectedIndex);
 					break;
 #else
 				case MENU_ITEM_DISPLAY:

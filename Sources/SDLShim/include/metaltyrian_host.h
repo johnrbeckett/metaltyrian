@@ -74,7 +74,9 @@ void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat);
 #define MT_SETTING_FULLSCREEN 0   /* 0 window, 1 full screen */
 #define MT_SETTING_LOOK 1         /* 0 sharp pixels, 1 authentic VGA */
 #define MT_SETTING_GLOW 2         /* 0 off, 1-4 = strength 1.0, 1.2, 1.5, 2.0 */
-#define MT_SETTING_COUNT 3
+#define MT_SETTING_ASPECT 3       /* 0 original 4:3, 1 square pixels 16:10, 2 exact whole-pixel scale */
+#define MT_SETTING_BORDERS 4      /* 0 black, 1 ambient */
+#define MT_SETTING_COUNT 5
 int mt_setting(int which);
 void mt_set_setting(int which, int value);
 

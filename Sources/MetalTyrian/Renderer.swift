@@ -8,6 +8,24 @@ enum DisplayMode: Int {
     case vga = 1
 }
 
+/// The picture's shape. Raw values match MT_SETTING_ASPECT.
+enum Aspect: Int, CaseIterable {
+    case original = 0   // 4:3, as on a VGA monitor (pixels 1.2 times taller than wide)
+    case square = 1     // 16:10, square pixels
+    case exact = 2      // square pixels at the largest whole-number size that fits
+}
+
+/// What fills the space around the picture. Raw values match MT_SETTING_BORDERS.
+enum Borders: Int, CaseIterable {
+    case black = 0
+    case ambient = 1
+}
+
+struct AmbientParams {
+    var origin: SIMD2<Float>
+    var size: SIMD2<Float>
+}
+
 // Must match the Metal structs in Shaders.swift.
 struct DisplayParams {
     var texSize: SIMD2<Float>
@@ -33,6 +51,8 @@ final class Renderer: NSObject, MTKViewDelegate {
     var onFrame: (() -> Void)?
 
     var display: DisplayMode = .sharp
+    var aspect: Aspect = .square
+    var borders: Borders = .black
     var hdr = false
     var glowStrength: Float = 2.0
 
@@ -43,12 +63,15 @@ final class Renderer: NSObject, MTKViewDelegate {
     private let displayPSO: MTLRenderPipelineState
     private let brightPSO: MTLRenderPipelineState
     private let blurPSO: MTLRenderPipelineState
+    private let ambientPSO: MTLRenderPipelineState
 
     private let srcTex: MTLTexture
     private let brightTex: MTLTexture
     private let blurTmp: MTLTexture
     private let glowN: MTLTexture
     private let glowW: MTLTexture
+    private let ambTex: MTLTexture
+    private var ambFrame: UInt64 = 0
 
     private var indices = [UInt8](repeating: 0, count: 320 * 200)
     private var palette = [UInt32](repeating: 0, count: 256)
@@ -89,6 +112,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         displayPSO = try pso("display_frag", .rgba16Float)
         brightPSO = try pso("bright_frag", .rgba16Float)
         blurPSO = try pso("blur_frag", .rgba16Float)
+        ambientPSO = try pso("ambient_frag", .rgba16Float)
 
         func tex(_ fmt: MTLPixelFormat, target: Bool) throws -> MTLTexture {
             let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: fmt, width: 320, height: 200, mipmapped: false)
@@ -108,6 +132,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         blurTmp = try tex(.rgba16Float, target: true)
         glowN = try tex(.rgba16Float, target: true)
         glowW = try tex(.rgba16Float, target: true)
+        ambTex = try tex(.rgba16Float, target: true)
         super.init()
     }
 
@@ -152,19 +177,31 @@ final class Renderer: NSObject, MTKViewDelegate {
             glowFrame = frameNumber
         }
 
+        if borders == .ambient && ambFrame != frameNumber {
+            blur(cmd, from: srcTex, to: ambTex, sigma: 9, radius: 27)
+            ambFrame = frameNumber
+        }
+
         guard let rpd = view.currentRenderPassDescriptor, let drawable = view.currentDrawable,
               let enc = cmd.makeRenderCommandEncoder(descriptor: rpd) else {
             cmd.commit()
             return
         }
 
-        // Letterbox the 16:10 picture into the drawable.
-        let ds = view.drawableSize
-        var w = ds.width, h = ds.width / 1.6
-        if h > ds.height { h = ds.height; w = h * 1.6 }
-        let ox = ((ds.width - w) / 2).rounded(), oy = ((ds.height - h) / 2).rounded()
-        w = w.rounded(); h = h.rounded()
-        enc.setViewport(MTLViewport(originX: Double(ox), originY: Double(oy), width: Double(w), height: Double(h), znear: 0, zfar: 1))
+        let pic = pictureRectPixels(view.drawableSize)
+
+        if borders == .ambient {
+            var a = AmbientParams(origin: SIMD2(Float(pic.minX), Float(pic.minY)),
+                                  size: SIMD2(Float(pic.width), Float(pic.height)))
+            enc.setRenderPipelineState(ambientPSO)
+            enc.setFragmentTexture(ambTex, index: 0)
+            enc.setFragmentBytes(&a, length: MemoryLayout<AmbientParams>.stride, index: 0)
+            enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        }
+
+        let w = pic.width, h = pic.height
+        enc.setViewport(MTLViewport(originX: Double(pic.minX), originY: Double(pic.minY),
+                                    width: Double(w), height: Double(h), znear: 0, zfar: 1))
 
         var p = DisplayParams(
             texSize: SIMD2(320, 200),
@@ -187,11 +224,35 @@ final class Renderer: NSObject, MTKViewDelegate {
         cmd.commit()
     }
 
-    /// Where the game picture sits in the view, in view points, for mapping the mouse.
-    func pictureRect(in bounds: CGRect) -> CGRect {
-        var w = bounds.width, h = bounds.width / 1.6
-        if h > bounds.height { h = bounds.height; w = h * 1.6 }
-        return CGRect(x: (bounds.width - w) / 2, y: (bounds.height - h) / 2, width: w, height: h)
+    /// Where the picture sits in the drawable, in pixels, top-left origin.
+    func pictureRectPixels(_ ds: CGSize) -> CGRect {
+        var w: CGFloat, h: CGFloat
+        switch aspect {
+        case .exact:
+            let k = max(1, (min(ds.width / 320, ds.height / 200)).rounded(.down))
+            w = 320 * k
+            h = 200 * k
+        case .original, .square:
+            let ratio: CGFloat = aspect == .original ? 4.0 / 3.0 : 1.6
+            w = ds.width
+            h = w / ratio
+            if h > ds.height { h = ds.height; w = h * ratio }
+            w = w.rounded()
+            h = h.rounded()
+        }
+        let x = ((ds.width - w) / 2).rounded(.down), y = ((ds.height - h) / 2).rounded(.down)
+        return CGRect(x: x, y: y, width: w, height: h)
+    }
+
+    /// Where the picture sits in the view, in view points (bottom-left origin),
+    /// for mapping the mouse.
+    func pictureRect(in view: MTKView) -> CGRect {
+        let b = view.bounds
+        let ds = view.drawableSize
+        guard b.width > 0, b.height > 0, ds.width > 0, ds.height > 0 else { return .zero }
+        let sx = ds.width / b.width, sy = ds.height / b.height
+        let p = pictureRectPixels(ds)
+        return CGRect(x: p.minX / sx, y: b.height - p.maxY / sy, width: p.width / sx, height: p.height / sy)
     }
 
     private func encodePass(_ cmd: MTLCommandBuffer, target: MTLTexture, pso: MTLRenderPipelineState,
