@@ -27,6 +27,7 @@ Phase 0: John runs `scripts/build-app.sh` and opens the app; the window title sh
 | 9924780 | Start MetalTyrian: research, plan and Tyrian 2000 data | No |
 | 8bba68c | Add OpenTyrian2000 as Engine/ (git subtree, aad5aca) | No |
 | d0460d4, 6629fbc | Upstream fixes: extra-ship crash, data-cube memory corruption | No |
+| 17336f5 | Phase 0: app shell, build script, licence, README | No |
 
 ## Notes
 
