@@ -76,6 +76,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         setenv("XDG_CONFIG_HOME", support.path, 1)
 
+        Gamepads.start()
+
         let args = ["metaltyrian", "-t", dataDir.path]
         var cargs = args.map { strdup($0) }
         cargs.withUnsafeMutableBufferPointer { buf in

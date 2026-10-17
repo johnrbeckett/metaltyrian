@@ -113,6 +113,7 @@ final class Renderer: NSObject, MTKViewDelegate {
 
     func draw(in view: MTKView) {
         (view as? GameView)?.syncPointer()
+        Gamepads.poll(active: NSApp.isActive && window?.isKeyWindow == true)
         inFlight.wait()
 
         // Newest frame from the game thread, palette-converted on the CPU.

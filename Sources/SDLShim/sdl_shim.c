@@ -502,18 +502,83 @@ SDL_Keymod SDL_GetModState(void)
 	return (SDL_Keymod)m;
 }
 
-/* ---- Joysticks: none yet -------------------------------------------------- */
+/* ---- Joysticks: one virtual gamepad fed by the app ------------------------
+ *
+ * The game counts joysticks once at start-up and has no hot-plugging, so
+ * MetalTyrian always reports a single gamepad. The app merges every connected
+ * controller (GameController framework) into it, and it reads as centred with
+ * nothing pressed when none is connected. A fixed name keeps the button
+ * assignments the same whichever controller is used. */
 
-int SDL_NumJoysticks(void) { return 0; }
-SDL_Joystick *SDL_JoystickOpen(int device_index) { (void)device_index; SDL_SetError("no joysticks"); return NULL; }
+struct SDL_Joystick { int unused; };
+static SDL_Joystick the_pad;
+
+static pthread_mutex_t pad_lock = PTHREAD_MUTEX_INITIALIZER;
+static Sint16 pad_axes[MT_PAD_AXES];
+static Uint32 pad_buttons;
+static Uint8 pad_hat;
+
+void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat)
+{
+	pthread_mutex_lock(&pad_lock);
+	for (int i = 0; i < MT_PAD_AXES; i++)
+		pad_axes[i] = axes[i];
+	pad_buttons = buttons;
+	pad_hat = hat;
+	pthread_mutex_unlock(&pad_lock);
+}
+
+int SDL_NumJoysticks(void) { return 1; }
+
+SDL_Joystick *SDL_JoystickOpen(int device_index)
+{
+	if (device_index != 0)
+	{
+		SDL_SetError("no such joystick");
+		return NULL;
+	}
+	return &the_pad;
+}
+
 void SDL_JoystickClose(SDL_Joystick *joystick) { (void)joystick; }
-const char *SDL_JoystickName(SDL_Joystick *joystick) { (void)joystick; return ""; }
-int SDL_JoystickNumAxes(SDL_Joystick *joystick) { (void)joystick; return 0; }
-int SDL_JoystickNumButtons(SDL_Joystick *joystick) { (void)joystick; return 0; }
-int SDL_JoystickNumHats(SDL_Joystick *joystick) { (void)joystick; return 0; }
-Sint16 SDL_JoystickGetAxis(SDL_Joystick *joystick, int axis) { (void)joystick; (void)axis; return 0; }
-Uint8 SDL_JoystickGetButton(SDL_Joystick *joystick, int button) { (void)joystick; (void)button; return 0; }
-Uint8 SDL_JoystickGetHat(SDL_Joystick *joystick, int hat) { (void)joystick; (void)hat; return SDL_HAT_CENTERED; }
+const char *SDL_JoystickName(SDL_Joystick *joystick) { (void)joystick; return "MetalTyrian Gamepad"; }
+int SDL_JoystickNumAxes(SDL_Joystick *joystick) { (void)joystick; return MT_PAD_AXES; }
+int SDL_JoystickNumButtons(SDL_Joystick *joystick) { (void)joystick; return MT_PAD_BUTTONS; }
+int SDL_JoystickNumHats(SDL_Joystick *joystick) { (void)joystick; return 1; }
+
+Sint16 SDL_JoystickGetAxis(SDL_Joystick *joystick, int axis)
+{
+	(void)joystick;
+	if (axis < 0 || axis >= MT_PAD_AXES)
+		return 0;
+	pthread_mutex_lock(&pad_lock);
+	Sint16 v = pad_axes[axis];
+	pthread_mutex_unlock(&pad_lock);
+	return v;
+}
+
+Uint8 SDL_JoystickGetButton(SDL_Joystick *joystick, int button)
+{
+	(void)joystick;
+	if (button < 0 || button >= MT_PAD_BUTTONS)
+		return 0;
+	pthread_mutex_lock(&pad_lock);
+	Uint8 v = (pad_buttons >> button) & 1;
+	pthread_mutex_unlock(&pad_lock);
+	return v;
+}
+
+Uint8 SDL_JoystickGetHat(SDL_Joystick *joystick, int hat)
+{
+	(void)joystick;
+	if (hat != 0)
+		return SDL_HAT_CENTERED;
+	pthread_mutex_lock(&pad_lock);
+	Uint8 v = pad_hat;
+	pthread_mutex_unlock(&pad_lock);
+	return v;
+}
+
 void SDL_JoystickUpdate(void) {}
 int SDL_JoystickEventState(int state) { return state == SDL_QUERY ? SDL_IGNORE : state; }
 

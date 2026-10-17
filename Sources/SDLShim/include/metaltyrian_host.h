@@ -45,6 +45,29 @@ bool mt_cursor_wanted(void);
 bool mt_relative_mouse(void);
 void mt_push_quit(void);
 
+/* Gamepad. The game sees one gamepad, "MetalTyrian Gamepad", with this
+ * layout. Axes run -32768..32767, down and right positive. buttons is a bit
+ * mask (bit n = button n). hat is SDL_HAT_* bits: up 1, right 2, down 4,
+ * left 8. The game's default assignments use axes 0-1, the hat and buttons
+ * 0-5, in this order: fire, change fire, left sidekick, right sidekick,
+ * menu, pause. Fire and menu also confirm in menus; change fire and pause
+ * go back. */
+#define MT_PAD_AXES 4      /* left x, left y, right x, right y */
+#define MT_PAD_BUTTONS 12
+#define MT_PAD_A 0         /* fire, confirm */
+#define MT_PAD_B 1         /* change fire, back */
+#define MT_PAD_LB 2        /* left sidekick */
+#define MT_PAD_RB 3        /* right sidekick */
+#define MT_PAD_START 4     /* menu */
+#define MT_PAD_BACK 5      /* pause */
+#define MT_PAD_X 6
+#define MT_PAD_Y 7
+#define MT_PAD_LT 8
+#define MT_PAD_RT 9
+#define MT_PAD_L3 10
+#define MT_PAD_R3 11
+void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat);
+
 /* Called by the game (from OpenTyrian's scale_and_flip) for every frame shown. */
 void mt_present_frame(const void *pixels, int pitch, const uint32_t *palette);
 

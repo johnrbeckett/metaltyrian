@@ -314,7 +314,7 @@ typedef union SDL_Event
 int SDL_PollEvent(SDL_Event *event);
 int SDL_PushEvent(SDL_Event *event);
 
-/* ---- Joysticks: none until phase 2 brings GameController ------------------ */
+/* ---- Joysticks: one virtual gamepad, fed by the app (see sdl_shim.c) ------ */
 
 typedef struct SDL_Joystick SDL_Joystick;
 
