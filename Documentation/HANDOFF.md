@@ -18,7 +18,7 @@
 
 ## Next
 
-Phase 0: John runs `scripts/build-app.sh` and opens the app; the window title should list episodes 1 to 5. Then the GitHub repo (`johnrbeckett/metaltyrian`, private) and phase 1.
+Phase 0 done 2026-10-17: John built the universal app and it opened with the title listing episodes 1 to 5. Waiting on: token access to `johnrbeckett/metaltyrian` (still Not Found to the token), and John's call on how phase 1 handles SDL.
 
 ## Commits
 
