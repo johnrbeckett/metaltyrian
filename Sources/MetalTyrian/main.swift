@@ -50,10 +50,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         } catch {
             fail("\(error)")
         }
-        renderer.display = DisplayMode(rawValue: defaults.integer(forKey: "displayMode")) ?? .sharp
+        // First-run look, John's pick 2026-10-17: authentic VGA with HDR glow at 2.0.
+        defaults.register(defaults: ["displayMode": DisplayMode.vga.rawValue, "hdrGlow": true, "glowStrength": Float(2.0)])
+        renderer.display = DisplayMode(rawValue: defaults.integer(forKey: "displayMode")) ?? .vga
         renderer.hdr = defaults.bool(forKey: "hdrGlow")
         let savedGlow = defaults.float(forKey: "glowStrength")
-        renderer.glowStrength = Self.glowLevels.contains(savedGlow) ? savedGlow : 1.2
+        renderer.glowStrength = Self.glowLevels.contains(savedGlow) ? savedGlow : 2.0
         view.delegate = renderer
         view.pictureRect = { [unowned self] in self.renderer.pictureRect(in: self.view.bounds) }
 

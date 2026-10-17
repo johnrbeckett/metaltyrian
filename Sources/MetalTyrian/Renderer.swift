@@ -32,7 +32,7 @@ final class Renderer: NSObject, MTKViewDelegate {
 
     var display: DisplayMode = .sharp
     var hdr = false
-    var glowStrength: Float = 1.2
+    var glowStrength: Float = 2.0
 
     private let device: MTLDevice
     private let queue: MTLCommandQueue
