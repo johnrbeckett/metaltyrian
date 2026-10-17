@@ -200,7 +200,7 @@ void setupMenu(void)
 #ifdef METALTYRIAN
 				{ MENU_ITEM_DISPLAY, "Display:", "Play in a window or full screen.", mtDisplayCount, mtDisplayItem },
 				{ MENU_ITEM_SCALER, "Look:", "Sharp square pixels, or an old VGA monitor's scanlines.", mtLookCount, mtLookItem },
-				{ MENU_ITEM_SCALING_MODE, "HDR Glow:", "Light bloom around shots and explosions.", mtGlowCount, mtGlowItem },
+				{ MENU_ITEM_SCALING_MODE, "Glow:", "Light bloom around shots and explosions.", mtGlowCount, mtGlowItem },
 #else
 				{ MENU_ITEM_DISPLAY, "Display:", "Change the display mode.", getDisplayPickerItemsCount, getDisplayPickerItem },
 				{ MENU_ITEM_SCALER, "Scaler:", "Change the pixel art scaling algorithm.", getScalerPickerItemsCount, getScalerPickerItem },

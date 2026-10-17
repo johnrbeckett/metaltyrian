@@ -207,7 +207,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         sharpItem = viewMenu.addItem(withTitle: "Sharp", action: #selector(chooseSharp(_:)), keyEquivalent: "1")
         vgaItem = viewMenu.addItem(withTitle: "Retro", action: #selector(chooseVGA(_:)), keyEquivalent: "2")
         viewMenu.addItem(.separator())
-        hdrItem = viewMenu.addItem(withTitle: "HDR Glow", action: #selector(toggleHDR(_:)), keyEquivalent: "g")
+        hdrItem = viewMenu.addItem(withTitle: "Glow", action: #selector(toggleHDR(_:)), keyEquivalent: "g")
         let glowMenu = NSMenu(title: "Glow Strength")
         for level in Self.glowLevels {
             let item = glowMenu.addItem(withTitle: String(format: "%.1f", level), action: #selector(chooseGlow(_:)), keyEquivalent: "")
