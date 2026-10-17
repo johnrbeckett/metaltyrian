@@ -111,7 +111,7 @@ static const char *getScalingModePickerItem(size_t i, char *buffer, size_t buffe
  * renderer and do nothing here. */
 
 static const char *const mt_display_names[] = { "Window", "Full Screen" };
-static const char *const mt_look_names[] = { "Sharp Pixels", "Authentic VGA" };
+static const char *const mt_look_names[] = { "Sharp", "VGA" };
 static const char *const mt_glow_names[] = { "Off", "1.0", "1.2", "1.5", "2.0" };
 
 static size_t mtDisplayCount(void) { return COUNTOF(mt_display_names); }
@@ -199,7 +199,7 @@ void setupMenu(void)
 			.items = {
 #ifdef METALTYRIAN
 				{ MENU_ITEM_DISPLAY, "Display:", "Play in a window or full screen.", mtDisplayCount, mtDisplayItem },
-				{ MENU_ITEM_SCALER, "Look:", "Crisp square pixels, or a VGA monitor's scanlines.", mtLookCount, mtLookItem },
+				{ MENU_ITEM_SCALER, "Look:", "Sharp square pixels, or a VGA monitor's scanlines.", mtLookCount, mtLookItem },
 				{ MENU_ITEM_SCALING_MODE, "HDR Glow:", "Light bloom around shots and explosions.", mtGlowCount, mtGlowItem },
 #else
 				{ MENU_ITEM_DISPLAY, "Display:", "Change the display mode.", getDisplayPickerItemsCount, getDisplayPickerItem },
