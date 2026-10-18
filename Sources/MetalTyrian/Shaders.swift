@@ -39,6 +39,8 @@ struct DisplayParams {
     float4 lightRect; // the playfield, game pixels, where dynamic light falls (z = 0: none)
     float light;      // dynamic light gain, 0 = off
     float edges;      // edge smoothing strength, 0 = off
+    float4 controlsRect;  // the controls overlay's box, game pixels
+    float controlsAlpha;  // its opacity, 0 = hidden
 };
 
 // Edge smoothing. Every playfield pixel knows the layer it was drawn in
@@ -130,6 +132,7 @@ fragment float4 display_frag(VOut in [[stage_in]],
                              texture2d<float> floatMask [[texture(8)]],
                              texture2d<float> layerMap [[texture(9)]],
                              texture2d<float> underMap [[texture(10)]],
+                             texture2d<float> controlsTex [[texture(11)]],
                              constant DisplayParams &p [[buffer(0)]]) {
     constexpr sampler lin(filter::linear, address::clamp_to_edge);
 
@@ -244,6 +247,16 @@ fragment float4 display_frag(VOut in [[stage_in]],
         float dy = p.hole.y + p.hole.w - gp.y;
         float sh = max(1.0 - smoothstep(0.0, 10.0, dx), 1.0 - smoothstep(0.0, 10.0, dy));
         linc *= 1.0 - 0.7 * pow(sh, 1.6);
+    }
+    // The controls overlay, on top of everything (premultiplied, sRGB-ish).
+    if (p.controlsAlpha > 0.0) {
+        float2 cuv = (gp - p.controlsRect.xy) / p.controlsRect.zw;
+        if (all(cuv >= 0.0) && all(cuv <= 1.0)) {
+            float4 o = controlsTex.sample(lin, cuv);
+            float a = o.a * p.controlsAlpha;
+            float3 oc = o.a > 0.0 ? pow(o.rgb / o.a, float3(2.2)) : float3(0.0);
+            linc = linc * (1.0 - a) + oc * a;
+        }
     }
     return float4(linc, 1.0);
 }

@@ -14,6 +14,8 @@
 
 #include "SDL.h"
 
+#include <stdbool.h>
+
 /* The title picture was just loaded into surface. */
 void mt_title_picture(SDL_Surface *surface);
 /* A logo (0 TYRIAN, 1 2000) was drawn at x, y. */
@@ -32,6 +34,8 @@ void mt_edge_start(SDL_Surface *game);
 void mt_edge_mark(SDL_Surface *game);
 void mt_edge_rebase(SDL_Surface *game);
 void mt_edge_cancel(void);   /* no smoothing for this frame */
+/* The controls overlay on the next frame: opacity 0-255 and which hand's keys. */
+void mt_controls_overlay(int alpha, bool lefty);
 void mt_float_end(SDL_Surface *game);
 /* With each shown frame, after mt_text_present, before mt_present_frame. */
 void mt_title_present(SDL_Surface *frame);

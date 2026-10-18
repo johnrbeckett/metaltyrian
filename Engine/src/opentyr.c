@@ -150,6 +150,15 @@ static const char *const mt_light_names[] = { "Off", "Subtle", "Medium", "Strong
 static size_t mtLightCount(void) { return COUNTOF(mt_light_names); }
 
 static const char *const mt_edge_names[] = { "Off", "Soft", "Smooth" };
+static const char *const mt_autofire_names[] = { "Off", "Main", "Sidekicks", "Both" };
+
+static size_t mtAutofireCount(void) { return COUNTOF(mt_autofire_names); }
+
+static const char *mtAutofireItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_autofire_names[i];
+}
 
 static size_t mtEdgeCount(void) { return COUNTOF(mt_edge_names); }
 
@@ -260,6 +269,7 @@ void setupMenu(void)
 		MENU_ITEM_STEREO,
 		MENU_ITEM_LIGHT,
 		MENU_ITEM_EDGES,
+		MENU_ITEM_AUTOFIRE,
 #endif
 	} MenuItemId;
 
@@ -345,11 +355,12 @@ void setupMenu(void)
 		[MENU_CONTROLS] = {
 			.header = "Controls",
 			.items = {
-				{ MENU_ITEM_KEY_SPEED, "Keyboard Speed", "Arrow keys: 1 is the original game. Left/right to change." },
+				{ MENU_ITEM_KEY_SPEED, "Keyboard Speed", "Arrows or W A S D: 1 is the original game. Left/right to change." },
 				{ MENU_ITEM_PAD_SPEED, "Gamepad Speed", "Stick and d-pad at full tilt. Left/right to change." },
 				{ MENU_ITEM_MOUSE_MODE, "Mouse Mode", "Direct: the ship flies to where you point.", mtMouseModeCount, mtMouseModeItem },
 				{ MENU_ITEM_MOUSE_SPEED, "Mouse Speed", "How far the ship goes for your hand's movement." },
 				{ MENU_ITEM_MOMENTUM, "Momentum", "How far the ship drifts after you stop steering.", mtMomentumCount, mtMomentumItem },
+				{ MENU_ITEM_AUTOFIRE, "Autofire", "Keep firing without holding. In play: 1 main, 2 sidekicks.", mtAutofireCount, mtAutofireItem },
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
 			},
@@ -491,6 +502,10 @@ void setupMenu(void)
 
 			case MENU_ITEM_STEREO:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_stereo_names[mtClamp(mt_setting(MT_SETTING_STEREO), COUNTOF(mt_stereo_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
+
+			case MENU_ITEM_AUTOFIRE:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_autofire_names[mtClamp(mt_setting(MT_SETTING_AUTOFIRE), COUNTOF(mt_autofire_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 
 			case MENU_ITEM_MOUSE_MODE:
@@ -638,6 +653,7 @@ void setupMenu(void)
 									case MENU_ITEM_MOUSE_SPEED:
 									case MENU_ITEM_MOMENTUM:
 									case MENU_ITEM_MOUSE_MODE:
+									case MENU_ITEM_AUTOFIRE:
 									case MENU_ITEM_STEREO:
 									case MENU_ITEM_LIGHT:
 									case MENU_ITEM_EDGES:
@@ -962,6 +978,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_STEREO), COUNTOF(mt_stereo_names));
 					break;
 				}
+				case MENU_ITEM_AUTOFIRE:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_AUTOFIRE), COUNTOF(mt_autofire_names));
+					break;
+				}
 				case MENU_ITEM_MOUSE_MODE:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -1130,6 +1154,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_MOUSE_MODE:
 					mt_set_setting(MT_SETTING_MOUSE_MODE, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_AUTOFIRE:
+					mt_set_setting(MT_SETTING_AUTOFIRE, (int)pickerSelectedIndex);
 					break;
 				case MENU_ITEM_STEREO:
 					mt_set_setting(MT_SETTING_STEREO, (int)pickerSelectedIndex);

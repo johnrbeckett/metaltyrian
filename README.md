@@ -1,8 +1,8 @@
 # MetalTyrian
 
 An unofficial native Mac port of Tyrian 2000, the vertical-scrolling shooter
-by Eclipse Software (1995, Tyrian 2000 in 1999). All five episodes, drawn with
-Metal, with Apple frameworks for input and sound. Not affiliated with the
+by Eclipse Software (1995, Tyrian 2000 in 1999). All five episodes, single
+player, drawn with Metal, with Apple frameworks for input and sound. Not affiliated with the
 original authors.
 
 Version 1.0.0. Built on the game code of [OpenTyrian](https://github.com/opentyrian/opentyrian)
@@ -24,29 +24,40 @@ is inside the app; there is nothing else to install.
 - **Dynamic light:** shots, engines and explosions light up what is near them.
 - **Soft shadows:** the playfield sits inset in the HUD, and the score, lives and special float over it.
 - **Sound:** the music on Nuked OPL3, effects in stereo where they happen on screen.
-- **Controls:** keyboard, mouse (fly to where you point) and up to two gamepads for co-op.
+- **Controls:** one layout for either hand, with the keyboard, a mouse or trackpad (fly to where you point) or a gamepad; autofire; a controls panel at each level start and when paused; superbombs on their own key.
 - **Arcade ship picker:** fly any of the game's twelve ship looks in 1 Player Arcade.
 
 ## Playing
 
-| | Keyboard | Mouse | Gamepad |
-|---|---|---|---|
-| Move | Arrow keys | Move the mouse | Left stick or D-pad |
-| Fire | Space | Left button | A |
-| Change rear weapon mode | Return | Middle button | B |
-| Sidekicks | Left Control (left), Left Option (right) | Right button (both) | LB, RB |
-| Superbomb, if you carry any | Either sidekick button | Right button | LB or RB |
-| Game menu | Esc | | Menu |
-| Pause | P | | Options |
+One set of controls, for either hand. Every action is on the keyboard, so the
+other hand can steer with the arrows (or W A S D), a mouse or a trackpad, and
+switch between them at any moment. A panel shows the controls as each level
+starts and whenever the game is paused.
 
-Hold Command to free the mouse pointer during play (for the menu bar).
-Keys can be changed in the game's own keyboard setup.
+| | Right-handed | Left-handed | Mouse or trackpad | Gamepad |
+|---|---|---|---|---|
+| Steer | Arrow keys | W A S D | Move | Left stick or D-pad |
+| Fire | Space | Space | Click (left button) | A |
+| Sidekicks (both) | Z | / | Right click (two-finger click) | LB, RB |
+| Change rear weapon mode | X | . | Middle button | B |
+| Superbomb, if you carry any | C | , | | Y |
+| Autofire main guns on/off | 1 | 0 | | |
+| Autofire sidekicks on/off | 2 | 9 | | |
+| Pause | P | P | | Options |
+| Game menu | Esc | Esc | | Menu |
+
+Return also changes the rear weapon mode. Hold Command to free the mouse
+pointer during play (for the menu bar). Left-handed mouse users can swap the
+buttons in the Mac's System Settings > Mouse > Primary mouse button, and the
+game follows. Autofire is also under Setup > Controls; with it on, weapons that
+build up a charge fire at their lowest charge, so turn it off to charge them.
 
 ### Settings
 
 In the game: **Setup > Graphics** (Display, Look, Glow, Aspect, Borders,
 Text, Light, Edges), **Setup > Sound** (volumes, Stereo or Mono) and
-**Setup > Controls** (keyboard, gamepad and mouse speed, momentum, mouse mode).
+**Setup > Controls** (keyboard, gamepad and mouse speed, mouse mode,
+momentum, autofire).
 The View menu has shortcuts for the look (Command-1 Sharp, Command-2 Retro),
 Glow (Command-G), Crisp Text (Command-T) and full screen (Control-Command-F).
 Settings are saved between launches.

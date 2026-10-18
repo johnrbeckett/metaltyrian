@@ -1555,6 +1555,57 @@ static int mt_steer_vx[2], mt_steer_vy[2];
  * towards it at the game's top mouse speed. The pointer starts at the ship
  * whenever the mouse takes over, and the keyboard or a gamepad hands control
  * back. Level pushes still move the ship; it then returns to the pointer. */
+/* MetalTyrian's keys are hard-wired, both layouts always live:
+ *   right-handed: arrows to steer; Space fire, Z sidekicks, X rear mode, C superbomb
+ *   left-handed:  W A S D to steer; Space fire, / sidekicks, . rear mode, , superbomb
+ * Return and the middle mouse button also change the rear mode. 1 and 2
+ * (or 0 and 9) toggle autofire for the main guns and the sidekicks. */
+bool mt_lefty = false;          /* the layout last steered with (controls overlay) */
+static bool mt_bomb_pressed = false;
+static bool mt_toggle_held[2];
+
+/* The controls overlay: shown for a few seconds as each level starts
+ * (fading early once the player fires) and whenever the game is paused. */
+#define MT_HINT_TICKS 210   /* about six seconds */
+#define MT_HINT_FADE 20
+static int mt_hint_ticks = 0;
+static bool mt_manual_fire = false;
+
+void mt_controls_level_start(void)
+{
+	mt_hint_ticks = (play_demo || record_demo) ? 0 : MT_HINT_TICKS;
+}
+
+static void mt_controls_frame(void)
+{
+	if (mt_hint_ticks <= 0)
+		return;
+	if (mt_manual_fire && mt_hint_ticks < MT_HINT_TICKS - 35 && mt_hint_ticks > MT_HINT_FADE)
+		mt_hint_ticks = MT_HINT_FADE;
+	--mt_hint_ticks;
+	mt_controls_overlay(mt_hint_ticks >= MT_HINT_FADE ? 255 : mt_hint_ticks * 255 / MT_HINT_FADE, mt_lefty);
+}
+
+static int mt_autofire(void)
+{
+	if (play_demo || record_demo)
+		return 0;
+	return mt_setting(MT_SETTING_AUTOFIRE) & 3;
+}
+
+static void mt_autofire_toggle(int which, bool down)
+{
+	if (down && !mt_toggle_held[which])
+	{
+		const int a = mt_setting(MT_SETTING_AUTOFIRE) ^ (1 << which);
+		mt_set_setting(MT_SETTING_AUTOFIRE, a);
+		char text[64];
+		snprintf(text, sizeof(text), "Autofire %s: %s", which == 0 ? "main guns" : "sidekicks", (a >> which) & 1 ? "on" : "off");
+		JE_drawTextWindow(text);
+	}
+	mt_toggle_held[which] = down;
+}
+
 static bool mt_mouse_direct(void)
 {
 	return !play_demo && !record_demo && mt_setting(MT_SETTING_MOUSE_MODE) == 1;
@@ -3165,6 +3216,10 @@ void JE_inGameDisplays(void)
 	char tempstr[256];
 
 #ifdef METALTYRIAN
+	mt_controls_frame();
+#endif
+
+#ifdef METALTYRIAN
 	/* What this draws (score, lives, special, bombs) floats over the
 	 * playfield: the app casts a soft shadow under it (mt_title.c). */
 	mt_float_begin(VGAScreen);
@@ -3504,6 +3559,9 @@ void JE_pauseGame(void)
 		JE_dString(VGAScreenSeg, 120, 90, miscText[22], FONT_SHAPES);
 
 		VGAScreen = VGAScreenSeg;
+#ifdef METALTYRIAN
+		mt_controls_overlay(255, mt_lefty);   /* the controls, while paused */
+#endif
 		JE_showVGA();
 	}
 
@@ -3752,6 +3810,9 @@ redo:
 		button[2-1] = false;
 		button[3-1] = false;
 		button[4-1] = false;
+#ifdef METALTYRIAN
+		mt_bomb_pressed = false;
+#endif
 
 		/* --- Movement Routine Beginning --- */
 
@@ -3806,6 +3867,9 @@ redo:
 						button[1] |= joystick[j].action[2];
 						button[2] |= joystick[j].action[3];
 						button[3] |= joystick[j].action_pressed[1];
+#ifdef METALTYRIAN
+						mt_bomb_pressed |= SDL_JoystickGetButton(joystick[j].handle, MT_PAD_Y) != 0;
+#endif
 
 						ingamemenu_pressed |= joystick[j].action_pressed[4];
 						pause_pressed |= joystick[j].action_pressed[5];
@@ -3862,6 +3926,39 @@ redo:
 				}
 
 				/* keyboard input */
+#ifdef METALTYRIAN
+				if ((inputDevice == 0 || inputDevice == 1) && !play_demo && !record_demo)
+				{
+					const bool rUp = keysactive[SDL_SCANCODE_UP], rDown = keysactive[SDL_SCANCODE_DOWN];
+					const bool rLeft = keysactive[SDL_SCANCODE_LEFT], rRight = keysactive[SDL_SCANCODE_RIGHT];
+					const bool lUp = keysactive[SDL_SCANCODE_W], lDown = keysactive[SDL_SCANCODE_S];
+					const bool lLeft = keysactive[SDL_SCANCODE_A], lRight = keysactive[SDL_SCANCODE_D];
+					if (rUp || lUp)
+						this_player->y -= MT_KEY_SPEED;
+					if (rDown || lDown)
+						this_player->y += MT_KEY_SPEED;
+					if (rLeft || lLeft)
+						this_player->x -= MT_KEY_SPEED;
+					if (rRight || lRight)
+						this_player->x += MT_KEY_SPEED;
+					if (rUp || rDown || rLeft || rRight)
+						mt_lefty = false;
+					else if (lUp || lDown || lLeft || lRight)
+						mt_lefty = true;
+					if (rUp || rDown || rLeft || rRight || lUp || lDown || lLeft || lRight)
+						mt_pointer_live[(this_player - player) & 1] = false;  /* keys take over */
+
+					button[0] = button[0] || keysactive[SDL_SCANCODE_SPACE];
+					const bool sidekicks = keysactive[SDL_SCANCODE_Z] || keysactive[SDL_SCANCODE_SLASH];
+					button[1] = button[1] || sidekicks;
+					button[2] = button[2] || sidekicks;
+					button[3] = button[3] || keysactive[SDL_SCANCODE_X] || keysactive[SDL_SCANCODE_PERIOD] || keysactive[SDL_SCANCODE_RETURN];
+					mt_bomb_pressed = mt_bomb_pressed || keysactive[SDL_SCANCODE_C] || keysactive[SDL_SCANCODE_COMMA];
+					mt_autofire_toggle(0, keysactive[SDL_SCANCODE_1] || keysactive[SDL_SCANCODE_0]);
+					mt_autofire_toggle(1, keysactive[SDL_SCANCODE_2] || keysactive[SDL_SCANCODE_9]);
+				}
+				else
+#endif
 				if ((inputDevice == 0 || inputDevice == 1) && !play_demo)
 				{
 					if (keysactive[keySettings[KEY_SETTING_UP]])
@@ -3967,6 +4064,9 @@ redo:
 					accelXC = 0;
 					accelYC = 0;
 				}
+				mt_manual_fire = button[0];
+				if (mt_autofire() & 1)
+					button[0] = true;
 #endif
 
 			}   /*endLevel*/
@@ -4596,7 +4696,11 @@ redo:
 					{
 						--shotRepeat[SHOT_P1_SUPERBOMB + temp-1];
 					}
+#ifdef METALTYRIAN
+					else if (mt_bomb_pressed)   /* its own key; the sidekick buttons no longer spend bombs */
+#else
 					else if (button[3-1] || button[2-1])
+#endif
 					{
 						--player[temp-1].superbombs;
 						shotMultiPos[SHOT_P1_SUPERBOMB + temp-1] = 0;
@@ -4753,7 +4857,11 @@ redo:
 										draw_segmented_gauge(VGAScreenSeg, 284, y, 112, 2, 2, MAX(1, ammo_max / 10), this_player->sidekick[i].ammo);
 									}
 
+#ifdef METALTYRIAN
+									if ((button[1 + i] || (mt_autofire() & 2)) && this_player->sidekick[i].ammo > 0)
+#else
 									if (button[1 + i] && this_player->sidekick[i].ammo > 0)
+#endif
 									{
 										b = player_shot_create(this_option->wport, shot_i, this_player->sidekick[i].x, this_player->sidekick[i].y, *mouseX_, *mouseY_, this_option->wpnum + this_player->sidekick[i].charge, playerNum_);
 
@@ -4775,7 +4883,11 @@ redo:
 								else  // has infinite ammo
 								{
 									// Tyrian 2000: weapons with charge stages do not auto-fire
+#ifdef METALTYRIAN
+									if ((button[0] && !this_option->pwr) || button[1 + i] || (mt_autofire() & 2))
+#else
 									if ((button[0] && !this_option->pwr) || button[1 + i])
+#endif
 									{
 										b = player_shot_create(this_option->wport, shot_i, this_player->sidekick[i].x, this_player->sidekick[i].y, *mouseX_, *mouseY_, this_option->wpnum + this_player->sidekick[i].charge, playerNum_);
 

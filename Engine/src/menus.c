@@ -59,8 +59,9 @@ bool gameplaySelect(void)
 	bool restart = true;
 
 #ifdef METALTYRIAN
-	/* No network play in MetalTyrian: the Network row (the last one) is not shown. */
-	const size_t menuItemsCount = MENU_ITEM_NETWORK;
+	/* MetalTyrian is single player: no 2 Player Arcade, no network play
+	 * (the last two rows are not shown). */
+	const size_t menuItemsCount = MENU_ITEM_2_PLAYER_ARCADE;
 #else
 	const size_t menuItemsCount = COUNTOF(gameplay_name) - 1;
 #endif

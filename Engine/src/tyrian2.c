@@ -989,6 +989,10 @@ start_level_first:
 
 	JE_drawPortConfigButtons();
 
+#ifdef METALTYRIAN
+	mt_controls_level_start();
+#endif
+
 	/* --- MAIN LOOP --- */
 
 	newkey = false;

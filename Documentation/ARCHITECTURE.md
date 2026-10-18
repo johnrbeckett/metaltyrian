@@ -9,7 +9,7 @@ through the shim's interface, `Sources/SDLShim/include/metaltyrian_host.h`.
 Swift app (Sources/MetalTyrian)
   main.swift     app, menus, saved settings
   GameView       keyboard, mouse, pointer
-  Gamepads       GameController, two pads
+  Gamepads       GameController
   Renderer       Metal passes (Shaders.swift)
   CrispText      Orbitron text overlay
   Audio          AVAudioEngine

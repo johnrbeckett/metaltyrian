@@ -45,6 +45,8 @@ struct DisplayParams {
     var lightRect: SIMD4<Float> // the playfield, where dynamic light falls (w = 0: none)
     var light: Float            // dynamic light gain, 0 = off
     var edges: Float            // edge smoothing strength, 0 = off
+    var controlsRect: SIMD4<Float> // the controls overlay's box, game pixels
+    var controlsAlpha: Float    // its opacity, 0 = hidden
 }
 
 struct EmitParams {
@@ -101,6 +103,8 @@ final class Renderer: NSObject, MTKViewDelegate {
     private var underIndices = [UInt8](repeating: 0, count: 320 * 200)
     private var underRGBA = [UInt32](repeating: 0, count: 320 * 200)
     private var edgesReady = false
+    // The controls overlay (ControlsOverlay.swift).
+    private let controls: ControlsOverlay?
     private var ambFrame: UInt64 = 0
 
     private var indices = [UInt8](repeating: 0, count: 320 * 200)
@@ -193,6 +197,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         lightTex = try tex(.rgba16Float, target: true)
         layerTex = try tex(.r8Unorm, target: false)
         underTex = try tex(.bgra8Unorm, target: false)
+        controls = ControlsOverlay(device: device)
         let od = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: CrispText.width,
                                                           height: CrispText.height, mipmapped: false)
         od.usage = [.shaderRead]
@@ -415,6 +420,11 @@ final class Renderer: NSObject, MTKViewDelegate {
         enc.setViewport(MTLViewport(originX: Double(pic.minX), originY: Double(pic.minY),
                                     width: Double(w), height: Double(h), znear: 0, zfar: 1))
 
+        // The controls overlay: as each level starts and while paused (the game says when).
+        let controlsOn = controls != nil && titleOn && titleFrame.controls > 0 && titleFrame.hole.2 > 0
+        if controlsOn {
+            controls?.update(lefty: titleFrame.controls_lefty != 0, autofire: Int(mt_setting(MT_SETTING_AUTOFIRE)))
+        }
         var p = DisplayParams(
             texSize: SIMD2(320, 200),
             outSize: SIMD2(Float(w), Float(h)),
@@ -433,7 +443,11 @@ final class Renderer: NSObject, MTKViewDelegate {
                                   Float(titleFrame.hole.2), Float(titleFrame.hole.3)) : .zero,
             lightRect: lightOn ? playfield : .zero,
             light: lightOn ? lightGain : 0,
-            edges: edgesReady && titleOn ? Self.edgeStrengths[max(0, min(2, Int(mt_setting(MT_SETTING_EDGES))))] : 0
+            edges: edgesReady && titleOn ? Self.edgeStrengths[max(0, min(2, Int(mt_setting(MT_SETTING_EDGES))))] : 0,
+            controlsRect: SIMD4(Float(ControlsOverlay.rect.minX) + Float(titleFrame.hole.0),
+                                Float(ControlsOverlay.rect.minY) + Float(titleFrame.hole.1),
+                                Float(ControlsOverlay.rect.width), Float(ControlsOverlay.rect.height)),
+            controlsAlpha: controlsOn ? Float(titleFrame.controls) / 255 : 0
         )
         enc.setRenderPipelineState(displayPSO)
         enc.setFragmentTexture(srcTex, index: 0)
@@ -444,6 +458,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         enc.setFragmentTexture(floatTex, index: 8)
         enc.setFragmentTexture(layerTex, index: 9)
         enc.setFragmentTexture(underTex, index: 10)
+        if let controls { enc.setFragmentTexture(controls.texture, index: 11) } else { enc.setFragmentTexture(srcTex, index: 11) }
         if let art = artTexture, titleFrame.picture != 0 {
             enc.setFragmentTexture(art, index: 4)
             enc.setFragmentTexture(srcTex, index: 5)

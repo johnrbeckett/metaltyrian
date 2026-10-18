@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 			else if (st[0] == 'k') { int code = atoi(arg); mt_push_key(code, true, 0); release = code; step_pos = next; pause = 4; break; }
 			else if (st[0] == 's') { displayTime = 150; step_pos = next; }   /* s: show "Secret Level!" */
 			else if (st[0] == 'p') { pause = atoi(arg); step_pos = next; break; }
-			else if (st[0] == 'd') { dump_now = 1; step_pos = next; printf("script: tick %d pic %d fade %d smooth %d title %d logos %d@%d,%d %d@%d,%d screen: %.300s\n", i, title.shown ? title.picture : -1, title.fade, title.smooth, title.shown, title.logo_shown[0], title.logo_x[0], title.logo_y[0], title.logo_shown[1], title.logo_x[1], title.logo_y[1], screen_text); }
+			else if (st[0] == 'd') { dump_now = 1; step_pos = next; printf("script: tick %d controls %d/%d pic %d fade %d smooth %d title %d logos %d@%d,%d %d@%d,%d screen: %.300s\n", i, title.controls, title.controls_lefty, title.shown ? title.picture : -1, title.fade, title.smooth, title.shown, title.logo_shown[0], title.logo_x[0], title.logo_y[0], title.logo_shown[1], title.logo_x[1], title.logo_y[1], screen_text); }
 			else step_pos = next;
 		}
 		if (pause > 0) pause--;

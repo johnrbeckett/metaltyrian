@@ -28,6 +28,8 @@ static Uint8 edge_prev[184 * 264], edge_layer[184 * 264], edge_under[184 * 264];
 static Uint8 edge_out_layer[W * H], edge_out_under[W * H];
 static Uint8 edge_count;
 static bool edge_started, edge_ready;
+/* The controls overlay for the next frame (mt_controls_overlay). */
+static int controls_alpha = -1, controls_lefty;
 
 static const unsigned logo_sprite[2] = { 146, 151 };   /* PLANET_SHAPES */
 
@@ -203,8 +205,10 @@ void mt_picture_loaded(SDL_Surface *surface, int number)
 	pics[number].loaded = true;
 	pics[number].stamp = ++load_count;
 	if (number == 3 || number == 6)
+	{
 		memset(float_mask, 0, sizeof(float_mask));
 		edge_ready = false;
+	}
 }
 
 void mt_picture_sprite(int number, unsigned table, unsigned index, int x, int y)
@@ -314,6 +318,12 @@ void mt_edge_rebase(SDL_Surface *game)
 		memcpy(edge_prev + y * 264, (Uint8 *)game->pixels + y * game->pitch + 24, 264);
 }
 
+void mt_controls_overlay(int alpha, bool lefty)
+{
+	controls_alpha = alpha < 0 ? 0 : alpha > 255 ? 255 : alpha;
+	controls_lefty = lefty;
+}
+
 void mt_edge_cancel(void)
 {
 	edge_ready = false;
@@ -420,6 +430,12 @@ static bool picture_frame(SDL_Surface *frame)
 	t.fade = pics[found].brightness == 0 || sum >= pics[found].brightness ? 4096 : (Uint16)(sum * 4096 / pics[found].brightness);
 	t.smooth = found == 3 || found == 6;
 	t.hole[0] = (Sint16)hole.x; t.hole[1] = (Sint16)hole.y; t.hole[2] = (Sint16)hole.w; t.hole[3] = (Sint16)hole.h;
+	/* Only for the frame it was set for: menus drawn over the playfield get none. */
+	if (controls_alpha > 0 && hole.w > 0)
+	{
+		t.controls = (Uint8)controls_alpha;
+		t.controls_lefty = (Uint8)controls_lefty;
+	}
 	return true;
 }
 
@@ -429,6 +445,7 @@ void mt_title_present(SDL_Surface *frame)
 	if (frame != VGAScreen || !(title_frame(frame) || picture_frame(frame)))
 	{
 		mt_set_frame_title(NULL, NULL);
+		controls_alpha = -1;
 		return;
 	}
 	mt_set_frame_title(&t, foreground);
@@ -436,6 +453,7 @@ void mt_title_present(SDL_Surface *frame)
 	if (edge_ready && t.hole[2] > 0 && edge_on())
 		mt_set_frame_edges(edge_out_layer, edge_out_under);
 	edge_ready = false;
+	controls_alpha = -1;
 }
 
 #endif /* METALTYRIAN */

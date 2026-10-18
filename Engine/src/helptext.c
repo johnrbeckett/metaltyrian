@@ -269,6 +269,11 @@ void JE_loadHelpText(void)
 	for (unsigned int i = 0; i < menuInt_entries[3]; ++i)
 		read_encrypted_pascal_string(menuInt[3][i], sizeof(menuInt[3][i]), f);
 	skip_pascal_string(f);
+#ifdef METALTYRIAN
+	/* Options: MetalTyrian's keys and mouse buttons are fixed, so Keyboard
+	 * and Mouse go; Done moves up (game_menu.c). */
+	memcpy(menuInt[3][6], menuInt[3][8], sizeof(menuInt[3][6]));
+#endif
 
 	/*InGame Menu*/
 	skip_pascal_string(f);

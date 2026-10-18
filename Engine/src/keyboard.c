@@ -247,7 +247,12 @@ void service_SDL_events(JE_boolean clear_new)
 				if (whichMB < 0)
 					break;
 
+#ifdef METALTYRIAN
+				/* Fixed: left fires, right fires the sidekicks, middle changes the rear mode. */
+				switch (defaultMouseSettings[whichMB])
+#else
 				switch (mouseSettings[whichMB])
+#endif
 				{
 					case 1: // Fire Main Weapons
 						mouse_pressed[0] = mousedown;

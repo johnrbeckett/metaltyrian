@@ -90,7 +90,8 @@ void mt_set_gamepad(int pad, const int16_t *axes, uint32_t buttons, uint8_t hat)
 #define MT_SETTING_STEREO 11      /* 0 stereo (effects placed by position), 1 mono */
 #define MT_SETTING_LIGHT 12       /* dynamic light from shots and explosions: 0 off, 1 subtle, 2 medium, 3 strong */
 #define MT_SETTING_EDGES 13       /* edge smoothing on the playfield: 0 off, 1 soft, 2 smooth */
-#define MT_SETTING_COUNT 14
+#define MT_SETTING_AUTOFIRE 14    /* bit 0 main guns, bit 1 sidekicks */
+#define MT_SETTING_COUNT 15
 int mt_setting(int which);
 void mt_set_setting(int which, int value);
 
@@ -159,6 +160,8 @@ typedef struct
 	uint8_t smooth;                 /* 1: smooth what is drawn on top (HUD bars) */
 	uint8_t pad;
 	int16_t hole[4];                /* x, y, w, h: the game's own picture shows here (the playfield) */
+	uint8_t controls;               /* the controls overlay's opacity, 0-255 (level start, pause) */
+	uint8_t controls_lefty;         /* 1: show the left-handed keys */
 } mt_title_frame;
 /* NULL: not the title screen. foreground: 320x200, 1 where the frame has
  * something over the picture, 2-255 where the picture is only shaded darker

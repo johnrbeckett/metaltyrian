@@ -79,6 +79,9 @@ void JE_operation(JE_byte slot);
 void JE_inGameDisplays(void);
 void JE_mainKeyboardInput(void);
 void JE_pauseGame(void);
+#ifdef METALTYRIAN
+void mt_controls_level_start(void);
+#endif
 
 void JE_playerMovement(Player *this_player, JE_byte inputDevice, JE_byte playerNum, JE_word shipGr, Sprite2_array *shipGrPtr_, JE_word *mouseX, JE_word *mouseY);
 void JE_mainGamePlayerFunctions(void);

@@ -46,7 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                                    (MT_SETTING_MOUSE_MODE, "mouseMode"),
                                                    (MT_SETTING_STEREO, "stereo"),
                                                    (MT_SETTING_LIGHT, "light"),
-                                                   (MT_SETTING_EDGES, "edges")]
+                                                   (MT_SETTING_EDGES, "edges"),
+                                                   (MT_SETTING_AUTOFIRE, "autofire")]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
@@ -73,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                      "text": 0,         // Crisp
                                      "stereo": 0,       // Stereo
                                      "light": 2,        // Medium
+                                     "autofire": 0,
                                      "edges": 2])       // Smooth, John's pick 2026-10-18
         mt_set_setting(MT_SETTING_TEXT, Int32(defaults.integer(forKey: "text")))
         for (setting, key) in Self.speedSettings {

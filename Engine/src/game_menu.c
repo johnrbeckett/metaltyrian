@@ -122,8 +122,9 @@ static PlayerItems old_items[2];  // TODO: should not be global if possible
 static struct cube_struct cube[4];
 
 #ifdef METALTYRIAN
-/* 1 Player Arcade's game menu has Ship under Start Level (MetalTyrian). */
-static const JE_MenuChoiceType menuChoicesDefault = { 7, 9, 9, 0, 0, 11, (SAVE_FILES_NUM / 2) + 2, 0, 0, 6, 5, 6, 7, 5, 6 };
+/* 1 Player Arcade's game menu has Ship under Start Level; Options loses
+ * Keyboard and Mouse (MetalTyrian). */
+static const JE_MenuChoiceType menuChoicesDefault = { 7, 9, 7, 0, 0, 11, (SAVE_FILES_NUM / 2) + 2, 0, 0, 6, 5, 6, 7, 5, 6 };
 #else
 static const JE_MenuChoiceType menuChoicesDefault = { 7, 9, 9, 0, 0, 11, (SAVE_FILES_NUM / 2) + 2, 0, 0, 6, 4, 6, 7, 5, 6 };
 #endif
@@ -2409,6 +2410,10 @@ void JE_drawMainMenuHelpText(void)
 		else
 			memcpy(tempStr, mainMenuHelp[(menuHelp[curMenu][temp - 1])-1], sizeof(tempStr));
 	}
+	else if (curMenu == MENU_OPTIONS && curSel[curMenu] == 7)
+	{
+		memcpy(tempStr, mainMenuHelp[(menuHelp[curMenu][7])-1], sizeof(tempStr));   /* Done */
+	}
 #endif
 	else if (curMenu < MENU_PLAY_NEXT_LEVEL || curMenu >= MENU_2_PLAYER_ARCADE)
 	{
@@ -2816,6 +2821,11 @@ void JE_menuFunction(JE_byte select)
 		case 6:
 			curMenu = MENU_JOYSTICK_CONFIG;
 			break;
+#ifdef METALTYRIAN
+		case 7:
+			curMenu = MENU_FULL_GAME;
+			break;
+#else
 		case 7:
 			curMenu = MENU_KEYBOARD_CONFIG;
 			break;
@@ -2825,6 +2835,7 @@ void JE_menuFunction(JE_byte select)
 		case 9:
 			curMenu = MENU_FULL_GAME;
 			break;
+#endif
 		}
 		break;
 
