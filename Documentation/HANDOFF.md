@@ -21,7 +21,7 @@
 
 ## Next (offered, waiting for John's choice)
 
-1. Sprite art upscaling. Magnific tests: the big upgrade-screen Talon (OPTION_SHAPES 32, from 93x110) came out faithful with creative mode, VideoGameAssets, creativity 3, resemblance 6, then mirrored and cut to the original outline. Offered: the other four big ships (27, 31, 44, 45), about 720 credits (balance about 236,700). In-game sprites need a replacement pipeline (talked about: start with pickups); John wants exact shapes, no invented parts.
+1. Sprite art upscaling. Magnific tests: the big ship-screen silver ship (OPTION_SHAPES 32, 93x110; earlier mislabelled the Talon, which is 31, the gold one) came out faithful with creative mode, VideoGameAssets, creativity 3, resemblance 6, then mirrored and cut to the original outline. Offered: the other four big ships (27, 31 the Talon, 44, 45), about 720 credits (balance about 236,700). In-game sprites need a replacement pipeline (talked about: start with pickups); John wants exact shapes, no invented parts.
 2. Small leaks: text shaded over by a dark menu box stays as old pixel font (the faint "Player" under the in-game menu); two coincidental hits from the leak test (a jukebox 'e' on the title, P/S on the Next Level map); level-start glow text and credits untested.
 3. Crisp text: the large font's descenders overhang title boxes a little; the 90% shrink is the current answer (per-letter descender squeezing looked worse and was reverted).
 4. Lighting: tune strength or reach once John has played more; per-sprite normal maps only if the light spill proves itself.
@@ -63,7 +63,7 @@ Engine changes so far, all under `#ifdef METALTYRIAN`:
 
 - Fixes, 2026-10-18: large-font crisp words (menu titles, GAME OVER) drawn at 90%, centred and hung from the top, so descenders stay inside title boxes (John; squeezing descenders per letter was tried and reverted). Letters whose solid body can't be seen no longer count as shown (stale "!" after "Secret Level!"). Over picture art, pixels the game only shades darker (the equipped-item bar on the upgrade screens) darken the art instead of replacing it. Default controls: Keyboard 5, Gamepad 5, Mouse Direct at 7, Momentum Off. Linux host: focus pushed at start, `s` script step shows the "Secret Level!" banner, `MT_TEXT_FIND`.
 
-John's direction, 2026-10-17: balance for "fun" over "faithful". Defaults so far: Retro look, glow 2.0, Square aspect, Black borders, Keyboard Speed 5, Gamepad Speed 5, Mouse Speed 7, Momentum Off, Mouse Mode Direct (John's picks, 2026-10-18). App icon from `Research/ai-renders/r4.png` (John switched from r3, 2026-10-18) via `scripts/make-icon.py`.
+John's direction, 2026-10-17: balance for "fun" over "faithful". Defaults so far: Retro look, glow 2.0, Square aspect, Black borders, Keyboard Speed 5, Gamepad Speed 5, Mouse Speed 7, Momentum Off, Mouse Mode Direct (John's picks, 2026-10-18). App icon: the silver ship from the ship screen (OPTION_SHAPES 32, original pixel art at 6x) in the gold tile, `scripts/make-icon.py Research/fonts/raw/opt_32.ppm App/AppIcon-1024.png --pixel` (John, 2026-10-18; replaced the r4 render).
 
 ## Commits
 

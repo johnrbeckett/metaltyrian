@@ -1,7 +1,11 @@
-# MetalTyrian app icon: the r4 Talon render inside a macOS-style rounded tile
-# with a bevelled gold border.
+# MetalTyrian app icon: a Talon inside a macOS-style rounded tile with a
+# bevelled gold border.
 #
-# Usage: python3 scripts/make-icon.py Research/ai-renders/r4.png App/AppIcon-1024.png
+# Usage: python3 scripts/make-icon.py SHIP.png App/AppIcon-1024.png [--pixel]
+# --pixel: SHIP is original pixel art on black (a ship-screen picture, e.g. the
+# silver ship, OPTION_SHAPES 32: Research/fonts/raw/opt_32.ppm, from Tests/linux/dump_hud.c);
+# it is cut out exactly and scaled by a whole number with no smoothing.
+# Without it, SHIP is a render on near-black (Research/ai-renders/r4.png).
 # then:  python3 -c "from PIL import Image; Image.open('App/AppIcon-1024.png').save('App/AppIcon.icns')"
 import sys
 import numpy as np
@@ -11,6 +15,7 @@ S = 1024                     # final size
 SS = 2                       # supersampling
 N = S * SS
 src = np.asarray(Image.open(sys.argv[1]).convert('RGB')).astype(np.float32)
+PIXEL = '--pixel' in sys.argv[3:]
 
 def superellipse_mask(n, inset, size, k=5.0):
     """macOS-like continuous-corner tile: |x|^k + |y|^k <= 1, soft edge."""
@@ -57,18 +62,39 @@ for _ in range(90):
     m[m < 0.01] = 0
     bg += (br * m)[..., None] * np.array([0.85, 0.9, 1.0], np.float32)
 
-# --- Ship: cut from its near-black background, scaled into the tile.
-bgc = np.array([10.5, 9.5, 14.5], np.float32)
-diff = np.max(np.abs(src - bgc), axis=2)
-alpha = np.clip((diff - 6) / 40, 0, 1)
-ship = Image.fromarray(np.dstack([src, alpha * 255]).astype(np.uint8), 'RGBA')
-ship = ship.crop(ship.getbbox())
-target_h = int(tile * 0.80)
-scale = target_h / ship.height
-ship = ship.resize((int(ship.width * scale), target_h), Image.LANCZOS)
+# --- Ship: cut from its background, scaled into the tile.
+if PIXEL:
+    # Background: the black connected to the edges (black inside the ship stays).
+    blk = (src.sum(2) == 0)
+    h0, w0 = blk.shape
+    outside = np.zeros_like(blk)
+    stack = [(yy, xx) for yy in range(h0) for xx in (0, w0 - 1)] + [(yy, xx) for xx in range(w0) for yy in (0, h0 - 1)]
+    while stack:
+        yy, xx = stack.pop()
+        if 0 <= yy < h0 and 0 <= xx < w0 and blk[yy, xx] and not outside[yy, xx]:
+            outside[yy, xx] = True
+            stack += [(yy + 1, xx), (yy - 1, xx), (yy, xx + 1), (yy, xx - 1)]
+    alpha = np.where(outside, 0.0, 1.0)
+    ship = Image.fromarray(np.dstack([src, alpha * 255]).astype(np.uint8), 'RGBA')
+    ship = ship.crop(ship.getbbox())
+    # Whole-number scale chosen at the final size, so every game pixel is the same size.
+    # As large as fits comfortably inside the gold ring (752 of 824 across).
+    k = max(1, int(752 * 0.90 / max(ship.width, ship.height)))
+    ship = ship.resize((ship.width * k * SS, ship.height * k * SS), Image.NEAREST)
+else:
+    bgc = np.array([10.5, 9.5, 14.5], np.float32)
+    diff = np.max(np.abs(src - bgc), axis=2)
+    alpha = np.clip((diff - 6) / 40, 0, 1)
+    ship = Image.fromarray(np.dstack([src, alpha * 255]).astype(np.uint8), 'RGBA')
+    ship = ship.crop(ship.getbbox())
+    target_h = int(tile * 0.80)
+    scale = target_h / ship.height
+    ship = ship.resize((int(ship.width * scale), target_h), Image.LANCZOS)
 layer = Image.new('RGBA', (N, N), (0, 0, 0, 0))
 ox = (N - ship.width) // 2
 oy = (N - ship.height) // 2 + int(0.01 * tile)
+if PIXEL:
+    ox -= ox % SS; oy -= oy % SS   # land on whole final pixels
 # Soft shadow beneath the ship for depth.
 sh = Image.new('RGBA', (N, N), (0, 0, 0, 0))
 sh_alpha = ship.split()[3].point(lambda v: int(v * 0.75))
@@ -117,6 +143,6 @@ shadow = Image.fromarray((outer * 255 * 0.5).astype(np.uint8), 'L')
 shadow = shadow.filter(ImageFilter.GaussianBlur(10 * SS))
 canvas.paste(Image.new('RGBA', (N, N), (0, 0, 0, 255)), (0, 12 * SS), shadow)
 canvas = Image.alpha_composite(canvas, tile_img)
-canvas = canvas.resize((S, S), Image.LANCZOS)
+canvas = canvas.resize((S, S), Image.BOX if PIXEL else Image.LANCZOS)
 canvas.save(sys.argv[2])
 print('saved', sys.argv[2])
