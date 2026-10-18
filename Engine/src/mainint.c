@@ -702,7 +702,12 @@ bool JE_loadScreen(void)
 		memcpy(VGAScreen->pixels, VGAScreen2->pixels, (size_t)VGAScreen->pitch * VGAScreen->h);
 
 		// Draw header.
+#ifdef METALTYRIAN
+		/* Single player: one list of saved games, no two-player page. */
+		draw_font_hv_shadow(VGAScreen, xCenter, yMenuHeader, "Saved Games", large_font, centered, 15, -3, false, 2);
+#else
 		draw_font_hv_shadow(VGAScreen, xCenter, yMenuHeader, miscText[38 + playersIndex], large_font, centered, 15, -3, false, 2);
+#endif
 
 		// Draw menu items.
 
@@ -746,7 +751,11 @@ bool JE_loadScreen(void)
 		// Draw paging controls.
 
 		const bool leftControlVisible = playersIndex > 0;
+#ifdef METALTYRIAN
+		const bool rightControlVisible = false;
+#else
 		const bool rightControlVisible = playersIndex < 1;
+#endif
 
 		if (leftControlVisible)
 			blit_sprite2x2(VGAScreen, xLeftControl, yControls, shopSpriteSheet, 279);
@@ -913,6 +922,12 @@ bool JE_loadScreen(void)
 			}
 		}
 
+#ifdef METALTYRIAN
+		if (false)
+		{
+			(void)leftAction, (void)rightAction;
+		}
+#else
 		if (leftAction)
 		{
 			playersIndex = playersIndex == 0 ? 1 : 0;
@@ -921,6 +936,7 @@ bool JE_loadScreen(void)
 		{
 			playersIndex = playersIndex == 1 ? 0 : 1;
 		}
+#endif
 		else if (action)
 		{
 			if (selectedIndex == menuItemsCount - 1)  // "Exit to Main Menu"
@@ -1211,7 +1227,11 @@ void JE_highScoreScreen(void)
 		draw_font_hv_shadow(VGAScreen, xCenter, yEpisodeHeader, buffer, normal_font, centered, 15, -3, false, 2);
 
 		// Draw 1-player scores.
+#ifdef METALTYRIAN
+		boardTwoPlayer = -1;   /* single player: one table, no "One Player" heading */
+#else
 		draw_font_hv_shadow(VGAScreen, xCenter, 55, miscText[46], normal_font, centered, 15, -3, false, 2);
+#endif
 
 		for (Uint8 i = 0; i < 3; ++i)
 		{

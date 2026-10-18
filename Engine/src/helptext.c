@@ -245,6 +245,12 @@ void JE_loadHelpText(void)
 	for (unsigned int i = 0; i < COUNTOF(topicName); ++i)
 		read_encrypted_pascal_string(topicName[i], sizeof(topicName[i]), f);
 	skip_pascal_string(f);
+#ifdef METALTYRIAN
+	/* Single player: "One-Player Game Menu" is just "Game Menu". */
+	for (unsigned int i = 0; i < COUNTOF(topicName); ++i)
+		if (strncmp(topicName[i], "One-Player ", 11) == 0)
+			memmove(topicName[i], topicName[i] + 11, strlen(topicName[i] + 11) + 1);
+#endif
 
 	/*Main Menu Help*/
 	skip_pascal_string(f);
