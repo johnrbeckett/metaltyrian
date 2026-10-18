@@ -1,10 +1,18 @@
 # Changelog
 
+## 1.0.1 (in progress)
+
+- The Mac menu bar mirrors the game's Setup: Graphics, Sound and Controls menus. Command-F for full screen.
+- The controls panel greets a new game once (the first level waits for fire) and otherwise shows only when paused.
+- Single player throughout: the start menu is Mode (Full Game, Arcade, Time Attack); one list of saved games; one high score table; no two-player help or "Player 1" label.
+- Timed Battle is now called Time Attack.
+- A touch brighter, and Retro no longer darker than Sharp; effects unchanged.
+
 ## 1.0.0, 2026-10-18
 
 First release.
 
-- The whole of Tyrian 2000 for one player (five episodes, full game, arcade, timed battle) running natively on macOS 13 or later on Apple Silicon. Two-player modes are left out in favour of single player.
+- The whole of Tyrian 2000 for one player (five episodes, full game, arcade, time attack) running natively on macOS 13 or later on Apple Silicon. Two-player modes are left out in favour of single player.
 - Metal display: Sharp or Retro (VGA scanlines) look, HDR glow, aspect and border choices, full screen.
 - High-resolution title screen and repainted menu, shop and HUD pictures.
 - Crisp Orbitron text throughout, or the original font.

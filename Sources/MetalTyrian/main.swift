@@ -22,7 +22,7 @@ enum GameData {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuDelegate {
     var window: NSWindow!
     var view: GameView!
     var renderer: Renderer!
@@ -276,9 +276,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         appMenu.addItem(withTitle: "Quit MetalTyrian", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
 
-        let viewItem = NSMenuItem()
-        main.addItem(viewItem)
-        let viewMenu = NSMenu(title: "View")
+        // The menu bar mirrors the game's Setup: Graphics, Sound, Controls,
+        // with the same names and order. Both change the same settings.
+        let graphicsItem = NSMenuItem()
+        main.addItem(graphicsItem)
+        let viewMenu = NSMenu(title: "Graphics")
+        viewMenu.delegate = self
+        // Full screen on Command-F (a game has nothing to find); the Mac's
+        // usual Control-Command-F and Fn-F work too.
+        let fs = viewMenu.addItem(withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
+        fs.keyEquivalentModifierMask = [.command]
+        for mask in [[.command, .control], [.function]] as [NSEvent.ModifierFlags] {
+            let alt = viewMenu.addItem(withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
+            alt.keyEquivalentModifierMask = mask
+            alt.isHidden = true
+            alt.allowsKeyEquivalentWhenHidden = true
+        }
+        viewMenu.addItem(.separator())
         sharpItem = viewMenu.addItem(withTitle: "Sharp", action: #selector(chooseSharp(_:)), keyEquivalent: "1")
         vgaItem = viewMenu.addItem(withTitle: "Retro", action: #selector(chooseVGA(_:)), keyEquivalent: "2")
         viewMenu.addItem(.separator())
@@ -313,14 +327,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         viewMenu.addItem(.separator())
         crispItem = viewMenu.addItem(withTitle: "Crisp Text", action: #selector(toggleCrispText(_:)), keyEquivalent: "t")
         crispItem?.target = self
-        viewMenu.addItem(.separator())
-        let fs = viewMenu.addItem(withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
-        fs.keyEquivalentModifierMask = [.command, .control]
+        addChoices(viewMenu, title: "Light", setting: MT_SETTING_LIGHT, names: ["Off", "Subtle", "Medium", "Strong"])
+        addChoices(viewMenu, title: "Edges", setting: MT_SETTING_EDGES, names: ["Off", "Soft", "Smooth"])
         for item in [sharpItem, vgaItem, hdrItem] { item?.target = self }
-        viewItem.submenu = viewMenu
+        graphicsItem.submenu = viewMenu
+
+        let soundItem = NSMenuItem()
+        main.addItem(soundItem)
+        let soundMenu = NSMenu(title: "Sound")
+        soundMenu.delegate = self
+        addChoices(soundMenu, title: "Output", setting: MT_SETTING_STEREO, names: ["Stereo", "Mono"])
+        soundItem.submenu = soundMenu
+
+        let controlsItem = NSMenuItem()
+        main.addItem(controlsItem)
+        let controlsMenu = NSMenu(title: "Controls")
+        controlsMenu.delegate = self
+        addChoices(controlsMenu, title: "Keyboard Speed", setting: MT_SETTING_KEY_SPEED, names: (1...5).map { String($0) }, first: 1)
+        addChoices(controlsMenu, title: "Gamepad Speed", setting: MT_SETTING_PAD_SPEED, names: (1...10).map { String($0) }, first: 1)
+        addChoices(controlsMenu, title: "Mouse Mode", setting: MT_SETTING_MOUSE_MODE, names: ["Original", "Direct"])
+        addChoices(controlsMenu, title: "Mouse Speed", setting: MT_SETTING_MOUSE_SPEED, names: (1...10).map { String($0) }, first: 1)
+        addChoices(controlsMenu, title: "Momentum", setting: MT_SETTING_MOMENTUM, names: ["Original", "Light", "Off"])
+        addChoices(controlsMenu, title: "Autofire", setting: MT_SETTING_AUTOFIRE, names: ["Off", "Main", "Sidekicks", "Both"])
+        controlsMenu.addItem(.separator())
+        let keysNote = controlsMenu.addItem(withTitle: "Keys: in the game, Setup > Controls > Keys", action: nil, keyEquivalent: "")
+        keysNote.isEnabled = false
+        controlsItem.submenu = controlsMenu
 
         NSApp.mainMenu = main
     }
+
+    /// Items that each show one value of a game setting (Light, Edges, Autofire...).
+    private var choiceItems: [NSMenuItem] = []
+
+    private func addChoices(_ menu: NSMenu, title: String, setting: Int32, names: [String], first: Int = 0) {
+        let sub = NSMenu(title: title)
+        sub.delegate = self
+        for (i, name) in names.enumerated() {
+            let item = sub.addItem(withTitle: name, action: #selector(chooseSetting(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = [Int(setting), i + first]
+            choiceItems.append(item)
+        }
+        menu.addItem(withTitle: title, action: nil, keyEquivalent: "").submenu = sub
+    }
+
+    @objc private func chooseSetting(_ sender: NSMenuItem) {
+        guard let v = sender.representedObject as? [Int], v.count == 2 else { return }
+        mt_set_setting(Int32(v[0]), Int32(v[1]))
+        updateMenuChecks()   // saved with the rest by followGameSettings
+    }
+
+    /// Ticks follow changes made in the game's own menus too.
+    func menuNeedsUpdate(_ menu: NSMenu) { updateMenuChecks() }
 
     @objc private func chooseSharp(_ sender: Any?) {
         renderer.display = .sharp
@@ -374,6 +433,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func updateMenuChecks() {
         crispItem?.state = mt_setting(MT_SETTING_TEXT) == 0 ? .on : .off
+        for item in choiceItems {
+            if let v = item.representedObject as? [Int], v.count == 2 {
+                item.state = Int(mt_setting(Int32(v[0]))) == v[1] ? .on : .off
+            }
+        }
         for item in aspectItems { item.state = item.tag == renderer.aspect.rawValue ? .on : .off }
         for item in borderItems { item.state = item.tag == renderer.borders.rawValue ? .on : .off }
         mt_set_setting(MT_SETTING_ASPECT, Int32(renderer.aspect.rawValue))

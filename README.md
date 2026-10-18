@@ -60,9 +60,11 @@ In the game: **Setup > Graphics** (Display, Look, Glow, Aspect, Borders,
 Text, Light, Edges), **Setup > Sound** (volumes, Stereo or Mono) and
 **Setup > Controls** (keyboard, gamepad and mouse speed, mouse mode,
 momentum, autofire).
-The View menu has shortcuts for the look (Command-1 Sharp, Command-2 Retro),
-Glow (Command-G), Crisp Text (Command-T) and full screen (Control-Command-F).
-Settings are saved between launches.
+The Mac menu bar mirrors them: **Graphics**, **Sound** and **Controls** menus
+with the same settings, kept in step with the game. Shortcuts: Command-F full
+screen (Control-Command-F and Fn-F work too), Command-1 Sharp, Command-2 Retro,
+Command-G Glow, Command-T Crisp Text. Keys are changed in the game. Settings
+are saved between launches.
 
 ## Building from source
 

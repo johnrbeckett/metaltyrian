@@ -185,6 +185,19 @@ void JE_HBox(SDL_Surface *screen, int x, int y, unsigned int  messagenum, unsign
 	JE_helpBox(screen, x, y, helpTxt[messagenum-1], boxwidth);
 }
 
+#ifdef METALTYRIAN
+/* "Timed Battle" reads like a two-player mode; MetalTyrian calls it Time Attack. */
+static void mt_time_attack(char *s, size_t size)
+{
+	const char *at = strstr(s, "Timed Battle");
+	if (!at)
+		return;
+	char out[64];
+	snprintf(out, sizeof(out), "%.*sTime Attack%s", (int)(at - s), s, at + 12);
+	snprintf(s, size, "%s", out);
+}
+#endif
+
 void JE_loadHelpText(void)
 {
 	const unsigned int menuInt_entries[MENU_MAX + 1] = { -1, 7, 9, 9, -1, -1, 11, -1, -1, -1, 6, 4, 7, 7, 5, 6 };
@@ -322,6 +335,7 @@ void JE_loadHelpText(void)
 	for (unsigned int i = 1; i < COUNTOF(gameplay_name); ++i)
 		if (strncmp(gameplay_name[i], "1 Player ", 9) == 0)
 			memmove(gameplay_name[i], gameplay_name[i] + 9, strlen(gameplay_name[i] + 9) + 1);
+	mt_time_attack(gameplay_name[3], sizeof(gameplay_name[3]));
 #endif
 
 	/*Menu 10 - 2Player Main*/
@@ -428,6 +442,9 @@ void JE_loadHelpText(void)
 	for (unsigned int i = 0; i < COUNTOF(timed_battle_name); ++i)
 		read_encrypted_pascal_string(timed_battle_name[i], sizeof(timed_battle_name[i]), f);
 	skip_pascal_string(f);
+#ifdef METALTYRIAN
+	mt_time_attack(timed_battle_name[0], sizeof(timed_battle_name[0]));
+#endif
 
 	/*Setup entries, skipped since we don't use them*/
 	for (unsigned int entry = 0; entry < COUNTOF(setup_entries); ++entry)
