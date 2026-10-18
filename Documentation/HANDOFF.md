@@ -8,8 +8,7 @@
 | Git | `main`, pushed to the private GitHub repo `johnrbeckett/metaltyrian` (remote `origin`, 2026-10-18; John asked for the push). Push with the keyserver key `GITHUB_TOKEN_ORBIT_ANGEL` (edit, account johnrbeckett) materialised into a registered scratch folder (e.g. `~/Developer/.claude-tmp-env-mt-1018`), sent as an `http.extraHeader`, so no token is stored in `.git/config`; clear the `.env` afterwards. Commit author `John Beckett <johnreabeckett@gmail.com>`. |
 | Version | `VERSION` 0.1.0; the title screen shows "Metal 0.1.0" (from the bundle's short version). |
 | Build | `scripts/build-app.sh` builds to `~/Library/Caches/MetalTyrian-build/MetalTyrian.app`; Swift can only be compiled on the Mac. Engine and shim are checked headless on Linux with `Tests/linux/run.sh` (see Testing). |
-| Seen working on the Mac by John | Game, menus, mouse, gamepads, crisp text, HD title and pictures, new HUD with Orbitron labels, stereo audio, dynamic light. |
-| Built but not yet seen on the Mac | Title version text "Metal 0.1.0"; menu titles at 90%; the shaded equipped-item bar over new art; Light: Medium; the stale "!" fix. |
+| Seen working on the Mac by John | Everything up to d0dca16 (2026-10-18): game, menus, mouse, gamepads, crisp text, HD title and pictures, new HUD with Orbitron labels, stereo audio, dynamic light (Light: Medium too), title version "Metal 0.1.0", menu titles at 90%, the shaded equipped-item bar, the "!" fix. |
 | Research | `Documentation/RESEARCH.md`, `Research/` (gitignored): pictures, sprite sheets, crisp checks, screen checks, light preview. |
 | Art inputs | `Art/Incoming/` (gitignored): title art originals, ChatGPT-regenerated screens (`screens/`), Magnific tests. |
 
