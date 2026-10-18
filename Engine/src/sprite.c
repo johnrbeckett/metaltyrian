@@ -18,6 +18,10 @@
  */
 #include "sprite.h"
 
+#ifdef METALTYRIAN
+#include "mt_text.h"
+#endif
+
 #include "file.h"
 #include "opentyr.h"
 #include "video.h"
@@ -227,6 +231,9 @@ void blit_sprite_blend(SDL_Surface *surface, int x, int y, unsigned int table, u
 // we can replace it when we know that we don't rely on that 'feature'
 void blit_sprite_hv_unsafe(SDL_Surface *surface, int x, int y, unsigned int table, unsigned int index, Uint8 hue, Sint8 value)
 {
+#ifdef METALTYRIAN
+	mt_text_glyph(surface, x, y, table, index, hue, value, true);
+#endif
 	if (index >= sprite_table[table].count || !sprite_exists(table, index))
 	{
 		assert(false);
@@ -289,6 +296,9 @@ void blit_sprite_hv_unsafe(SDL_Surface *surface, int x, int y, unsigned int tabl
 // does not clip on left or right edges of surface
 void blit_sprite_hv(SDL_Surface *surface, int x, int y, unsigned int table, unsigned int index, Uint8 hue, Sint8 value)
 {
+#ifdef METALTYRIAN
+	mt_text_glyph(surface, x, y, table, index, hue, value, false);
+#endif
 	if (index >= sprite_table[table].count || !sprite_exists(table, index))
 	{
 		assert(false);
@@ -357,6 +367,9 @@ void blit_sprite_hv(SDL_Surface *surface, int x, int y, unsigned int table, unsi
 // does not clip on left or right edges of surface
 void blit_sprite_hv_blend(SDL_Surface *surface, int x, int y, unsigned int table, unsigned int index, Uint8 hue, Sint8 value)
 {
+#ifdef METALTYRIAN
+	mt_text_blend_glyph(surface, x, y, table, index);
+#endif
 	if (index >= sprite_table[table].count || !sprite_exists(table, index))
 	{
 		assert(false);
@@ -425,6 +438,9 @@ void blit_sprite_hv_blend(SDL_Surface *surface, int x, int y, unsigned int table
 // does not clip on left or right edges of surface
 void blit_sprite_dark(SDL_Surface *surface, int x, int y, unsigned int table, unsigned int index, bool black)
 {
+#ifdef METALTYRIAN
+	mt_text_shadow(surface, x, y, table, index, black);
+#endif
 	if (index >= sprite_table[table].count || !sprite_exists(table, index))
 	{
 		assert(false);

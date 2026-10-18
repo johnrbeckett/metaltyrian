@@ -18,4 +18,4 @@ for f in "$ROOT"/Engine/src/*.c; do "$CC" "${FLAGS[@]}" -Dmain=tyrian_main -c "$
 "$CC" "$B"/*.o -o "$B/mt_linux" -lm -lpthread
 mkdir -p "$OUT"
 export HOME="$B/home" XDG_CONFIG_HOME="$B/home"; mkdir -p "$HOME"
-MT_DUMP_DIR="$OUT" MT_DUMP_EVERY=50 "$B/mt_linux" "$DATA" "$SECS"
+MT_DUMP_DIR="${MT_DUMP_DIR-$OUT}" MT_DUMP_EVERY=50 "$B/mt_linux" "$DATA" "$SECS"

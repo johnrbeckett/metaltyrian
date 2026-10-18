@@ -18,6 +18,10 @@
  */
 #include "varz.h"
 
+#ifdef METALTYRIAN
+#include "mt_text.h"
+#endif
+
 #include "config.h"
 #include "editship.h"
 #include "episodes.h"
@@ -426,7 +430,12 @@ void JE_drawOptions(void)
 
 		fill_rectangle_xy(VGAScreenSeg, 284, y, 284 + 28, y + 15, 0);
 		if (this_option->icongr > 0)
+		{
 			blit_sprite(VGAScreenSeg, 284, y, OPTION_SHAPES, this_option->icongr - 1);  // sidekick HUD icon
+#ifdef METALTYRIAN
+			mt_text_icon_word(VGAScreenSeg, 284, y, this_option->icongr - 1);
+#endif
+		}
 		draw_segmented_gauge(VGAScreenSeg, 284, y + 13, 112, 2, 2, MAX(1, this_player->sidekick[i].ammo_max / 10), this_player->sidekick[i].ammo);
 	}
 

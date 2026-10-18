@@ -35,7 +35,7 @@ struct DisplayParams {
     var glow: Float
     var headroom: Float
     var vgaLines: Float
-    var pad: Float
+    var textOn: Float
 }
 
 struct BlurParams {
@@ -77,6 +77,17 @@ final class Renderer: NSObject, MTKViewDelegate {
     private var palette = [UInt32](repeating: 0, count: 256)
     private var rgba = [UInt32](repeating: 0, count: 320 * 200)
     private var frameNumber: UInt64 = 0
+
+    // Crisp text (CrispText.swift).
+    private let crisp = CrispText()
+    private let overlayTex: MTLTexture
+    private var textItems = [mt_text_item](repeating: mt_text_item(), count: Int(MT_TEXT_MAX))
+    private var textCount: Int32 = 0
+    private var textMask = [UInt8](repeating: 0, count: 320 * 200)
+    private var fillKnown = [Bool](repeating: false, count: 320 * 200)
+    private var textCursor = mt_text_cursor()
+    private var overlay = [UInt32](repeating: 0, count: CrispText.width * CrispText.height)
+    private var textOn = false
     private var glowFrame: UInt64 = 0
 
     struct SetupError: Error, CustomStringConvertible {
@@ -135,6 +146,13 @@ final class Renderer: NSObject, MTKViewDelegate {
         glowN = try tex(.rgba16Float, target: true)
         glowW = try tex(.rgba16Float, target: true)
         ambTex = try tex(.rgba16Float, target: true)
+        let od = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: CrispText.width,
+                                                          height: CrispText.height, mipmapped: false)
+        od.usage = [.shaderRead]
+        guard let ot = device.makeTexture(descriptor: od) else {
+            throw SetupError(description: "Could not make a texture")
+        }
+        overlayTex = ot
         super.init()
     }
 
@@ -146,17 +164,45 @@ final class Renderer: NSObject, MTKViewDelegate {
         Gamepads.poll(active: NSApp.isActive && window?.isKeyWindow == true)
         inFlight.wait()
 
-        // Newest frame from the game thread, palette-converted on the CPU.
+        // Newest frame from the game thread, palette-converted on the CPU,
+        // with the text the game drew on it.
+        var count: Int32 = 0
         let n = indices.withUnsafeMutableBufferPointer { ip in
             palette.withUnsafeMutableBufferPointer { pp in
-                mt_copy_frame(frameNumber, ip.baseAddress, pp.baseAddress)
+                textItems.withUnsafeMutableBufferPointer { tp in
+                    textMask.withUnsafeMutableBufferPointer { mp in
+                        mt_copy_frame_with_text(frameNumber, ip.baseAddress, pp.baseAddress,
+                                                tp.baseAddress, MT_TEXT_MAX, &count, mp.baseAddress,
+                                                &textCursor)
+                    }
+                }
             }
         }
         let newFrame = n != frameNumber && n != 0
         if newFrame {
             frameNumber = n
+            textCount = count
             for i in 0..<(320 * 200) {
                 rgba[i] = palette[Int(indices[i])] | 0xFF00_0000
+            }
+            textOn = false
+            if let crisp, textCount > 0 || textCursor.shown != 0 {
+                if textCount > 0 { eraseOriginalText() }
+                textOn = textItems.withUnsafeBufferPointer { tp in
+                    crisp.render(items: UnsafeBufferPointer(rebasing: tp[0..<Int(textCount)]),
+                                 palette: palette, into: &overlay)
+                }
+                if textCursor.shown != 0 {
+                    drawCursor()
+                    textOn = true
+                }
+                if textOn {
+                    overlay.withUnsafeBytes {
+                        overlayTex.replace(region: MTLRegionMake2D(0, 0, CrispText.width, CrispText.height),
+                                           mipmapLevel: 0, withBytes: $0.baseAddress!,
+                                           bytesPerRow: CrispText.width * 4)
+                    }
+                }
             }
             rgba.withUnsafeBytes {
                 srcTex.replace(region: MTLRegionMake2D(0, 0, 320, 200), mipmapLevel: 0,
@@ -213,17 +259,87 @@ final class Renderer: NSObject, MTKViewDelegate {
             glow: glowStrength,
             headroom: Float(window?.screen?.maximumExtendedDynamicRangeColorComponentValue ?? 1),
             vgaLines: 400,
-            pad: 0
+            textOn: textOn ? 1 : 0
         )
         enc.setRenderPipelineState(displayPSO)
         enc.setFragmentTexture(srcTex, index: 0)
         enc.setFragmentTexture(glowN, index: 1)
         enc.setFragmentTexture(glowW, index: 2)
+        enc.setFragmentTexture(overlayTex, index: 3)
         enc.setFragmentBytes(&p, length: MemoryLayout<DisplayParams>.stride, index: 0)
         enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         enc.endEncoding()
         cmd.present(drawable)
         cmd.commit()
+    }
+
+    /// The game's mouse pointer, lifted out of the frame by the game while crisp
+    /// text is on, drawn over the text at the game's pixel size.
+    private func drawCursor() {
+        let n = CrispText.n, cw = Int(MT_CURSOR_W), ch = Int(MT_CURSOR_H)
+        let cx = Int(textCursor.x), cy = Int(textCursor.y)
+        withUnsafeBytes(of: textCursor.pixels) { pix in
+            withUnsafeBytes(of: textCursor.opaque) { op in
+                for yy in 0..<ch {
+                    for xx in 0..<cw {
+                        let k = yy * cw + xx
+                        let gx = cx + xx, gy = cy + yy
+                        guard op[k] != 0, gx >= 0, gx < 320, gy >= 0, gy < 200 else { continue }
+                        let c = palette[Int(pix[k])] | 0xFF00_0000
+                        for sy in 0..<n {
+                            let row = (gy * n + sy) * CrispText.width + gx * n
+                            for sx in 0..<n { overlay[row + sx] = c }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Paints out the original letters' pixels (and their shadows and outlines),
+    /// so they don't show around the crisp letters drawn on top: each erased
+    /// pixel takes the average of its already-known neighbours, filling in
+    /// from the edges of each patch inwards.
+    private func eraseOriginalText() {
+        var pending: [Int] = []
+        for i in 0..<(320 * 200) {
+            let masked = textMask[i] != 0
+            fillKnown[i] = !masked
+            if masked { pending.append(i) }
+        }
+        var next: [Int] = []
+        var updates: [(Int, UInt32)] = []
+        while !pending.isEmpty {
+            next.removeAll(keepingCapacity: true)
+            updates.removeAll(keepingCapacity: true)
+            for i in pending {
+                let x = i % 320, y = i / 320
+                var r = 0, g = 0, b = 0, n = 0
+                for yy in max(0, y - 1)...min(199, y + 1) {
+                    for xx in max(0, x - 1)...min(319, x + 1) {
+                        let j = yy * 320 + xx
+                        guard fillKnown[j] else { continue }
+                        let c = rgba[j]
+                        r += Int((c >> 16) & 0xFF); g += Int((c >> 8) & 0xFF); b += Int(c & 0xFF)
+                        n += 1
+                    }
+                }
+                if n > 0 {
+                    updates.append((i, UInt32(r / n) << 16 | UInt32(g / n) << 8 | UInt32(b / n) | 0xFF00_0000))
+                } else {
+                    next.append(i)
+                }
+            }
+            if updates.isEmpty {
+                for i in next { rgba[i] = 0xFF00_0000 }
+                break
+            }
+            for (i, c) in updates {
+                rgba[i] = c
+                fillKnown[i] = true
+            }
+            swap(&pending, &next)
+        }
     }
 
     /// Where the picture sits in the drawable, in pixels, top-left origin.

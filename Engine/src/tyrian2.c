@@ -18,6 +18,10 @@
  */
 #include "tyrian2.h"
 
+#ifdef METALTYRIAN
+#include "mt_text.h"
+#endif
+
 #include "animlib.h"
 #include "backgrnd.h"
 #include "episodes.h"
@@ -785,6 +789,30 @@ start_level_first:
 	}
 	
 	JE_loadPic(VGAScreen, twoPlayerMode ? 6 : 3, false);
+
+#ifdef METALTYRIAN
+	/* Crisp text for the labels painted into the one-player HUD panel. */
+	mt_text_clear_labels();
+	if (!twoPlayerMode)
+	{
+		mt_text_label(VGAScreen, 284, 5, 310, 10, "FRONT", false);
+		mt_text_label(VGAScreen, 284, 11, 300, 16, "GUN", false);
+		mt_text_label(VGAScreen, 284, 26, 304, 31, "REAR", false);
+		mt_text_label(VGAScreen, 284, 32, 300, 37, "GUN", false);
+		mt_text_label(VGAScreen, 283, 54, 304, 59, "MODE", false);
+		static const char shield[] = "SHIELD", armor[] = "ARMOR";
+		for (int i = 0; shield[i]; i++)
+		{
+			char ch[2] = { shield[i], 0 };
+			mt_text_label(VGAScreen, 284, 138 + i * 6, 291, 138 + i * 6 + 5, ch, true);
+		}
+		for (int i = 0; armor[i]; i++)
+		{
+			char ch[2] = { armor[i], 0 };
+			mt_text_label(VGAScreen, 295, 138 + i * 6, 302, 138 + i * 6 + 5, ch, true);
+		}
+	}
+#endif
 
 	JE_drawOptions();
 

@@ -17,6 +17,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include "mouse.h"
+#ifdef METALTYRIAN
+#include "metaltyrian_host.h"
+#include "mt_text.h"
+#endif
 
 #include "keyboard.h"
 #include "nortvars.h"
@@ -132,6 +136,9 @@ void JE_mouseStart(void)
 			const Sint32 x = mouse_x - spriteInfo->x - spriteInfo->fx;
 			const Sint32 y = mouse_y - spriteInfo->y - spriteInfo->fy;
 			blit_sprite2x2_clip(VGAScreen, x, y, shopSpriteSheet, spriteInfo->index);
+#ifdef METALTYRIAN
+			mt_text_cursor_drawn(mouseGrabX, mouseGrabY, mouseGrabShape);
+#endif
 		}
 	 }
 }
@@ -153,13 +160,26 @@ void JE_mouseStartFilter(Uint8 filter)
 		{
 			const Sint32 x = mouse_x - spriteInfo->x - spriteInfo->fx;
 			const Sint32 y = mouse_y - spriteInfo->y - spriteInfo->fy;
+#ifdef METALTYRIAN
+			/* The see-through pointer shows the pixels under it, which with
+			 * crisp text are the original letters: draw it solid instead. */
+			if (mt_setting(MT_SETTING_TEXT) == 0)
+				blit_sprite2x2_clip(VGAScreen, x, y, shopSpriteSheet, spriteInfo->index);
+			else
+#endif
 			blit_sprite2x2_filter_clip(VGAScreen, x, y, shopSpriteSheet, spriteInfo->index, filter);
+#ifdef METALTYRIAN
+			mt_text_cursor_drawn(mouseGrabX, mouseGrabY, mouseGrabShape);
+#endif
 		}
 	}
 }
 
 void JE_mouseReplace(void)
 {
+#ifdef METALTYRIAN
+	mt_text_cursor_removed();
+#endif
 	if (has_mouse)
 		JE_drawShapeTypeOne(mouseGrabX, mouseGrabY, mouseGrabShape);
 }

@@ -138,6 +138,7 @@ static const char *mtGlowItem(size_t i, char *buffer, size_t bufferSize)
 
 static const char *const mt_aspect_names[] = { "Original", "Square", "Exact" };
 static const char *const mt_border_names[] = { "Black", "Ambient" };
+static const char *const mt_text_names[] = { "Crisp", "Original" };
 static const char *const mt_momentum_names[] = { "Original", "Light", "Off" };
 
 static size_t mtMomentumCount(void) { return COUNTOF(mt_momentum_names); }
@@ -160,6 +161,7 @@ static const char *mtMomentumItem(size_t i, char *buffer, size_t bufferSize)
 
 static size_t mtAspectCount(void) { return COUNTOF(mt_aspect_names); }
 static size_t mtBorderCount(void) { return COUNTOF(mt_border_names); }
+static size_t mtTextCount(void) { return COUNTOF(mt_text_names); }
 
 static const char *mtAspectItem(size_t i, char *buffer, size_t bufferSize)
 {
@@ -171,6 +173,12 @@ static const char *mtBorderItem(size_t i, char *buffer, size_t bufferSize)
 {
 	(void)buffer, (void)bufferSize;
 	return mt_border_names[i];
+}
+
+static const char *mtTextItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_text_names[i];
 }
 
 /* Controls: speeds shown as numbers, changed with left/right or a click. */
@@ -214,6 +222,7 @@ void setupMenu(void)
 #ifdef METALTYRIAN
 		MENU_ITEM_ASPECT,
 		MENU_ITEM_BORDERS,
+		MENU_ITEM_TEXT,
 		MENU_ITEM_CONTROLS,
 		MENU_ITEM_KEY_SPEED,
 		MENU_ITEM_PAD_SPEED,
@@ -277,6 +286,7 @@ void setupMenu(void)
 				{ MENU_ITEM_SCALING_MODE, "Glow:", "Light bloom around shots and explosions.", mtGlowCount, mtGlowItem },
 				{ MENU_ITEM_ASPECT, "Aspect:", "Original 4:3, square pixels, or exact pixel sizes.", mtAspectCount, mtAspectItem },
 				{ MENU_ITEM_BORDERS, "Borders:", "Black bars, or the picture's colours spilling out.", mtBorderCount, mtBorderItem },
+				{ MENU_ITEM_TEXT, "Text:", "Crisp modern lettering, or the original pixel font.", mtTextCount, mtTextItem },
 #else
 				{ MENU_ITEM_DISPLAY, "Display:", "Change the display mode.", getDisplayPickerItemsCount, getDisplayPickerItem },
 				{ MENU_ITEM_SCALER, "Scaler:", "Change the pixel art scaling algorithm.", getScalerPickerItemsCount, getScalerPickerItem },
@@ -442,6 +452,10 @@ void setupMenu(void)
 			case MENU_ITEM_BORDERS:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_border_names[mtClamp(mt_setting(MT_SETTING_BORDERS), COUNTOF(mt_border_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
+
+			case MENU_ITEM_TEXT:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_text_names[mtClamp(mt_setting(MT_SETTING_TEXT), COUNTOF(mt_text_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
 #endif
 
 			case MENU_ITEM_MUSIC_VOLUME:
@@ -562,6 +576,7 @@ void setupMenu(void)
 #ifdef METALTYRIAN
 									case MENU_ITEM_ASPECT:
 									case MENU_ITEM_BORDERS:
+									case MENU_ITEM_TEXT:
 									case MENU_ITEM_KEY_SPEED:
 									case MENU_ITEM_PAD_SPEED:
 									case MENU_ITEM_MOUSE_SPEED:
@@ -856,6 +871,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_BORDERS), COUNTOF(mt_border_names));
 					break;
 				}
+				case MENU_ITEM_TEXT:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_TEXT), COUNTOF(mt_text_names));
+					break;
+				}
 				case MENU_ITEM_MOUSE_MODE:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -1015,6 +1038,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_BORDERS:
 					mt_set_setting(MT_SETTING_BORDERS, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_TEXT:
+					mt_set_setting(MT_SETTING_TEXT, (int)pickerSelectedIndex);
 					break;
 				case MENU_ITEM_MOMENTUM:
 					mt_set_setting(MT_SETTING_MOMENTUM, (int)pickerSelectedIndex);

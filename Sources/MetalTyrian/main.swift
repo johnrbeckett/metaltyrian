@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var glowItems: [NSMenuItem] = []
     private var aspectItems: [NSMenuItem] = []
     private var borderItems: [NSMenuItem] = []
+    private var crispItem: NSMenuItem?
     static let glowLevels: [Float] = [1.0, 1.2, 1.5, 2.0]
     private var fullScreenChanging = false
     /// Setup > Controls in the game; saved here.
@@ -65,7 +66,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                      // Controls, tuned for fun: keys start faster than the original 1.
                                      "keySpeed": 2, "padSpeed": 5, "mouseSpeed": 5,
                                      "momentum": 1,     // Light
-                                     "mouseMode": 1])   // Direct
+                                     "mouseMode": 1,    // Direct
+                                     "text": 0])        // Crisp
+        mt_set_setting(MT_SETTING_TEXT, Int32(defaults.integer(forKey: "text")))
         for (setting, key) in Self.speedSettings {
             mt_set_setting(setting, Int32(defaults.integer(forKey: key)))
         }
@@ -218,6 +221,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             changed = true
         }
 
+        let text = Int(mt_setting(MT_SETTING_TEXT))
+        if text != defaults.integer(forKey: "text") {
+            defaults.set(text, forKey: "text")
+            changed = true
+        }
+
         if changed { updateMenuChecks() }
 
         for (setting, key) in Self.speedSettings {
@@ -288,6 +297,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         viewMenu.addItem(withTitle: "Borders", action: nil, keyEquivalent: "").submenu = borderMenu
         viewMenu.addItem(.separator())
+        crispItem = viewMenu.addItem(withTitle: "Crisp Text", action: #selector(toggleCrispText(_:)), keyEquivalent: "t")
+        crispItem?.target = self
+        viewMenu.addItem(.separator())
         let fs = viewMenu.addItem(withTitle: "Enter Full Screen", action: #selector(NSWindow.toggleFullScreen(_:)), keyEquivalent: "f")
         fs.keyEquivalentModifierMask = [.command, .control]
         for item in [sharpItem, vgaItem, hdrItem] { item?.target = self }
@@ -339,7 +351,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         updateMenuChecks()
     }
 
+    @objc private func toggleCrispText(_ sender: Any?) {
+        let text = mt_setting(MT_SETTING_TEXT) == 0 ? 1 : 0
+        mt_set_setting(MT_SETTING_TEXT, Int32(text))
+        defaults.set(text, forKey: "text")
+        updateMenuChecks()
+    }
+
     private func updateMenuChecks() {
+        crispItem?.state = mt_setting(MT_SETTING_TEXT) == 0 ? .on : .off
         for item in aspectItems { item.state = item.tag == renderer.aspect.rawValue ? .on : .off }
         for item in borderItems { item.state = item.tag == renderer.borders.rawValue ? .on : .off }
         mt_set_setting(MT_SETTING_ASPECT, Int32(renderer.aspect.rawValue))

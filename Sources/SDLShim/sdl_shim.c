@@ -845,12 +845,44 @@ static Uint8 frame_pixels[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
 static Uint32 frame_palette[256];
 static Uint64 frame_number = 0;
 
+/* Text: staged by mt_set_frame_text, moved with the next frame. */
+static mt_text_item pending_text[MT_TEXT_MAX], frame_text[MT_TEXT_MAX];
+static int pending_text_count = 0, frame_text_count = 0;
+static Uint8 pending_mask[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT], frame_mask[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
+
+static mt_text_cursor pending_cursor, frame_cursor;
+
+void mt_set_frame_text(const mt_text_item *items, int count, const uint8_t *mask, const mt_text_cursor *cursor)
+{
+	if (count > MT_TEXT_MAX)
+		count = MT_TEXT_MAX;
+	pthread_mutex_lock(&frame_lock);
+	memcpy(pending_text, items, (size_t)count * sizeof(*items));
+	pending_text_count = count;
+	if (mask)
+		memcpy(pending_mask, mask, sizeof(pending_mask));
+	else
+		memset(pending_mask, 0, sizeof(pending_mask));
+	if (cursor)
+		pending_cursor = *cursor;
+	else
+		pending_cursor.shown = 0;
+	pthread_mutex_unlock(&frame_lock);
+}
+
 void mt_present_frame(const void *pixels, int pitch, const uint32_t *palette)
 {
 	pthread_mutex_lock(&frame_lock);
 	for (int y = 0; y < MT_SCREEN_HEIGHT; ++y)
 		memcpy(frame_pixels + y * MT_SCREEN_WIDTH, (const Uint8 *)pixels + (size_t)y * (size_t)pitch, MT_SCREEN_WIDTH);
 	memcpy(frame_palette, palette, sizeof(frame_palette));
+	memcpy(frame_text, pending_text, (size_t)pending_text_count * sizeof(*pending_text));
+	frame_text_count = pending_text_count;
+	memcpy(frame_mask, pending_mask, sizeof(frame_mask));
+	pending_text_count = 0;              /* text must be handed over again for the next frame */
+	memset(pending_mask, 0, sizeof(pending_mask));
+	frame_cursor = pending_cursor;
+	pending_cursor.shown = 0;
 	++frame_number;
 	Uint64 n = frame_number;
 	pthread_mutex_unlock(&frame_lock);
@@ -890,6 +922,27 @@ uint64_t mt_copy_frame(uint64_t last_seen, uint8_t *pixels, uint32_t *palette)
 	{
 		memcpy(pixels, frame_pixels, sizeof(frame_pixels));
 		memcpy(palette, frame_palette, sizeof(frame_palette));
+	}
+	pthread_mutex_unlock(&frame_lock);
+	return n;
+}
+
+uint64_t mt_copy_frame_with_text(uint64_t last_seen, uint8_t *pixels, uint32_t *palette,
+                                 mt_text_item *items, int max, int *count, uint8_t *mask,
+                                 mt_text_cursor *cursor)
+{
+	pthread_mutex_lock(&frame_lock);
+	Uint64 n = frame_number;
+	if (n != last_seen && n != 0)
+	{
+		memcpy(pixels, frame_pixels, sizeof(frame_pixels));
+		memcpy(palette, frame_palette, sizeof(frame_palette));
+		int c = frame_text_count < max ? frame_text_count : max;
+		memcpy(items, frame_text, (size_t)c * sizeof(*items));
+		*count = c;
+		memcpy(mask, frame_mask, sizeof(frame_mask));
+		if (cursor)
+			*cursor = frame_cursor;
 	}
 	pthread_mutex_unlock(&frame_lock);
 	return n;

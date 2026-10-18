@@ -20,6 +20,7 @@ The app lands in `~/Library/Caches/MetalTyrian-build/MetalTyrian.app`.
 
 - Tyrian: Eclipse Software, published by Epic MegaGames in 1995. Released as freeware by Jason Emery in 2004: "Feel free to play it all you want and share it with friends."
 - Tyrian 2000: Eclipse Software and XSIV Games, 1999. Freeware.
+- Crisp text: Orbitron by Matt McInerney and the Orbitron Project Authors, under the SIL Open Font License 1.1 (`App/Fonts/OFL.txt`, bundled in the app).
 - Game code: OpenTyrian (github.com/opentyrian/opentyrian) and OpenTyrian2000 (github.com/KScl/opentyrian2000), in `Engine/`.
 
 ## Licence

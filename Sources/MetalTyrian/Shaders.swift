@@ -29,7 +29,7 @@ struct DisplayParams {
     float glow;       // glow strength
     float headroom;   // current EDR headroom, 1.0 on an SDR screen
     float vgaLines;   // 400: VGA drew 320x200 double-scanned
-    float pad;
+    float textOn;     // 1 = composite the crisp text overlay
 };
 
 static float hotness(float3 lin) {
@@ -42,6 +42,7 @@ fragment float4 display_frag(VOut in [[stage_in]],
                              texture2d<float> img [[texture(0)]],
                              texture2d<float> glowN [[texture(1)]],
                              texture2d<float> glowW [[texture(2)]],
+                             texture2d<float> overlay [[texture(3)]],
                              constant DisplayParams &p [[buffer(0)]]) {
     constexpr sampler lin(filter::linear, address::clamp_to_edge);
 
@@ -53,6 +54,18 @@ fragment float4 display_frag(VOut in [[stage_in]],
     float2 rr = 0.5 - 0.5 / scale;
     float2 f = (cd - clamp(cd, -rr, rr)) * scale + 0.5;
     float3 c = img.sample(lin, (tf + f) / p.texSize).rgb;
+
+    if (p.textOn > 0.5) {
+        // Crisp text, on a grid 3x finer than the game's pixels, sampled the same sharp way.
+        float2 ts = p.texSize * 3.0;
+        float2 ot = in.uv * ts;
+        float2 os = max(floor(p.outSize / ts), float2(1.0));
+        float2 od = fract(ot) - 0.5;
+        float2 orr = 0.5 - 0.5 / os;
+        float2 of = (od - clamp(od, -orr, orr)) * os + 0.5;
+        float4 o = overlay.sample(lin, (floor(ot) + of) / ts);   // premultiplied
+        c = c * (1.0 - o.a) + o.rgb;
+    }
     float3 linc = pow(c, float3(2.2));
 
     if (p.mode > 0.5) {
