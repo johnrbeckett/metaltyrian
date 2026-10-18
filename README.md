@@ -5,6 +5,8 @@ by Eclipse Software (1995, Tyrian 2000 in 1999). All five episodes, single
 player, drawn with Metal, with Apple frameworks for input and sound. Not affiliated with the
 original authors.
 
+![MetalTyrian title screen](Documentation/Images/title.png)
+
 Version 1.0.1. Built on the game code of [OpenTyrian](https://github.com/opentyrian/opentyrian)
 and [OpenTyrian2000](https://github.com/KScl/opentyrian2000).
 
@@ -17,6 +19,9 @@ is inside the app; there is nothing else to install.
 
 ## What's new on the Mac
 
+The full list, section by section, is in
+[Documentation/CHANGES.md](Documentation/CHANGES.md).
+
 - **Metal display:** sharp square pixels or an old VGA monitor's scanlines, HDR glow on shots and explosions, 4:3 or square aspect, black or ambient borders.
 - **High-resolution art:** a new title screen and repainted menu, shop and HUD pictures, with the game's own pixels on top.
 - **Crisp text:** Orbitron lettering in place of Tyrian's pixel font (or the original, if you prefer).
@@ -25,9 +30,11 @@ is inside the app; there is nothing else to install.
 - **Soft shadows:** the playfield sits inset in the HUD, and the score, lives and special float over it.
 - **Sound:** the music on Nuked OPL3, effects in stereo where they happen on screen.
 - **Controls:** one layout for either hand, with the keyboard, a mouse or trackpad (fly to where you point) or a gamepad; autofire; a controls panel at the start of a new game and when paused; superbombs on their own key.
-- **Arcade ship picker:** fly any of the game's twelve ship looks in 1 Player Arcade.
+- **Arcade ship picker:** fly any of the game's twelve ship looks in Arcade.
 
 ## Playing
+
+![In the game](Documentation/Images/gameplay.png)
 
 One set of controls, for either hand. Every action is on the keyboard, so the
 other hand can steer with the arrows (or W A S D), a mouse or a trackpad, and
@@ -82,7 +89,8 @@ The app lands in `~/Library/Caches/MetalTyrian-build/MetalTyrian.app` (ad hoc
 signed, for running on your own Mac). See
 [Documentation/ARCHITECTURE.md](Documentation/ARCHITECTURE.md) for how the
 pieces fit, [CONTRIBUTING.md](CONTRIBUTING.md) for working on it, and
-[CHANGELOG.md](CHANGELOG.md) for what changed.
+[Documentation/CHANGES.md](Documentation/CHANGES.md) for everything that differs from
+OpenTyrian, and [CHANGELOG.md](CHANGELOG.md) for what changed in each release.
 
 ## Repository layout
 
