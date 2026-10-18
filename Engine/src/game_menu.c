@@ -176,6 +176,25 @@ JE_longint JE_cashLeft(void)
 	return tempL;
 }
 
+#ifdef METALTYRIAN
+/* The game menus' item under the mouse, by the same rows the click uses:
+ * 2 = the first item, -1 = none. */
+static int mt_game_menu_row(int mx, int my)
+{
+	static const JE_byte rowHeight[MENU_MAX] = { 16, 16, 16, 16, 26, 12, 11, 28, 0, 16, 16, 16, 8, 16, 24 };
+	if (my < 38 || mx < 158 || mx >= 316 || curMenu == MENU_DATA_CUBE_SUB || rowHeight[curMenu] == 0)
+		return -1;
+	int selection = (my - 38) / rowHeight[curMenu] + 2;
+	if (curMenu == MENU_JOYSTICK_CONFIG && selection > 2)
+		selection += 3;  // past the hidden rows
+	if (curMenu == MENU_FULL_GAME && selection > 7)
+		selection = 7;
+	if (curMenu == MENU_PLAY_NEXT_LEVEL && selection == menuChoices[curMenu] + 1)
+		selection = menuChoices[curMenu];
+	return selection >= 2 && selection <= menuChoices[curMenu] ? selection : -1;
+}
+#endif
+
 void JE_itemScreen(void)
 {
 	bool quit = false;
@@ -1023,6 +1042,33 @@ void JE_itemScreen(void)
 				service_SDL_events(false);
 				mouseButton = JE_mousePosition(&mouseX, &mouseY);
 				inputDetected = newkey || mouseButton > 0;
+#ifdef METALTYRIAN
+				/* Hover selects, as the arrow keys do (an item you can't
+				 * afford is not picked up by hovering). */
+				{
+					static int lastHoverX = -1, lastHoverY = -1;
+					if (mouseButton == 0 && (mouseX != lastHoverX || mouseY != lastHoverY))
+					{
+						lastHoverX = mouseX;
+						lastHoverY = mouseY;
+						const int hover = mt_game_menu_row(mouseX, mouseY);
+						if (hover >= 2 && hover != curSel[curMenu] &&
+						    !(curMenu == MENU_UPGRADE_SUB && hover == menuChoices[MENU_UPGRADE_SUB]) &&
+						    !(curMenu == MENU_UPGRADE_SUB &&
+						      JE_getCost(curSel[MENU_UPGRADES], itemAvail[itemAvailMap[curSel[MENU_UPGRADES]-2]-1][hover-2]) > player[0].cash))
+						{
+							if (curMenu == MENU_UPGRADE_SUB && curSel[MENU_UPGRADES] == 4)
+								player[0].weapon_mode = 1;
+							curSel[curMenu] = hover;
+							if (curMenu == MENU_UPGRADE_SUB &&
+							    (curSel[MENU_UPGRADES] == 3 || curSel[MENU_UPGRADES] == 4))
+								player[0].items.weapon[curSel[MENU_UPGRADES]-3].power = temp_weapon_power[curSel[MENU_UPGRADE_SUB]-2];
+							JE_playSampleNum(S_CURSOR);
+							inputDetected = true;   /* redraw with the new highlight */
+						}
+					}
+				}
+#endif
 
 				if (curMenu != MENU_LOAD_SAVE)
 				{
@@ -1171,10 +1217,17 @@ void JE_itemScreen(void)
 				JE_playSampleNum(S_CURSOR);
 			}
 
+#ifdef METALTYRIAN
+			if (mouseY > 20 &&
+			    mouseX >= 158 &&
+			    mouseX < 316 &&
+			    curMenu != MENU_DATA_CUBE_SUB)
+#else
 			if (mouseY > 20 &&
 			    mouseX > 170 &&
 			    mouseX < 308 &&
 			    curMenu != MENU_DATA_CUBE_SUB)
+#endif
 			{
 				const JE_byte mouseSelectionY[MENU_MAX] = { 16, 16, 16, 16, 26, 12, 11, 28, 0, 16, 16, 16, 8, 16, 24 };
 
@@ -1218,6 +1271,8 @@ void JE_itemScreen(void)
 					else
 					{
 						JE_playSampleNum(S_CLICK);
+						/* MetalTyrian: hover has already selected, so one click acts
+						 * (buying included: it only swaps the part, refunding the old). */
 						if (curSel[curMenu] == selection)
 						{
 							JE_menuFunction(curSel[curMenu]);
