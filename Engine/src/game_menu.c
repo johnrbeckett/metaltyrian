@@ -17,6 +17,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include "game_menu.h"
+#ifdef METALTYRIAN
+#include "menus.h"
+#endif
 
 #ifdef METALTYRIAN
 /* The joystick page's Analog, Sensitivity and Threshold rows (selections 3-5)
@@ -118,7 +121,12 @@ static PlayerItems old_items[2];  // TODO: should not be global if possible
 
 static struct cube_struct cube[4];
 
+#ifdef METALTYRIAN
+/* 1 Player Arcade's game menu has Ship under Start Level (MetalTyrian). */
+static const JE_MenuChoiceType menuChoicesDefault = { 7, 9, 9, 0, 0, 11, (SAVE_FILES_NUM / 2) + 2, 0, 0, 6, 5, 6, 7, 5, 6 };
+#else
 static const JE_MenuChoiceType menuChoicesDefault = { 7, 9, 9, 0, 0, 11, (SAVE_FILES_NUM / 2) + 2, 0, 0, 6, 4, 6, 7, 5, 6 };
+#endif
 static const JE_byte menuEsc[MENU_MAX] = { 0, 1, 1, 1, 2, 3, 3, 1, 8, 0, 0, 11, 3, 0, 2 };
 static const JE_byte itemAvailMap[7] = { 1, 2, 3, 9, 4, 6, 7 };
 static const JE_word planetX[21] = { 200, 150, 240, 300, 270, 280, 320, 260, 220, 150, 160, 210, 80, 240, 220, 180, 310, 330, 150, 240, 200 };
@@ -1695,6 +1703,13 @@ void draw_ship_illustration(void)
 {
 	// full of evil hardcoding
 
+#ifdef METALTYRIAN
+	/* An arcade ship whose look the upgrade screen has no picture for (chosen
+	 * with Ship): show the ship itself, without the picture's add-ons. */
+	if (mt_draw_ship_if_no_picture(VGAScreenSeg, player[0].items.ship))
+		return;
+#endif
+
 	// ship
 	{
 		assert(player[0].items.ship > 0);
@@ -2385,6 +2400,16 @@ void JE_drawMainMenuHelpText(void)
 		const int help[16] = { 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 24, 11 };
 		memcpy(tempStr, mainMenuHelp[help[curSel[curMenu] - 2]], sizeof(tempStr));
 	}
+#ifdef METALTYRIAN
+	else if (curMenu == MENU_1_PLAYER_ARCADE && curSel[curMenu] >= 3)
+	{
+		/* Ship is new; the items after it keep their own help lines. */
+		if (curSel[curMenu] == 3)
+			snprintf(tempStr, sizeof(tempStr), "Choose the ship you fly.");
+		else
+			memcpy(tempStr, mainMenuHelp[(menuHelp[curMenu][temp - 1])-1], sizeof(tempStr));
+	}
+#endif
 	else if (curMenu < MENU_PLAY_NEXT_LEVEL || curMenu >= MENU_2_PLAYER_ARCADE)
 	{
 		memcpy(tempStr, mainMenuHelp[(menuHelp[curMenu][temp])-1], sizeof(tempStr));
@@ -2991,12 +3016,36 @@ void JE_menuFunction(JE_byte select)
 		break;
 
 	case MENU_1_PLAYER_ARCADE:
+#ifdef METALTYRIAN
+		switch (curSel[curMenu] == 2 ? 2 : curSel[curMenu] == 3 ? 100 : curSel[curMenu] - 1)
+#else
 		switch (curSel[curMenu])
+#endif
 		{
 		case 2:
 			mainLevel = mapSection[mapPNum-1];
 			jumpSection = true;
 			break;
+#ifdef METALTYRIAN
+		case 100:
+		{
+			/* Ship: the picker, then back to this menu on the same picture. */
+			static Uint8 saved[320 * 200];
+			for (int y = 0; y < 200; y++)
+				memcpy(saved + y * 320, (Uint8 *)VGAScreen2->pixels + y * VGAScreen2->pitch, 320);
+			const unsigned int ship = mt_arcade_ship_select(player[0].items.ship);
+			if (ship != 0)
+			{
+				player[0].items.ship = mt_arcade_ship = ship;
+				JE_getShipInfo();
+			}
+			JE_loadPic(VGAScreen, 1, false);   /* the item screen's picture and palette */
+			for (int y = 0; y < 200; y++)
+				memcpy((Uint8 *)VGAScreen2->pixels + y * VGAScreen2->pitch, saved + y * 320, 320);
+			backFromHelp = true;
+			break;
+		}
+#endif
 		case 3:
 			curMenu = isNetworkGame
 				? MENU_LIMITED_OPTIONS

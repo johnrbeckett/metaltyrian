@@ -31,7 +31,11 @@ bool gameplaySelect(void);
 bool episodeSelect(void);
 bool difficultySelect(void);
 #ifdef METALTYRIAN
+#include "SDL.h"
 unsigned int mt_arcade_ship_select(unsigned int initial);
+extern unsigned int mt_arcade_ship;
+/* Draws the ship enlarged when the upgrade screen has no picture of its look; false if it has one. */
+bool mt_draw_ship_if_no_picture(SDL_Surface *surface, unsigned int ship);   /* the 1 Player Arcade ship, Stalker until chosen */
 #endif
 bool timedBattleSelect(void);
 

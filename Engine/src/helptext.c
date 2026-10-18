@@ -329,6 +329,12 @@ void JE_loadHelpText(void)
 	for (unsigned int i = 0; i < menuInt_entries[11]; ++i)
 		read_encrypted_pascal_string(menuInt[11][i], sizeof(menuInt[11][i]), f);
 	skip_pascal_string(f);
+#ifdef METALTYRIAN
+	/* The 1 Player Arcade game menu gains "Ship" under Start Level (game_menu.c). */
+	for (int i = (int)menuInt_entries[11]; i > 2; --i)
+		memcpy(menuInt[11][i], menuInt[11][i - 1], sizeof(menuInt[11][i]));
+	snprintf(menuInt[11][2], sizeof(menuInt[11][2]), "Ship");
+#endif
 
 	/*HighScore Difficulty Names*/
 	skip_pascal_string(f);

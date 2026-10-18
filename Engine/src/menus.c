@@ -683,9 +683,9 @@ bool difficultySelect(void)
 }
 
 #ifdef METALTYRIAN
-/* The ship as it flies (its in-game sprite, level, not banking), drawn
- * scale times larger with its centre at cx, cy. */
-static void mt_draw_ship_big(SDL_Surface *surface, unsigned int ship, int cx, int cy)
+/* The ship as it flies (its in-game sprite, level, not banking), up to
+ * max_scale times larger, centred on cx, cy. */
+static void mt_draw_ship_scaled(SDL_Surface *surface, unsigned int ship, int cx, int cy, int max_scale)
 {
 	static SDL_Surface *a = NULL, *b = NULL;
 	if (a == NULL)
@@ -724,7 +724,7 @@ static void mt_draw_ship_big(SDL_Surface *surface, unsigned int ship, int cx, in
 	if (x1 < x0)
 		return;
 	const int w = x1 - x0 + 1, h = y1 - y0 + 1;
-	int scale = 4;
+	int scale = max_scale;
 	while (scale > 1 && (w * scale > 110 || h * scale > 120))
 		scale--;
 	const int ox = cx - w * scale / 2, oy = cy - h * scale / 2;
@@ -744,49 +744,113 @@ static void mt_draw_ship_big(SDL_Surface *surface, unsigned int ship, int cx, in
 		}
 }
 
-/* MetalTyrian: 1 Player Arcade lets you fly any ship in the game (the
- * original always gave you the Stalker). On the upgrade screen's picture: the
- * ship as it flies on the left with its armour, every ship listed on the
- * right. Arrows or hovering choose, Enter or a click flies. Ships differ in
- * armour; weapons still come from pickups. Returns the ship, or 0 for back. */
+/* MetalTyrian: in 1 Player Arcade the game menu's Ship item lets you fly any
+ * of the game's twelve different-looking ships (the original always gave you
+ * the Stalker). A grid of the ships as they fly on the right, the chosen one
+ * large on the left: its own upgrade-screen picture where it has one, else its
+ * sprite enlarged. Hover or arrows choose, a click or Enter takes it, Esc or a
+ * right-click keeps the current one. Ships differ in armour and looks; weapons
+ * still come from pickups. Returns the ship, or 0 for no change. */
+static void mt_draw_ship_big(SDL_Surface *surface, unsigned int ship, int cx, int cy)
+{
+	mt_draw_ship_scaled(surface, ship, cx, cy, 3);
+}
+
+static void mt_draw_ship_small(SDL_Surface *surface, unsigned int ship, int cx, int cy)
+{
+	mt_draw_ship_scaled(surface, ship, cx, cy, 1);
+}
+
+unsigned int mt_arcade_ship = 8;   /* Stalker, the original's arcade ship */
+
+static const unsigned int mt_ship_looks[12] = { 1, 3, 8, 14, 16, 2, 10, 11, 12, 15, 17, 18 };
+
+/* The upgrade screen's big picture, only for ships it really shows. */
+static bool mt_draw_own_big_picture(unsigned int ship)
+{
+	static const int ship_x[] = { 31, 0, 0, 0, 35, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 30 },
+	                 ship_y[] = { 36, 0, 0, 0, 33, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 30 };
+	if (ship != 1 && ship != 3 && ship != 8 && ship != 14 && ship != 16)
+		return false;
+	const int sprite_id = ships[ship].bigshipgraphic - 1;
+	if (sprite_id < 27 || sprite_id - 27 >= (int)COUNTOF(ship_x) || !sprite_exists(OPTION_SHAPES, sprite_id))
+		return false;
+	blit_sprite(VGAScreen, ship_x[sprite_id - 27], ship_y[sprite_id - 27], OPTION_SHAPES, sprite_id);
+	return true;
+}
+
+bool mt_draw_ship_if_no_picture(SDL_Surface *surface, unsigned int ship)
+{
+	if (ship < 1 || ship > SHIP_NUM || ship == 1 || ship == 3 || ship == 4 || ship == 5 || ship == 6 || ship == 7 ||
+	    ship == 8 || ship == 9 || ship == 13 || ship == 14 || ship == 16)
+		return false;   /* its own picture (or a look-alike's, the Fang, Maelstrom and Stalkers) */
+	mt_draw_ship_big(surface, ship, 78, 92);
+	return true;
+}
+
 unsigned int mt_arcade_ship_select(unsigned int initial)
 {
 	if (shopSpriteSheet.data == NULL)
 		JE_loadCompShapes(&shopSpriteSheet, '1');  // need mouse pointer sprites
 
-	unsigned int ship = (initial >= 1 && initial <= SHIP_NUM) ? initial : 8;
+	size_t sel = 2;   /* Stalker */
+	for (size_t i = 0; i < COUNTOF(mt_ship_looks); i++)
+		if (mt_ship_looks[i] == initial)
+			sel = i;
 	bool restart = true;
 
-	const int xList = 172, yList = 34, dyList = 8, wList = 136;
+	/* The grid: 4 across, 3 down, in the right-hand panel. */
+	const int xGrid = 166, yGrid = 36, wCell = 36, hCell = 34, cols = 4;
+	static Uint8 picture[320 * 200];
+	Uint8 frameColor = 0;
 
 	for (; ; )
 	{
 		if (restart)
-			JE_loadPic(VGAScreen2, 1, false);
+		{
+			JE_loadPic(VGAScreen, 1, false);
+			for (int y = 0; y < 200; y++)
+				memcpy(picture + y * 320, (Uint8 *)VGAScreen->pixels + y * VGAScreen->pitch, 320);
+			/* A bright gold from the picture's palette for the selection frame. */
+			int best = -1;
+			for (int i = 0; i < 256; i++)
+			{
+				const int score = colors[i].r + colors[i].g - 2 * colors[i].b;
+				if (colors[i].r > 180 && colors[i].g > 120 && score > best) { best = score; frameColor = (Uint8)i; }
+			}
+		}
+		for (int y = 0; y < 200; y++)
+			memcpy((Uint8 *)VGAScreen->pixels + y * VGAScreen->pitch, picture + y * 320, 320);
 
-		memcpy(VGAScreen->pixels, VGAScreen2->pixels, (size_t)VGAScreen->pitch * VGAScreen->h);
-
-		mt_draw_ship_big(VGAScreen, ship, 78, 92);
-
-		char line[40];
-		snprintf(line, sizeof(line), "Armor %u", ships[ship].dmg);
-		draw_font_hv_shadow(VGAScreen, 78, 172, line, small_font, centered, 15, 2, false, 1);
+		const unsigned int ship = mt_ship_looks[sel];
+		if (!mt_draw_own_big_picture(ship))
+			mt_draw_ship_big(VGAScreen, ship, 78, 92);
 
 		draw_font_hv_shadow(VGAScreen, 237, 9, "Choose Ship", large_font, centered, 15, -3, false, 2);
 
-		for (unsigned int i = 1; i <= SHIP_NUM; i++)
+		for (size_t i = 0; i < COUNTOF(mt_ship_looks); i++)
 		{
-			char name[32];
-			snprintf(name, sizeof(name), "%s", ships[i].name);
-			char *gap = strstr(name, "   ");   /* "USP Talon   Light Fighter": the name only */
-			if (gap)
-				*gap = '\0';
-			const bool selected = i == ship;
-			draw_font_hv_shadow(VGAScreen, xList, yList + dyList * (int)(i - 1), name, small_font, left_aligned,
-			                    15, selected ? 4 : -1, false, 1);
+			const int cx = xGrid + (int)(i % cols) * wCell + wCell / 2;
+			const int cy = yGrid + (int)(i / cols) * hCell + hCell / 2;
+			mt_draw_ship_small(VGAScreen, mt_ship_looks[i], cx, cy);
+			if (i == sel)
+			{
+				const int x0 = xGrid + (int)(i % cols) * wCell, y0 = yGrid + (int)(i / cols) * hCell;
+				JE_rectangle(VGAScreen, x0, y0, x0 + wCell - 1, y0 + hCell - 1, frameColor);
+			}
 		}
 
-		draw_font_hv_shadow(VGAScreen, 10, 189, "Pick a ship, then Enter or click to fly.  Esc: back.", small_font, left_aligned, 15, 0, false, 1);
+		char name[32];
+		snprintf(name, sizeof(name), "%s", ships[ship].name);
+		char *gap = strstr(name, "   ");   /* "USP Talon   Light Fighter": the name only */
+		if (gap)
+			*gap = '\0';
+		draw_font_hv_shadow(VGAScreen, 237, 145, name, normal_font, centered, 15, 2, false, 2);
+		char line[40];
+		snprintf(line, sizeof(line), "Armor %u", ships[ship].dmg);
+		draw_font_hv_shadow(VGAScreen, 237, 162, line, small_font, centered, 15, 4, false, 1);
+
+		draw_font_hv_shadow(VGAScreen, 10, 189, "Mouse or arrows to choose, click or Enter to take it.", small_font, left_aligned, 15, 0, false, 1);
 
 		if (restart)
 		{
@@ -816,20 +880,26 @@ unsigned int mt_arcade_ship_select(unsigned int initial)
 		} while (!(newkey || newmouse || mouseMoved));
 
 		bool action = false, cancel = false;
-		unsigned int pick = ship;
+		size_t pick = sel;
+		const size_t n = COUNTOF(mt_ship_looks);
 
-		/* Hovering a name picks it, as in the other menus; clicking it flies. */
+		/* Hovering a ship chooses it; clicking takes it. */
 		if (mouseMoved || newmouse)
 		{
 			const int mx = newmouse ? lastmouse_x : mouse_x, my = newmouse ? lastmouse_y : mouse_y;
-			if (mx >= xList - 4 && mx < xList + wList && my >= yList - 1 && my < yList - 1 + dyList * SHIP_NUM)
+			const int rows = (int)((n + cols - 1) / cols);
+			if (mx >= xGrid && mx < xGrid + cols * wCell && my >= yGrid && my < yGrid + rows * hCell)
 			{
-				pick = (unsigned int)((my - (yList - 1)) / dyList) + 1;
-				if (newmouse && lastmouse_but == SDL_BUTTON_LEFT)
-					action = true;
+				const size_t i = (size_t)((my - yGrid) / hCell * cols + (mx - xGrid) / wCell);
+				if (i < n)
+				{
+					pick = i;
+					if (newmouse && lastmouse_but == SDL_BUTTON_LEFT)
+						action = true;
+				}
 			}
 			else if (newmouse && lastmouse_but == SDL_BUTTON_LEFT && mx < 160 && my < 160)
-				action = true;   /* clicking the ship flies it too */
+				action = true;   /* clicking the big ship takes it too */
 		}
 		if (newmouse && lastmouse_but == SDL_BUTTON_RIGHT)
 			cancel = true;
@@ -837,36 +907,27 @@ unsigned int mt_arcade_ship_select(unsigned int initial)
 		{
 			switch (lastkey_scan)
 			{
-			case SDL_SCANCODE_LEFT:
-			case SDL_SCANCODE_UP:
-				pick = ship == 1 ? SHIP_NUM : ship - 1;
-				break;
-			case SDL_SCANCODE_RIGHT:
-			case SDL_SCANCODE_DOWN:
-				pick = ship == SHIP_NUM ? 1 : ship + 1;
-				break;
+			case SDL_SCANCODE_LEFT:  pick = (sel + n - 1) % n; break;
+			case SDL_SCANCODE_RIGHT: pick = (sel + 1) % n; break;
+			case SDL_SCANCODE_UP:    pick = sel >= (size_t)cols ? sel - cols : sel; break;
+			case SDL_SCANCODE_DOWN:  pick = sel + cols < n ? sel + cols : sel; break;
 			case SDL_SCANCODE_SPACE:
-			case SDL_SCANCODE_RETURN:
-				action = true;
-				break;
-			case SDL_SCANCODE_ESCAPE:
-				cancel = true;
-				break;
-			default:
-				break;
+			case SDL_SCANCODE_RETURN: action = true; break;
+			case SDL_SCANCODE_ESCAPE: cancel = true; break;
+			default: break;
 			}
 		}
 
-		if (pick != ship)
+		if (pick != sel)
 		{
 			JE_playSampleNum(S_CURSOR);
-			ship = pick;
+			sel = pick;
 		}
 		if (action)
 		{
 			JE_playSampleNum(S_SELECT);
 			fade_black(10);
-			return ship;
+			return mt_ship_looks[sel];
 		}
 		if (cancel)
 		{
