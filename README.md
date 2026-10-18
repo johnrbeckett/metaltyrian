@@ -46,7 +46,8 @@ starts and whenever the game is paused.
 | Pause | P | P | | Options |
 | Game menu | Esc | Esc | | Menu |
 
-Return also changes the rear weapon mode. Hold Command to free the mouse
+These are the defaults: change any of them in Setup > Controls > Keys, where
+each action has a key for either hand. Return also changes the rear weapon mode. Hold Command to free the mouse
 pointer during play (for the menu bar). Left-handed mouse users can swap the
 buttons in the Mac's System Settings > Mouse > Primary mouse button, and the
 game follows. Autofire is also under Setup > Controls; with it on, weapons that

@@ -338,6 +338,98 @@ bool mt_cursor_wanted(void) { return cursor_shown != 0; }
 
 static _Atomic int settings[MT_SETTING_COUNT];
 
+/* ---- Keys ------------------------------------------------------------------ */
+
+static const int key_defaults[MT_ACT_COUNT][2] = {
+	{ SDL_SCANCODE_UP, SDL_SCANCODE_W },       { SDL_SCANCODE_DOWN, SDL_SCANCODE_S },
+	{ SDL_SCANCODE_LEFT, SDL_SCANCODE_A },     { SDL_SCANCODE_RIGHT, SDL_SCANCODE_D },
+	{ SDL_SCANCODE_SPACE, SDL_SCANCODE_SPACE }, { SDL_SCANCODE_Z, SDL_SCANCODE_SLASH },
+	{ SDL_SCANCODE_X, SDL_SCANCODE_PERIOD },   { SDL_SCANCODE_C, SDL_SCANCODE_COMMA },
+	{ SDL_SCANCODE_1, SDL_SCANCODE_0 },        { SDL_SCANCODE_2, SDL_SCANCODE_9 },
+};
+
+int mt_key_default(int action, int slot)
+{
+	if (action < 0 || action >= MT_ACT_COUNT || slot < 0 || slot > 1)
+		return 0;
+	return key_defaults[action][slot];
+}
+
+int mt_key_binding(int action, int slot)
+{
+	if (action < 0 || action >= MT_ACT_COUNT || slot < 0 || slot > 1)
+		return 0;
+	int v = mt_setting(MT_SETTING_KEYS + action * 2 + slot);
+	return v > 0 && v < SDL_NUM_SCANCODES ? v : key_defaults[action][slot];
+}
+
+void mt_set_key_binding(int action, int slot, int scancode)
+{
+	if (action < 0 || action >= MT_ACT_COUNT || slot < 0 || slot > 1)
+		return;
+	mt_set_setting(MT_SETTING_KEYS + action * 2 + slot, scancode == key_defaults[action][slot] ? 0 : scancode);
+}
+
+const char *mt_key_name(int sc)
+{
+	static char one[2];
+	if (sc >= SDL_SCANCODE_A && sc <= SDL_SCANCODE_Z) { one[0] = (char)('A' + sc - SDL_SCANCODE_A); one[1] = 0; return one; }
+	if (sc >= SDL_SCANCODE_1 && sc <= SDL_SCANCODE_9) { one[0] = (char)('1' + sc - SDL_SCANCODE_1); one[1] = 0; return one; }
+	if (sc >= SDL_SCANCODE_F1 && sc <= SDL_SCANCODE_F12)
+	{
+		static const char *const f[] = { "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12" };
+		return f[sc - SDL_SCANCODE_F1];
+	}
+	if (sc >= SDL_SCANCODE_KP_1 && sc <= SDL_SCANCODE_KP_9)
+	{
+		static const char *const k[] = { "Pad 1", "Pad 2", "Pad 3", "Pad 4", "Pad 5", "Pad 6", "Pad 7", "Pad 8", "Pad 9" };
+		return k[sc - SDL_SCANCODE_KP_1];
+	}
+	switch (sc)
+	{
+	case SDL_SCANCODE_0: return "0";
+	case SDL_SCANCODE_RETURN: return "Return";
+	case SDL_SCANCODE_BACKSPACE: return "Delete";
+	case SDL_SCANCODE_TAB: return "Tab";
+	case SDL_SCANCODE_SPACE: return "Space";
+	case SDL_SCANCODE_MINUS: return "-";
+	case SDL_SCANCODE_EQUALS: return "=";
+	case SDL_SCANCODE_LEFTBRACKET: return "[";
+	case SDL_SCANCODE_RIGHTBRACKET: return "]";
+	case SDL_SCANCODE_BACKSLASH: return "\\";
+	case SDL_SCANCODE_SEMICOLON: return ";";
+	case SDL_SCANCODE_APOSTROPHE: return "'";
+	case SDL_SCANCODE_GRAVE: return "`";
+	case SDL_SCANCODE_COMMA: return ",";
+	case SDL_SCANCODE_PERIOD: return ".";
+	case SDL_SCANCODE_SLASH: return "/";
+	case SDL_SCANCODE_CAPSLOCK: return "Caps";
+	case SDL_SCANCODE_HOME: return "Home";
+	case SDL_SCANCODE_END: return "End";
+	case SDL_SCANCODE_PAGEUP: return "PgUp";
+	case SDL_SCANCODE_PAGEDOWN: return "PgDn";
+	case SDL_SCANCODE_DELETE: return "Del";
+	case SDL_SCANCODE_UP: return "Up";
+	case SDL_SCANCODE_DOWN: return "Down";
+	case SDL_SCANCODE_LEFT: return "Left";
+	case SDL_SCANCODE_RIGHT: return "Right";
+	case SDL_SCANCODE_KP_0: return "Pad 0";
+	case SDL_SCANCODE_KP_ENTER: return "Enter";
+	case SDL_SCANCODE_KP_PERIOD: return "Pad .";
+	case SDL_SCANCODE_KP_PLUS: return "Pad +";
+	case SDL_SCANCODE_KP_MINUS: return "Pad -";
+	case SDL_SCANCODE_KP_MULTIPLY: return "Pad *";
+	case SDL_SCANCODE_KP_DIVIDE: return "Pad /";
+	case SDL_SCANCODE_LSHIFT: return "L Shift";
+	case SDL_SCANCODE_RSHIFT: return "R Shift";
+	case SDL_SCANCODE_LCTRL: return "L Ctrl";
+	case SDL_SCANCODE_RCTRL: return "R Ctrl";
+	case SDL_SCANCODE_LALT: return "L Option";
+	case SDL_SCANCODE_RALT: return "R Option";
+	default: return "?";
+	}
+}
+
 int mt_setting(int which)
 {
 	return which >= 0 && which < MT_SETTING_COUNT ? settings[which] : 0;

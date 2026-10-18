@@ -2,6 +2,7 @@ import CoreGraphics
 import CoreText
 import Foundation
 import Metal
+import SDLShim
 
 /// The controls overlay: a keycap panel over the bottom of the playfield,
 /// shown as each level starts and while the game is paused. The game says
@@ -13,7 +14,7 @@ final class ControlsOverlay {
     static let width = Int(rect.width * scale), height = Int(rect.height * scale)
 
     let texture: MTLTexture
-    private var drawnKey: Int = -1
+    private var drawnKey = ""
     private let font: CTFont?
 
     init?(device: MTLDevice) {
@@ -34,7 +35,9 @@ final class ControlsOverlay {
 
     /// Redraws the panel when the hand or the autofire state has changed.
     func update(lefty: Bool, autofire: Int) {
-        let key = (lefty ? 1 : 0) | (autofire & 3) << 1
+        // Redrawn when the hand, autofire or any key binding changes.
+        var key = "\(lefty ? 1 : 0)\(autofire & 3)"
+        for a in 0..<MT_ACT_COUNT { for s in Int32(0)..<2 { key += ",\(mt_key_binding(a, s))" } }
         guard key != drawnKey else { return }
         drawnKey = key
         let pixels = Self.draw(lefty: lefty, autofire: autofire, font: font ?? CTFontCreateWithName("Helvetica-Bold" as CFString, 24, nil))
@@ -54,18 +57,22 @@ final class ControlsOverlay {
     private static func draw(lefty: Bool, autofire: Int, font baseFont: CTFont) -> [UInt32] {
         var pixels = [UInt32](repeating: 0, count: width * height)
         let mainOn = autofire & 1 != 0, sideOn = autofire & 2 != 0
-        let rows: [[Piece]] = lefty ? [
-            [.key("Space"), .label("Fire", highlight: false), .key("/"), .label("Sidekicks", highlight: false),
-             .key("."), .label("Rear mode", highlight: false), .key(","), .label("Bomb", highlight: false)],
-            [.key("W A S D"), .label("or mouse / trackpad: steer", highlight: false), .key("P"), .label("Pause", highlight: false)],
-            [.key("0"), .label("Autofire main: " + (mainOn ? "on" : "off"), highlight: mainOn),
-             .key("9"), .label("Autofire sidekicks: " + (sideOn ? "on" : "off"), highlight: sideOn)],
-        ] : [
-            [.key("Space"), .label("Fire", highlight: false), .key("Z"), .label("Sidekicks", highlight: false),
-             .key("X"), .label("Rear mode", highlight: false), .key("C"), .label("Bomb", highlight: false)],
-            [.key("Arrows"), .label("or mouse / trackpad: steer", highlight: false), .key("P"), .label("Pause", highlight: false)],
-            [.key("1"), .label("Autofire main: " + (mainOn ? "on" : "off"), highlight: mainOn),
-             .key("2"), .label("Autofire sidekicks: " + (sideOn ? "on" : "off"), highlight: sideOn)],
+        let slot: Int32 = lefty ? 1 : 0
+        func name(_ action: Int32) -> String {
+            String(cString: mt_key_name(mt_key_binding(action, slot)))
+        }
+        let steerKeys = [MT_ACT_UP, MT_ACT_DOWN, MT_ACT_LEFT, MT_ACT_RIGHT].map { mt_key_binding($0, slot) }
+        let arrows: [Int32] = [82, 81, 80, 79]   // SDL scancodes for up, down, left, right
+        let steer = steerKeys == arrows ? "Arrows"
+            : [MT_ACT_UP, MT_ACT_LEFT, MT_ACT_DOWN, MT_ACT_RIGHT].map { name($0) }.joined(separator: " ")
+        let rows: [[Piece]] = [
+            [.key(name(MT_ACT_FIRE)), .label("Fire", highlight: false),
+             .key(name(MT_ACT_SIDEKICKS)), .label("Sidekicks", highlight: false),
+             .key(name(MT_ACT_REAR)), .label("Rear mode", highlight: false),
+             .key(name(MT_ACT_BOMB)), .label("Bomb", highlight: false)],
+            [.key(steer), .label("or mouse / trackpad: steer", highlight: false), .key("P"), .label("Pause", highlight: false)],
+            [.key(name(MT_ACT_AUTOFIRE_MAIN)), .label("Autofire main: " + (mainOn ? "on" : "off"), highlight: mainOn),
+             .key(name(MT_ACT_AUTOFIRE_SIDEKICKS)), .label("Autofire sidekicks: " + (sideOn ? "on" : "off"), highlight: sideOn)],
         ]
         pixels.withUnsafeMutableBytes { raw in
             guard let ctx = CGContext(data: raw.baseAddress, width: width, height: height, bitsPerComponent: 8,

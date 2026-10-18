@@ -48,6 +48,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                                    (MT_SETTING_LIGHT, "light"),
                                                    (MT_SETTING_EDGES, "edges"),
                                                    (MT_SETTING_AUTOFIRE, "autofire")]
+        // Setup > Controls > Keys: each action's two keys (0 = the default).
+        + (0..<(2 * Int(MT_ACT_COUNT))).map { (MT_SETTING_KEYS + Int32($0), "key\($0)") }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {

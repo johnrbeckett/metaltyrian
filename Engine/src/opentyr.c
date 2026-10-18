@@ -17,6 +17,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include "opentyr.h"
+#ifdef METALTYRIAN
+#include "mt_keys.h"
+#endif
 
 #include "config.h"
 #include "destruct.h"
@@ -270,6 +273,7 @@ void setupMenu(void)
 		MENU_ITEM_LIGHT,
 		MENU_ITEM_EDGES,
 		MENU_ITEM_AUTOFIRE,
+		MENU_ITEM_KEYS,
 #endif
 	} MenuItemId;
 
@@ -355,6 +359,7 @@ void setupMenu(void)
 		[MENU_CONTROLS] = {
 			.header = "Controls",
 			.items = {
+				{ MENU_ITEM_KEYS, "Keys...", "Change the keys for either hand." },
 				{ MENU_ITEM_KEY_SPEED, "Keyboard Speed", "Arrows or W A S D: 1 is the original game. Left/right to change." },
 				{ MENU_ITEM_PAD_SPEED, "Gamepad Speed", "Stick and d-pad at full tilt. Left/right to change." },
 				{ MENU_ITEM_MOUSE_MODE, "Mouse Mode", "Direct: the ship flies to where you point.", mtMouseModeCount, mtMouseModeItem },
@@ -849,6 +854,12 @@ void setupMenu(void)
 					break;
 				}
 #ifdef METALTYRIAN
+				case MENU_ITEM_KEYS:
+				{
+					JE_playSampleNum(S_SELECT);
+					mt_keys_menu();
+					break;
+				}
 				case MENU_ITEM_CONTROLS:
 				{
 					JE_playSampleNum(S_SELECT);

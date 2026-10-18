@@ -1555,11 +1555,12 @@ static int mt_steer_vx[2], mt_steer_vy[2];
  * towards it at the game's top mouse speed. The pointer starts at the ship
  * whenever the mouse takes over, and the keyboard or a gamepad hands control
  * back. Level pushes still move the ship; it then returns to the pointer. */
-/* MetalTyrian's keys are hard-wired, both layouts always live:
+/* MetalTyrian's keys: every action has two keys, both always live, set in
+ * Setup > Controls > Keys (mt_key_binding). Defaults:
  *   right-handed: arrows to steer; Space fire, Z sidekicks, X rear mode, C superbomb
  *   left-handed:  W A S D to steer; Space fire, / sidekicks, . rear mode, , superbomb
- * Return and the middle mouse button also change the rear mode. 1 and 2
- * (or 0 and 9) toggle autofire for the main guns and the sidekicks. */
+ * 1 and 2 (or 0 and 9) toggle autofire for the main guns and the sidekicks.
+ * Return and the middle mouse button also change the rear mode. */
 bool mt_lefty = false;          /* the layout last steered with (controls overlay) */
 static bool mt_bomb_pressed = false;
 static bool mt_toggle_held[2];
@@ -3929,33 +3930,37 @@ redo:
 #ifdef METALTYRIAN
 				if ((inputDevice == 0 || inputDevice == 1) && !play_demo && !record_demo)
 				{
-					const bool rUp = keysactive[SDL_SCANCODE_UP], rDown = keysactive[SDL_SCANCODE_DOWN];
-					const bool rLeft = keysactive[SDL_SCANCODE_LEFT], rRight = keysactive[SDL_SCANCODE_RIGHT];
-					const bool lUp = keysactive[SDL_SCANCODE_W], lDown = keysactive[SDL_SCANCODE_S];
-					const bool lLeft = keysactive[SDL_SCANCODE_A], lRight = keysactive[SDL_SCANCODE_D];
-					if (rUp || lUp)
+					/* Each action's two keys (Setup > Controls > Keys); slot 1's
+					 * steering keys mark the left-handed layout for the overlay. */
+#define MT_K(act, slot) (keysactive[mt_key_binding((act), (slot))] != 0)
+#define MT_KK(act) (MT_K((act), 0) || MT_K((act), 1))
+					const bool r = MT_K(MT_ACT_UP, 0) || MT_K(MT_ACT_DOWN, 0) || MT_K(MT_ACT_LEFT, 0) || MT_K(MT_ACT_RIGHT, 0);
+					const bool l = MT_K(MT_ACT_UP, 1) || MT_K(MT_ACT_DOWN, 1) || MT_K(MT_ACT_LEFT, 1) || MT_K(MT_ACT_RIGHT, 1);
+					if (MT_KK(MT_ACT_UP))
 						this_player->y -= MT_KEY_SPEED;
-					if (rDown || lDown)
+					if (MT_KK(MT_ACT_DOWN))
 						this_player->y += MT_KEY_SPEED;
-					if (rLeft || lLeft)
+					if (MT_KK(MT_ACT_LEFT))
 						this_player->x -= MT_KEY_SPEED;
-					if (rRight || lRight)
+					if (MT_KK(MT_ACT_RIGHT))
 						this_player->x += MT_KEY_SPEED;
-					if (rUp || rDown || rLeft || rRight)
+					if (r)
 						mt_lefty = false;
-					else if (lUp || lDown || lLeft || lRight)
+					else if (l)
 						mt_lefty = true;
-					if (rUp || rDown || rLeft || rRight || lUp || lDown || lLeft || lRight)
+					if (r || l)
 						mt_pointer_live[(this_player - player) & 1] = false;  /* keys take over */
 
-					button[0] = button[0] || keysactive[SDL_SCANCODE_SPACE];
-					const bool sidekicks = keysactive[SDL_SCANCODE_Z] || keysactive[SDL_SCANCODE_SLASH];
+					button[0] = button[0] || MT_KK(MT_ACT_FIRE);
+					const bool sidekicks = MT_KK(MT_ACT_SIDEKICKS);
 					button[1] = button[1] || sidekicks;
 					button[2] = button[2] || sidekicks;
-					button[3] = button[3] || keysactive[SDL_SCANCODE_X] || keysactive[SDL_SCANCODE_PERIOD] || keysactive[SDL_SCANCODE_RETURN];
-					mt_bomb_pressed = mt_bomb_pressed || keysactive[SDL_SCANCODE_C] || keysactive[SDL_SCANCODE_COMMA];
-					mt_autofire_toggle(0, keysactive[SDL_SCANCODE_1] || keysactive[SDL_SCANCODE_0]);
-					mt_autofire_toggle(1, keysactive[SDL_SCANCODE_2] || keysactive[SDL_SCANCODE_9]);
+					button[3] = button[3] || MT_KK(MT_ACT_REAR) || keysactive[SDL_SCANCODE_RETURN];
+					mt_bomb_pressed = mt_bomb_pressed || MT_KK(MT_ACT_BOMB);
+					mt_autofire_toggle(0, MT_KK(MT_ACT_AUTOFIRE_MAIN));
+					mt_autofire_toggle(1, MT_KK(MT_ACT_AUTOFIRE_SIDEKICKS));
+#undef MT_KK
+#undef MT_K
 				}
 				else
 #endif
