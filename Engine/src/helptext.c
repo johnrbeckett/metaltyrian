@@ -310,6 +310,13 @@ void JE_loadHelpText(void)
 	for (unsigned int i = 0; i < COUNTOF(gameplay_name); ++i)
 		read_encrypted_pascal_string(gameplay_name[i], sizeof(gameplay_name[i]), f);
 	skip_pascal_string(f);
+#ifdef METALTYRIAN
+	/* Single player: the menu is "Mode", and its items lose "1 Player ". */
+	snprintf(gameplay_name[0], sizeof(gameplay_name[0]), "Mode");
+	for (unsigned int i = 1; i < COUNTOF(gameplay_name); ++i)
+		if (strncmp(gameplay_name[i], "1 Player ", 9) == 0)
+			memmove(gameplay_name[i], gameplay_name[i] + 9, strlen(gameplay_name[i] + 9) + 1);
+#endif
 
 	/*Menu 10 - 2Player Main*/
 	skip_pascal_string(f);

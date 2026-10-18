@@ -200,7 +200,13 @@ void JE_helpSystem(JE_byte startTopic)
 
 	bool restart = true;
 
+#ifdef METALTYRIAN
+	/* Single player: the Two-Player Game Menu topic (topicName[2]) is not shown. */
+	static const size_t rows[] = { 0, 2, 3, 4 };   /* menu row -> topicName index - 1 */
+	const size_t menuItemsCount = COUNTOF(rows);
+#else
 	const size_t menuItemsCount = COUNTOF(topicName) - 1;
+#endif
 	size_t selectedIndex = 0;
 
 	const int xCenter = 320 / 2;
@@ -225,6 +231,15 @@ void JE_helpSystem(JE_byte startTopic)
 				return;
 
 			selectedIndex = (size_t)topic - 1;
+#ifdef METALTYRIAN
+			/* The original row, moved to the first shown row at or after it. */
+			{
+				size_t want = (size_t)topic - 1, pick = menuItemsCount - 1;
+				for (size_t r = 0; r < menuItemsCount; ++r)
+					if (rows[r] >= want) { pick = r; break; }
+				selectedIndex = pick;
+			}
+#endif
 			topic = 1;
 			continue;
 		}
@@ -238,7 +253,11 @@ void JE_helpSystem(JE_byte startTopic)
 		// Draw menu items.
 		for (size_t i = 0; i < menuItemsCount; ++i)
 		{
+#ifdef METALTYRIAN
+			const char *const text = topicName[rows[i] + 1];
+#else
 			const char *const text = topicName[i + 1];
+#endif
 
 			wMenuItem[i] = JE_textWidth(text, normal_font);
 			const int y = yMenuItems + dyMenuItems * i;
@@ -366,7 +385,11 @@ void JE_helpSystem(JE_byte startTopic)
 		{
 			JE_playSampleNum(S_SELECT);
 
+#ifdef METALTYRIAN
+			topic = (Uint8)(rows[selectedIndex] + 2);
+#else
 			topic = selectedIndex + 2;
+#endif
 
 			if (selectedIndex == menuItemsCount - 1)
 				done = true;
@@ -384,11 +407,20 @@ void JE_helpSystem(JE_byte startTopic)
 static bool helpSystemPage(Uint8 *topic, bool *restart)
 {
 	Uint8 page = topicStart[*topic - 1];
+#ifdef METALTYRIAN
+	Uint8 lastPage = page;
+#endif
 
 	const int xCenter = 320 / 2;
 
 	for (; ; )
 	{
+#ifdef METALTYRIAN
+		/* Single player: page 2 (the Two-Player Game Menu) is passed over. */
+		if (page == 2)
+			page = lastPage > 2 ? 1 : 3;
+		lastPage = page;
+#endif
 		if (page == 0)
 		{
 			*topic = 1;
@@ -424,7 +456,11 @@ static bool helpSystemPage(Uint8 *topic, bool *restart)
 		snprintf(buffer, sizeof buffer, "%s %d", miscText[24], page - topicStart[*topic - 1] + 1);
 		draw_font_hv(VGAScreen, 10, 192, buffer, small_font, left_aligned, 13, 5);
 
+#ifdef METALTYRIAN
+		snprintf(buffer, sizeof buffer, "%s %d of %d", miscText[25], page > 2 ? page - 1 : page, MAX_PAGE - 1);
+#else
 		snprintf(buffer, sizeof buffer, "%s %d of %d", miscText[25], page, MAX_PAGE);
+#endif
 		draw_font_hv(VGAScreen, 320 - 10, 192, buffer, small_font, right_aligned, 13, 5);
 
 		// Draw text.
@@ -1568,11 +1604,12 @@ static bool mt_toggle_held[2];
 /* The controls panel: once at the start of a new game, with the first level
  * frozen until the player presses something, and whenever the game is
  * paused. A training aid, not a nag: later levels don't show it. */
-static bool mt_start_pending = false;
+#define MT_START_FRAMES 30   /* about a second in, so the level has drawn itself */
+static int mt_start_pending = 0;
 
 void mt_controls_new_game(void)
 {
-	mt_start_pending = true;
+	mt_start_pending = MT_START_FRAMES;
 }
 
 static int mt_autofire(void)
@@ -3259,6 +3296,9 @@ void JE_inGameDisplays(void)
 			}
 
 			tempW = (temp == 0) ? 28 : (285 - JE_textWidth(stemp, TINY_FONT));
+#ifdef METALTYRIAN
+			if (twoPlayerMode)   /* single player: the lives need no "Player 1" label */
+#endif
 			JE_textShade(VGAScreen, tempW, y - 7, stemp, 2, 6, FULL_SHADE);
 		}
 	}
@@ -3639,14 +3679,13 @@ void JE_pauseGame(void)
 }
 
 #ifdef METALTYRIAN
-/* The first frame of a new game's first level stays up, with the controls
+/* A new game's first level runs about a second, then holds, with the controls
  * panel and "Press fire to start", until the player presses a key, a mouse
  * button or a gamepad button. */
 void mt_controls_start_wait(void)
 {
-	if (!mt_start_pending)
+	if (mt_start_pending <= 0 || --mt_start_pending > 0)
 		return;
-	mt_start_pending = false;
 	if (play_demo || record_demo)
 		return;
 
