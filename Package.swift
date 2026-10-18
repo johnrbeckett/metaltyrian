@@ -28,7 +28,13 @@ let package = Package(
                 .define("TYRIAN_DIR", to: "\".\""),
                 .define("OPENTYRIAN_VERSION", to: "\"metaltyrian\""),
                 .define("main", to: "tyrian_main"),
-                .unsafeFlags(["-std=gnu99"]),
+                // The game code is 1990s-style C written for 32-bit ints; Xcode's
+                // 64-to-32 warning fires on dozens of harmless file offsets and
+                // counts in it, so it is off for this target only. -fno-common
+                // (the default in GCC 10 and later, which builds OpenTyrian
+                // upstream) puts the game's globals in ordinary data, which also
+                // quiets the linker's __common alignment warning.
+                .unsafeFlags(["-std=gnu99", "-Wno-shorten-64-to-32", "-fno-common"]),
             ]
         ),
         .executableTarget(
