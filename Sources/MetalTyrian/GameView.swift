@@ -105,6 +105,46 @@ final class GameView: MTKView {
     override func rightMouseDragged(with event: NSEvent) { motion(event) }
     override func otherMouseDragged(with event: NSEvent) { motion(event) }
 
+    // Scroll wheel or trackpad: one deliberate stroke changes the rear
+    // weapon's mode once. A trackpad or Magic Mouse stroke must travel a clear
+    // distance (a brush of the Magic Mouse's top while flying doesn't count),
+    // coasting after the fingers lift is ignored, and changes are at least a
+    // moment apart.
+    private var scrollTravel: CGFloat = 0
+    private var scrollFired = false
+    private var lastScrollTime: TimeInterval = 0
+    private var lastChangeTime: TimeInterval = 0
+    private static let strokeDistance: CGFloat = 40     // points, precise scrolling
+    private static let changeGap: TimeInterval = 0.3
+
+    override func scrollWheel(with event: NSEvent) {
+        guard event.momentumPhase.isEmpty else { return }
+        let now = event.timestamp
+        let dy = event.scrollingDeltaY, dx = event.scrollingDeltaX
+        if event.hasPreciseScrollingDeltas {
+            // A new stroke: the gesture begins, or (devices without phases) a pause.
+            if event.phase.contains(.began) || (event.phase.isEmpty && now - lastScrollTime > 0.3) {
+                scrollTravel = 0
+                scrollFired = false
+            }
+            lastScrollTime = now
+            scrollTravel += abs(dy) > abs(dx) ? abs(dy) : abs(dx)
+            if !scrollFired && scrollTravel >= Self.strokeDistance && now - lastChangeTime >= Self.changeGap {
+                scrollFired = true
+                lastChangeTime = now
+                mt_push_change_fire()
+            }
+            if event.phase.contains(.ended) || event.phase.contains(.cancelled) {
+                scrollTravel = 0
+                scrollFired = false
+            }
+        } else if max(abs(dy), abs(dx)) > 0 && now - lastChangeTime >= Self.changeGap {
+            // A wheel notch.
+            lastChangeTime = now
+            mt_push_change_fire()
+        }
+    }
+
     override func mouseDown(with event: NSEvent) { button(event, down: true) }
     override func mouseUp(with event: NSEvent) { button(event, down: false) }
     override func rightMouseDown(with event: NSEvent) { button(event, down: true) }

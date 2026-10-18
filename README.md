@@ -33,7 +33,7 @@ is inside the app; there is nothing else to install.
 |---|---|---|---|
 | Move | Arrow keys | Move the mouse | Left stick or D-pad |
 | Fire | Space | Left button | A |
-| Change rear weapon mode | Return | Middle button | B |
+| Change rear weapon mode | Return | Scroll wheel, a trackpad swipe, or the middle button | B |
 | Sidekicks | Left Control (left), Left Option (right) | Right button (both) | LB, RB |
 | Superbomb, if you carry any | Either sidekick button | Right button | LB or RB |
 | Game menu | Esc | | Menu |

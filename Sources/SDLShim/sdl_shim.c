@@ -16,6 +16,7 @@
 #include <math.h>
 #include <pthread.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -349,6 +350,20 @@ void mt_set_setting(int which, int value)
 		settings[which] = value;
 }
 bool mt_relative_mouse(void) { return relative_mouse != 0; }
+
+static _Atomic Uint32 change_fire_at = 0;   /* SDL_GetTicks of the last stroke, 0 = none */
+
+void mt_push_change_fire(void)
+{
+	Uint32 now = SDL_GetTicks();
+	change_fire_at = now ? now : 1;
+}
+
+bool mt_take_change_fire(void)
+{
+	Uint32 at = atomic_exchange(&change_fire_at, 0);
+	return at != 0 && SDL_GetTicks() - at < 150;
+}
 
 /* ---- Keyboard names ------------------------------------------------------- */
 
