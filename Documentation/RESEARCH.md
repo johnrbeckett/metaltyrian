@@ -1,5 +1,7 @@
 # MetalTyrian research
 
+> Kept as a record of how the project started. Some of it has since changed; `ARCHITECTURE.md` describes the code as it is.
+
 Written 2026-10-17, from a chat with John that started on his phone. This
 records what was checked, what was tested and what was decided. No code has
 been written for the port yet.

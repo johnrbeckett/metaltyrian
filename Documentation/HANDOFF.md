@@ -1,11 +1,14 @@
-# MetalTyrian handoff
+# MetalTyrian development notes
+
+Running notes kept between working sessions: state, decisions and history.
+For how the code fits together, see `ARCHITECTURE.md`.
 
 ## Status, 2026-10-18 (end of session)
 
 | Item | State |
 |---|---|
 | Folder | `~/Developer/MetalTyrian/` |
-| Git | `main`, pushed to the private GitHub repo `johnrbeckett/metaltyrian` (remote `origin`, 2026-10-18; John asked for the push). Push with the keyserver key `GITHUB_TOKEN_ORBIT_ANGEL` (edit, account johnrbeckett) materialised into a registered scratch folder (e.g. `~/Developer/.claude-tmp-env-mt-1018`), sent as an `http.extraHeader`, so no token is stored in `.git/config`; clear the `.env` afterwards. Commit author `John Beckett <johnreabeckett@gmail.com>`. |
+| Git | `main` on GitHub, `johnrbeckett/metaltyrian` (public from 1.0.0). Pushes use a token sent as an `http.extraHeader` for that push only, so no credential is stored in `.git/config`. Commit author John Beckett. |
 | Version | `VERSION` 1.0.0 (John, 2026-10-18); the title screen shows "Metal 1.0.0" and the About box the same, with the build number (commit count). Releases: see Releases below. |
 | Build | `scripts/build-app.sh` builds to `~/Library/Caches/MetalTyrian-build/MetalTyrian.app`; Swift can only be compiled on the Mac. Engine and shim are checked headless on Linux with `Tests/linux/run.sh` (see Testing). |
 | Seen working on the Mac by John | Everything up to d0dca16 (2026-10-18): game, menus, mouse, gamepads, crisp text, HD title and pictures, new HUD with Orbitron labels, stereo audio, dynamic light (Light: Medium too), title version "Metal 0.1.0", menu titles at 90%, the shaded equipped-item bar, the "!" fix. |
@@ -34,7 +37,7 @@
 
 1. Update the README's "What's new" and Credits (the About box's `Credits.rtf` is made from the README's Credits and Licence sections by `scripts/make-credits.sh` at build time) and this handoff. New third-party code, fonts or art: add its licence to `App/Licenses/` (bundled under Contents/Resources/Licenses) and a Credits line.
 2. `scripts/release.sh X.Y.Z`: writes `VERSION`, commits "MetalTyrian X.Y.Z", tags `vX.Y.Z`.
-3. Push with the keyserver header as in Status, adding `--follow-tags`.
+3. Push with `--follow-tags` (credentials as in Status), then build, sign and notarise the app and attach it to the GitHub release.
 
 Licence sweep for 1.0.0: GPL 2+ (MetalTyrian, OpenTyrian, OpenTyrian2000, hqNx by Maxim Stepin), LGPL 2.1+ (Nuked OPL3), BSD (Mersenne Twister, `mtrand.c`: binary distributions must carry the notice), OFL 1.1 (Orbitron), Tyrian freeware terms (game data). DOSBox's `opl.c` is compiled out. The CC-BY "Remastered Tyrian Graphics" pack (`Art/Remastered`) is not used in the app. Scale3x is our own code after Andrea Mazzoleni's method (credited).
 

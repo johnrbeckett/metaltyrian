@@ -6,5 +6,4 @@ MersenneTwister.txt    the game's random number generator (BSD licence notice)
 OFL-1.1-Orbitron.txt   the Orbitron typeface (SIL Open Font License 1.1)
 Tyrian-freeware.txt    Tyrian and Tyrian 2000 game data (freeware)
 
-The source code is at https://github.com/johnrbeckett/metaltyrian (private
-while in development; ask John Beckett for a copy under the GPL).
+The source code is at https://github.com/johnrbeckett/metaltyrian.

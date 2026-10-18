@@ -1,5 +1,7 @@
 # MetalTyrian version 1 plan
 
+> Kept as a record of how the project started. Some of it has since changed; `ARCHITECTURE.md` describes the code as it is.
+
 Written 2026-10-17 for John's review. Nothing in this plan gets built until he
 approves it. Research behind it: `RESEARCH.md`.
 
