@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include "menus.h"
+#include "nortvars.h"
 
 #include "config.h"
 #include "episodes.h"
@@ -800,7 +801,7 @@ unsigned int mt_arcade_ship_select(unsigned int initial)
 	bool restart = true;
 
 	/* The grid: 4 across, 3 down, in the right-hand panel. */
-	const int xGrid = 166, yGrid = 36, wCell = 36, hCell = 34, cols = 4;
+	const int xGrid = 166, yGrid = 56, wCell = 36, hCell = 34, cols = 4;
 	static Uint8 picture[320 * 200];
 	Uint8 frameColor = 0;
 
@@ -845,10 +846,11 @@ unsigned int mt_arcade_ship_select(unsigned int initial)
 		char *gap = strstr(name, "   ");   /* "USP Talon   Light Fighter": the name only */
 		if (gap)
 			*gap = '\0';
-		draw_font_hv_shadow(VGAScreen, 237, 145, name, normal_font, centered, 15, 2, false, 2);
-		char line[40];
-		snprintf(line, sizeof(line), "Armor %u", ships[ship].dmg);
-		draw_font_hv_shadow(VGAScreen, 237, 162, line, small_font, centered, 15, 4, false, 1);
+		/* The ship's properties sit under it in the left window, in the
+		 * item screen's own slots: armour as the bar beside the helmet, the
+		 * name in the box below. */
+		JE_barDrawShadow(VGAScreen, 42, 152, 3, 14, ships[ship].dmg, 2, 13);
+		draw_font_hv_shadow(VGAScreen, 78, 173, name, small_font, centered, 15, 2, false, 1);
 
 		draw_font_hv_shadow(VGAScreen, 10, 189, "Mouse or arrows to choose, click or Enter to take it.", small_font, left_aligned, 15, 0, false, 1);
 
