@@ -231,11 +231,11 @@ fragment float4 display_frag(VOut in [[stage_in]],
         mask[uint(in.pos.x) % 3u] = 1.0;
         // The scanlines and grille take about a sixth of the light; this gives
         // it back, plus the same small lift as Sharp.
-        linc = linc * prof * mask * 1.27;
+        linc = linc * prof * mask * 1.34;
     } else {
         // A small lift (John: "a little dim"), before the glow, so the
         // effects keep their punch on top.
-        linc *= 1.06;
+        linc *= 1.12;
     }
 
     if (p.hdr > 0.5) {
