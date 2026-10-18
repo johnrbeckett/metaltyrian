@@ -69,6 +69,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         // First-run look, John's pick 2026-10-17: authentic VGA with HDR glow at 2.0.
         defaults.register(defaults: ["displayMode": DisplayMode.vga.rawValue, "hdrGlow": true, "glowStrength": Float(2.0),
                                      "aspect": Aspect.square.rawValue, "borders": Borders.black.rawValue,
+                                     "fullScreen": true,   // new players start in full screen (John, 2026-10-18)
                                      // Controls, John's picks 2026-10-18: fast keys, mouse a bit quicker, no drift.
                                      "keySpeed": 5, "padSpeed": 5, "mouseSpeed": 7,
                                      "momentum": 2,     // Off
