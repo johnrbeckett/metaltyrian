@@ -26,6 +26,7 @@
 #ifdef METALTYRIAN
 #include "metaltyrian_host.h"
 #include "mt_text.h"
+#include "mt_title.h"
 #endif
 
 #include <assert.h>
@@ -398,6 +399,7 @@ static void scale_and_flip(SDL_Surface *src_surface)
 	// output rectangle is the game screen itself. The text visible in the frame
 	// goes with it, for crisp drawing (mt_text.c).
 	mt_text_present(src_surface);
+	mt_title_present(src_surface);
 	mt_present_frame(src_surface->pixels, src_surface->pitch, rgb_palette);
 	mt_text_presented(src_surface);
 	last_output_rect = (SDL_Rect){ 0, 0, vga_width, vga_height };

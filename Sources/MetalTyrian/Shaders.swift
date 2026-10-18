@@ -30,7 +30,27 @@ struct DisplayParams {
     float headroom;   // current EDR headroom, 1.0 on an SDR screen
     float vgaLines;   // 400: VGA drew 320x200 double-scanned
     float textOn;     // 1 = composite the crisp text overlay
+    float titleOn;    // 1 = the high-resolution title art replaces the picture
+    float titleFade;  // the title picture's palette fade, 0-1
+    float4 logo0;     // TYRIAN logo box, game pixels (z = 0: hidden)
+    float4 logo1;     // year logo box
+    float4 aspects;   // width/height of the background and the two logos
+    float4 hole;      // game pixels where the game's own picture shows (z = 0: none)
 };
+
+// A logo drawn into its box (game pixels), keeping the art's shape.
+static float3 title_logo(float3 under, texture2d<float> tex, float4 box, float aspect,
+                         float2 uv, float2 outSize, sampler s) {
+    if (box.z <= 0.0) return under;
+    float2 g = uv * float2(320.0, 200.0);
+    float2 l = (g - box.xy) / box.zw;
+    float boxAspect = (box.z * outSize.x / 320.0) / (box.w * outSize.y / 200.0);
+    if (boxAspect > aspect) l.x = 0.5 + (l.x - 0.5) * (boxAspect / aspect);
+    else l.y = 0.5 + (l.y - 0.5) * (aspect / boxAspect);
+    if (any(l < 0.0) || any(l > 1.0)) return under;
+    float4 c = tex.sample(s, l);
+    return mix(under, c.rgb, c.a);
+}
 
 static float hotness(float3 lin) {
     float peak = max(lin.r, max(lin.g, lin.b));
@@ -43,6 +63,9 @@ fragment float4 display_frag(VOut in [[stage_in]],
                              texture2d<float> glowN [[texture(1)]],
                              texture2d<float> glowW [[texture(2)]],
                              texture2d<float> overlay [[texture(3)]],
+                             texture2d<float> titleBg [[texture(4)]],
+                             texture2d<float> titleLogo0 [[texture(5)]],
+                             texture2d<float> titleLogo1 [[texture(6)]],
                              constant DisplayParams &p [[buffer(0)]]) {
     constexpr sampler lin(filter::linear, address::clamp_to_edge);
 
@@ -54,6 +77,25 @@ fragment float4 display_frag(VOut in [[stage_in]],
     float2 rr = 0.5 - 0.5 / scale;
     float2 f = (cd - clamp(cd, -rr, rr)) * scale + 0.5;
     float3 c = img.sample(lin, (tf + f) / p.texSize).rgb;
+
+    // High-resolution art (the title, or a picture's regenerated art), except
+    // in the hole the game keeps for itself (the playfield inside the HUD).
+    float2 gp = in.uv * float2(320.0, 200.0);
+    float inHole = (p.hole.z > 0.0 && all(gp >= p.hole.xy) && all(gp < p.hole.xy + p.hole.zw)) ? 1.0 : 0.0;
+    float art = p.titleOn * (1.0 - inHole);
+    if (art > 0.5) {
+        // The art fills the picture (trimmed to fit); the title's logos sit
+        // where the game puts its own; all fade with the screen.
+        constexpr sampler ms(filter::linear, mip_filter::linear, address::clamp_to_edge);
+        float a = p.outSize.x / p.outSize.y, ia = p.aspects.x;
+        float2 buv = in.uv;
+        if (a > ia) buv.y = 0.5 + (in.uv.y - 0.5) * (ia / a);
+        else buv.x = 0.5 + (in.uv.x - 0.5) * (a / ia);
+        float3 t = titleBg.sample(ms, buv).rgb;
+        t = title_logo(t, titleLogo0, p.logo0, p.aspects.y, in.uv, p.outSize, ms);
+        t = title_logo(t, titleLogo1, p.logo1, p.aspects.z, in.uv, p.outSize, ms);
+        c = t * p.titleFade;
+    }
 
     if (p.textOn > 0.5) {
         // Crisp text, on a grid 3x finer than the game's pixels, sampled the same sharp way.
@@ -81,7 +123,8 @@ fragment float4 display_frag(VOut in [[stage_in]],
         // Lasers, fire and engines: lift the pixel a little into EDR, add a soft bloom.
         float edr = min(max(p.headroom - 1.0, 0.0), 1.5);
         float boost = 1.0 + hotness(linc) * edr * 0.35 * p.glow;
-        float3 g = glowN.sample(lin, in.uv).rgb * 0.55 + glowW.sample(lin, in.uv).rgb * 0.35;
+        // (The glow is made from the game's own picture, so not on the art.)
+        float3 g = (glowN.sample(lin, in.uv).rgb * 0.55 + glowW.sample(lin, in.uv).rgb * 0.35) * (1.0 - art);
         linc = linc * boost + g * p.glow;
     }
     return float4(linc, 1.0);

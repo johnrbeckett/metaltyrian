@@ -20,6 +20,7 @@
 
 #ifdef METALTYRIAN
 #include "mt_text.h"
+#include "mt_title.h"
 #endif
 
 #include "animlib.h"
@@ -791,9 +792,32 @@ start_level_first:
 	JE_loadPic(VGAScreen, twoPlayerMode ? 6 : 3, false);
 
 #ifdef METALTYRIAN
-	/* Crisp text for the labels painted into the one-player HUD panel. */
+	/* The message strip is part of the HUD from the start, so the
+	 * high-resolution HUD art can show under it (mt_title.c). */
+	blit_sprite(VGAScreenSeg, 16, 189, OPTION_SHAPES, 36);  // in-game text area
+	mt_picture_sprite(twoPlayerMode ? 6 : 3, OPTION_SHAPES, 36, 16, 189);
+
+	/* Crisp text for the labels painted into the HUD panel. */
 	mt_text_clear_labels();
-	if (!twoPlayerMode)
+	if (twoPlayerMode)
+	{
+		static const char shield[] = "SHIELD", armor[] = "ARMOR";
+		static const int top[2] = { 17, 151 };
+		for (int p = 0; p < 2; p++)
+		{
+			for (int i = 0; shield[i]; i++)
+			{
+				char ch[2] = { shield[i], 0 };
+				mt_text_label(VGAScreen, 284, top[p] + i * 6, 291, top[p] + i * 6 + 5, ch, true);
+			}
+			for (int i = 0; armor[i]; i++)
+			{
+				char ch[2] = { armor[i], 0 };
+				mt_text_label(VGAScreen, 295, top[p] + i * 6, 302, top[p] + i * 6 + 5, ch, true);
+			}
+		}
+	}
+	else
 	{
 		mt_text_label(VGAScreen, 284, 5, 310, 10, "FRONT", false);
 		mt_text_label(VGAScreen, 284, 11, 300, 16, "GUN", false);
@@ -3363,6 +3387,9 @@ bool titleScreen(void)
 			play_song(SONG_TITLE);
 
 			JE_loadPic(VGAScreen, 4, false);
+#ifdef METALTYRIAN
+			mt_title_picture(VGAScreen);
+#endif
 
 			draw_font_hv_shadow(VGAScreen, 2, 192, opentyrian_version, small_font, left_aligned, 15, 0, false, 1);
 
@@ -3371,7 +3398,13 @@ bool titleScreen(void)
 				memcpy(VGAScreen2->pixels, VGAScreen->pixels, VGAScreen2->pitch * VGAScreen2->h);
 
 				blit_sprite(VGAScreenSeg, 11, 62, PLANET_SHAPES, 146); // tyrian logo
+#ifdef METALTYRIAN
+				mt_title_logo(0, 11, 62);
+#endif
 				blit_sprite(VGAScreenSeg, 155, 41, PLANET_SHAPES, 151); // 2000(tm)
+#ifdef METALTYRIAN
+				mt_title_logo(1, 155, 41);
+#endif
 				fade_palette(colors, 10, 0, 255 - 16);
 
 				for (int yLogo = 60, y2K = 45; yLogo >= 4; yLogo -= 2, ++y2K)
@@ -3380,7 +3413,13 @@ bool titleScreen(void)
 
 					memcpy(VGAScreen->pixels, VGAScreen2->pixels, VGAScreen->pitch * VGAScreen->h);
 					blit_sprite(VGAScreenSeg, 11, yLogo, PLANET_SHAPES, 146); // tyrian logo
+#ifdef METALTYRIAN
+					mt_title_logo(0, 11, yLogo);
+#endif
 					blit_sprite(VGAScreenSeg, 155, y2K, PLANET_SHAPES, 151); // 2000(tm)
+#ifdef METALTYRIAN
+					mt_title_logo(1, 155, y2K);
+#endif
 					JE_showVGA();
 
 					service_wait_delay();
@@ -3390,7 +3429,13 @@ bool titleScreen(void)
 			else
 			{
 				blit_sprite(VGAScreenSeg, 11, 4, PLANET_SHAPES, 146); // tyrian logo
+#ifdef METALTYRIAN
+				mt_title_logo(0, 11, 4);
+#endif
 				blit_sprite(VGAScreenSeg, 155, 73, PLANET_SHAPES, 151); // 2000(tm)
+#ifdef METALTYRIAN
+				mt_title_logo(1, 155, 73);
+#endif
 				fade_palette(colors, 10, 0, 255 - 16);
 			}
 

@@ -135,6 +135,27 @@ typedef struct
 	uint8_t opaque[MT_CURSOR_W * MT_CURSOR_H];   /* 1 where the pointer is */
 } mt_text_cursor;
 
+/* A full-screen picture in high resolution: the title (John's art, with its
+ * two logos) or another tyrian.pic picture with replacement art. Says whether
+ * the frame shows it, which, where the title's logos are (game pixels, the
+ * original sprites' boxes), and which frame pixels are drawn on top of the
+ * picture (menu, HUD bars, pointer). */
+typedef struct
+{
+	uint8_t shown;
+	uint8_t logo_shown[2];          /* 0 TYRIAN, 1 the year */
+	uint8_t picture;                /* 0: the title art; else the tyrian.pic number */
+	int16_t logo_x[2], logo_y[2], logo_w[2], logo_h[2];
+	uint32_t brightness;            /* the picture's palette sum, entries 0-239, unfaded */
+	uint16_t fade;                  /* the picture's palette fade, 4096 = full */
+	uint8_t smooth;                 /* 1: smooth what is drawn on top (HUD bars) */
+	uint8_t pad;
+	int16_t hole[4];                /* x, y, w, h: the game's own picture shows here (the playfield) */
+} mt_title_frame;
+/* NULL: not the title screen. foreground: 320x200, 1 where the frame has
+ * something over the picture (kept apart: Swift can't import so large an array). */
+void mt_set_frame_title(const mt_title_frame *title, const uint8_t *foreground);
+
 /* Called by the game just before mt_present_frame: the text in that frame
  * (cursor may be NULL). */
 void mt_set_frame_text(const mt_text_item *items, int count, const uint8_t *mask, const mt_text_cursor *cursor);
@@ -142,7 +163,8 @@ void mt_set_frame_text(const mt_text_item *items, int count, const uint8_t *mask
  * mask and pointer; *count gets the number of items. */
 uint64_t mt_copy_frame_with_text(uint64_t last_seen, uint8_t *pixels, uint32_t *palette,
                                  mt_text_item *items, int max, int *count, uint8_t *mask,
-                                 mt_text_cursor *cursor);
+                                 mt_text_cursor *cursor, mt_title_frame *title,
+                                 uint8_t *title_foreground);
 
 #ifdef __cplusplus
 }

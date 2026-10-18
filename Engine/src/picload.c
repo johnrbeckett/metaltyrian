@@ -24,6 +24,10 @@
 #include "pcxmast.h"
 #include "video.h"
 
+#ifdef METALTYRIAN
+#include "mt_title.h"
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -83,4 +87,8 @@ void JE_loadPic(SDL_Surface *screen, JE_byte PCXnumber, JE_boolean storepal)
 
 	if (storepal)
 		set_palette(colors, 0, 255);
+
+#ifdef METALTYRIAN
+	mt_picture_loaded(screen, PCXnumber + 1);
+#endif
 }

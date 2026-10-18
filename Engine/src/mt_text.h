@@ -29,6 +29,9 @@ void mt_text_label(SDL_Surface *surface, int x0, int y0, int x1, int y1, const c
 void mt_text_icon_word(SDL_Surface *surface, int x, int y, unsigned int icon);
 /* Forget all labels (a new HUD panel is being drawn). */
 void mt_text_clear_labels(void);
+/* Marks the lettering of the registered labels in mask (320x200), for when
+ * the labels must come from the frame (crisp text off over new HUD art). */
+void mt_text_label_pixels(Uint8 *mask);
 
 /* From mouse.c: the pointer was drawn into VGAScreen over the 24x28 box at
  * x, y, whose pixels before were `under`; or it was taken away again. */

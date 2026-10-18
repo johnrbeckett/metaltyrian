@@ -26,6 +26,11 @@ cp "$ROOT/App/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 # Orbitron for crisp text (SIL Open Font License, see Fonts/OFL.txt).
 mkdir -p "$APP/Contents/Resources/Fonts"
 cp "$ROOT/App/Fonts/"* "$APP/Contents/Resources/Fonts/"
+# John's high-resolution title screen art.
+mkdir -p "$APP/Contents/Resources/Title"
+cp "$ROOT/App/Title/"*.png "$APP/Contents/Resources/Title/"
+mkdir -p "$APP/Contents/Resources/Pictures"
+cp "$ROOT/App/Pictures/"*.png "$APP/Contents/Resources/Pictures/"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" "$ROOT/App/Info.plist" > "$APP/Contents/Info.plist"
 
 # Game data: the Tyrian 2000 data files only, not the DOS programs.

@@ -575,6 +575,21 @@ void mt_text_clear_labels(void)
 	memset(labels, 0, sizeof(labels));
 }
 
+void mt_text_label_pixels(Uint8 *mask)
+{
+	for (int i = 0; i < MAX_LABELS; i++)
+	{
+		const Label *l = &labels[i];
+		if (!l->used)
+			continue;
+		const int bw = l->x1 - l->x0;
+		for (int y = l->y0; y < l->y1; y++)
+			for (int x = l->x0; x < l->x1; x++)
+				if (x >= 0 && x < W && y >= 0 && y < H && l->is_text[(y - l->y0) * bw + (x - l->x0)])
+					mask[y * W + x] = 1;
+	}
+}
+
 void mt_text_label(SDL_Surface *surface, int x0, int y0, int x1, int y1, const char *text, bool vertical)
 {
 	if (x0 < 0 || y0 < 0 || x1 > W || y1 > H || x1 - x0 > 64 || y1 - y0 > 24 || x1 <= x0 || y1 <= y0)

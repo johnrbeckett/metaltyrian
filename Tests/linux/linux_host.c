@@ -79,6 +79,7 @@ int main(int argc, char **argv)
 		 * pauses N ticks; d dumps the frame. */
 		static int step_pos = 0, pause = 0, waited = 0, release = 0, dump_now = 0;
 		static char screen_text[8192] = "";
+		static mt_title_frame title;
 		if (release) { mt_push_key(release, false, 0); release = 0; }
 		const char *script = getenv("MT_SCRIPT");
 		while (script && script[step_pos] && pause == 0 && !release)
@@ -100,7 +101,7 @@ int main(int argc, char **argv)
 			}
 			else if (st[0] == 'k') { int code = atoi(arg); mt_push_key(code, true, 0); release = code; step_pos = next; pause = 4; break; }
 			else if (st[0] == 'p') { pause = atoi(arg); step_pos = next; break; }
-			else if (st[0] == 'd') { dump_now = 1; step_pos = next; printf("script: tick %d screen: %.300s\n", i, screen_text); }
+			else if (st[0] == 'd') { dump_now = 1; step_pos = next; printf("script: tick %d pic %d fade %d smooth %d title %d logos %d@%d,%d %d@%d,%d screen: %.300s\n", i, title.shown ? title.picture : -1, title.fade, title.smooth, title.shown, title.logo_shown[0], title.logo_x[0], title.logo_y[0], title.logo_shown[1], title.logo_x[1], title.logo_y[1], screen_text); }
 			else step_pos = next;
 		}
 		if (pause > 0) pause--;
@@ -123,13 +124,44 @@ int main(int argc, char **argv)
 		if (getenv("MT_TEXT_LOG"))
 		{
 			static mt_text_item items[MT_TEXT_MAX];
-			static uint8_t mask[320 * 200];
+			static uint8_t mask[320 * 200], title_fg[320 * 200];
 			int count = 0;
-			uint64_t n = mt_copy_frame_with_text(last, px, pal, items, MT_TEXT_MAX, &count, mask, NULL);
+			uint64_t n = mt_copy_frame_with_text(last, px, pal, items, MT_TEXT_MAX, &count, mask, NULL, &title, title_fg);
 			const char *dump = getenv("MT_TEXT_DUMP");
 			const int every = getenv("MT_TEXT_EVERY") ? atoi(getenv("MT_TEXT_EVERY")) : 10;
 			if (n != last)
 			{
+				/* Which high-resolution picture the app would show. */
+				static int last_pic = -2;
+				const int pic = title.shown ? title.picture : -1;
+				if (pic != last_pic || (getenv("MT_PIC_EVERY") && i % atoi(getenv("MT_PIC_EVERY")) == 0))
+				{
+					int fg = 0;
+					for (int k = 0; k < 64000; k++) fg += title.shown && title_fg[k];
+					printf("picture: tick %d -> %d (fade %d smooth %d hole %d,%d %dx%d, %d pixels on top)\n", i, pic, title.fade,
+					       title.smooth, title.hole[0], title.hole[1], title.hole[2], title.hole[3], fg);
+					last_pic = pic;
+				}
+				if (dump_now && getenv("MT_PIC_DUMP"))
+				{
+					char name[600];
+					snprintf(name, sizeof name, "%s/fg%d.pgm", getenv("MT_PIC_DUMP"), i);
+					FILE *f = fopen(name, "wb");
+					if (f)
+					{
+						fprintf(f, "P5\n320 200\n255\n");
+						for (int k = 0; k < 64000; k++) fputc(title.shown && title_fg[k] ? 255 : (mask[k] ? 128 : 0), f);
+						fclose(f);
+					}
+					snprintf(name, sizeof name, "%s/px%d.ppm", getenv("MT_PIC_DUMP"), i);
+					f = fopen(name, "wb");
+					if (f)
+					{
+						fprintf(f, "P6\n320 200\n255\n");
+						for (int k = 0; k < 64000; k++) { uint32_t c = pal[px[k]]; fputc(c >> 16, f); fputc(c >> 8, f); fputc(c, f); }
+						fclose(f);
+					}
+				}
 				/* Letters sorted into reading order, for MT_SCRIPT waits. */
 				static int order[MT_TEXT_MAX];
 				for (int k = 0; k < count; k++) order[k] = k;

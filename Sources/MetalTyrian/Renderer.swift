@@ -36,6 +36,12 @@ struct DisplayParams {
     var headroom: Float
     var vgaLines: Float
     var textOn: Float
+    var titleOn: Float
+    var titleFade: Float        // the title picture's palette fade, 0-1
+    var logo0: SIMD4<Float>     // TYRIAN logo box, game pixels (w = 0: hidden)
+    var logo1: SIMD4<Float>     // year logo box
+    var aspects: SIMD4<Float>   // width/height of the background and the two logos
+    var hole: SIMD4<Float>      // x, y, w, h game pixels where the game's own picture shows (w = 0: none)
 }
 
 struct BlurParams {
@@ -86,6 +92,17 @@ final class Renderer: NSObject, MTKViewDelegate {
     private var textMask = [UInt8](repeating: 0, count: 320 * 200)
     private var fillKnown = [Bool](repeating: false, count: 320 * 200)
     private var textCursor = mt_text_cursor()
+
+    // High-resolution title screen (John's art in App/Title).
+    private var titleFrame = mt_title_frame()
+    private var titleForeground = [UInt8](repeating: 0, count: 320 * 200)
+    private var titleOn = false
+    private var titleSeen = false
+    private var titleFade: Float = 1
+    private let titleTextures: [MTLTexture]?   // background, TYRIAN logo, year logo
+    // Regenerated art for the other tyrian.pic pictures (App/Pictures/picNN.png).
+    private let pictureTextures: [Int: MTLTexture]
+    private var artTexture: MTLTexture?        // the background art the current frame shows
     private var overlay = [UInt32](repeating: 0, count: CrispText.width * CrispText.height)
     private var textOn = false
     private var glowFrame: UInt64 = 0
@@ -153,6 +170,44 @@ final class Renderer: NSObject, MTKViewDelegate {
             throw SetupError(description: "Could not make a texture")
         }
         overlayTex = ot
+
+        let loader = MTKTextureLoader(device: device)
+        var loaded: [MTLTexture]? = nil
+        do {
+            loaded = try ["background_planet", "logo_tyrian", "logo_2027"].map { name in
+            guard let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "Title") else {
+                throw SetupError(description: "Title art \(name) missing")
+            }
+            return try loader.newTexture(URL: url, options: [
+                .SRGB: false,
+                .generateMipmaps: true,
+                .allocateMipmaps: true,
+                .textureStorageMode: MTLStorageMode.private.rawValue,
+            ])
+        }
+        } catch {
+            print("MetalTyrian: title art not loaded (\(error)); the original title shows")
+        }
+        titleTextures = loaded
+        if let t = loaded { print("MetalTyrian: title art loaded: \(t.map { "\($0.width)x\($0.height)" })") }
+
+        var pictures: [Int: MTLTexture] = [:]
+        for n in 1...14 {
+            let name = String(format: "pic%02d", n)
+            guard let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "Pictures") else { continue }
+            do {
+                pictures[n] = try loader.newTexture(URL: url, options: [
+                    .SRGB: false,
+                    .generateMipmaps: true,
+                    .allocateMipmaps: true,
+                    .textureStorageMode: MTLStorageMode.private.rawValue,
+                ])
+            } catch {
+                print("MetalTyrian: picture art \(name) not loaded (\(error))")
+            }
+        }
+        pictureTextures = pictures
+        print("MetalTyrian: picture art loaded for \(pictures.keys.sorted())")
         super.init()
     }
 
@@ -171,9 +226,11 @@ final class Renderer: NSObject, MTKViewDelegate {
             palette.withUnsafeMutableBufferPointer { pp in
                 textItems.withUnsafeMutableBufferPointer { tp in
                     textMask.withUnsafeMutableBufferPointer { mp in
+                      titleForeground.withUnsafeMutableBufferPointer { fgp in
                         mt_copy_frame_with_text(frameNumber, ip.baseAddress, pp.baseAddress,
                                                 tp.baseAddress, MT_TEXT_MAX, &count, mp.baseAddress,
-                                                &textCursor)
+                                                &textCursor, &titleFrame, fgp.baseAddress)
+                      }
                     }
                 }
             }
@@ -196,6 +253,26 @@ final class Renderer: NSObject, MTKViewDelegate {
                     drawCursor()
                     textOn = true
                 }
+            }
+            if titleFrame.shown != 0 && titleFrame.picture == 0 && !titleSeen {
+                titleSeen = true
+                print("MetalTyrian: title screen seen; art \(titleTextures == nil ? "missing" : "ready")")
+            }
+            artTexture = nil
+            if titleFrame.shown != 0 {
+                artTexture = titleFrame.picture == 0 ? titleTextures?[0] : pictureTextures[Int(titleFrame.picture)]
+            }
+            titleOn = artTexture != nil
+            if titleOn {
+                if !textOn {
+                    overlay.withUnsafeMutableBytes { _ = memset($0.baseAddress!, 0, $0.count) }
+                }
+                if titleFrame.smooth != 0 { drawSmoothForeground() } else { drawTitleForeground() }
+                textOn = true
+                // The picture fades with the palette (worked out by the game); the art fades with it.
+                titleFade = min(1, Float(titleFrame.fade) / 4096)
+            }
+            do {
                 if textOn {
                     overlay.withUnsafeBytes {
                         overlayTex.replace(region: MTLRegionMake2D(0, 0, CrispText.width, CrispText.height),
@@ -259,18 +336,119 @@ final class Renderer: NSObject, MTKViewDelegate {
             glow: glowStrength,
             headroom: Float(window?.screen?.maximumExtendedDynamicRangeColorComponentValue ?? 1),
             vgaLines: 400,
-            textOn: textOn ? 1 : 0
+            textOn: textOn ? 1 : 0,
+            titleOn: titleOn ? 1 : 0,
+            titleFade: titleFade,
+            logo0: logoBox(0),
+            logo1: logoBox(1),
+            aspects: titleAspects(),
+            hole: titleOn ? SIMD4(Float(titleFrame.hole.0), Float(titleFrame.hole.1),
+                                  Float(titleFrame.hole.2), Float(titleFrame.hole.3)) : .zero
         )
         enc.setRenderPipelineState(displayPSO)
         enc.setFragmentTexture(srcTex, index: 0)
         enc.setFragmentTexture(glowN, index: 1)
         enc.setFragmentTexture(glowW, index: 2)
         enc.setFragmentTexture(overlayTex, index: 3)
+        if let art = artTexture, titleFrame.picture != 0 {
+            enc.setFragmentTexture(art, index: 4)
+            enc.setFragmentTexture(srcTex, index: 5)
+            enc.setFragmentTexture(srcTex, index: 6)
+        } else if let tt = titleTextures {
+            enc.setFragmentTexture(tt[0], index: 4)
+            enc.setFragmentTexture(tt[1], index: 5)
+            enc.setFragmentTexture(tt[2], index: 6)
+        } else {
+            enc.setFragmentTexture(srcTex, index: 4)
+            enc.setFragmentTexture(srcTex, index: 5)
+            enc.setFragmentTexture(srcTex, index: 6)
+        }
         enc.setFragmentBytes(&p, length: MemoryLayout<DisplayParams>.stride, index: 0)
         enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         enc.endEncoding()
         cmd.present(drawable)
         cmd.commit()
+    }
+
+    /// On the title screen: what the game has drawn over the picture (menu,
+    /// version, pointer) goes into the overlay at the game's pixel size, under
+    /// any crisp text, so the high-resolution art can replace the picture.
+    private func drawTitleForeground() {
+        let n = CrispText.n
+        do {
+            for gy in 0..<200 {
+                for gx in 0..<320 {
+                    let k = gy * 320 + gx
+                    guard titleForeground[k] != 0, textMask[k] == 0 else { continue }
+                    let c = rgba[k] | 0xFF00_0000
+                    for sy in 0..<n {
+                        let row = (gy * n + sy) * CrispText.width + gx * n
+                        for sx in 0..<n where overlay[row + sx] >> 24 == 0 { overlay[row + sx] = c }
+                    }
+                }
+            }
+        }
+    }
+
+    private func logoBox(_ i: Int) -> SIMD4<Float> {
+        guard titleOn, titleFrame.picture == 0 else { return .zero }
+        let shown = i == 0 ? titleFrame.logo_shown.0 : titleFrame.logo_shown.1
+        guard shown != 0 else { return .zero }
+        let x = i == 0 ? titleFrame.logo_x.0 : titleFrame.logo_x.1
+        let y = i == 0 ? titleFrame.logo_y.0 : titleFrame.logo_y.1
+        let w = i == 0 ? titleFrame.logo_w.0 : titleFrame.logo_w.1
+        let h = i == 0 ? titleFrame.logo_h.0 : titleFrame.logo_h.1
+        return SIMD4(Float(x), Float(y), Float(w), Float(h))
+    }
+
+    private func titleAspects() -> SIMD4<Float> {
+        func a(_ t: MTLTexture) -> Float { Float(t.width) / Float(t.height) }
+        if titleOn, titleFrame.picture != 0, let art = artTexture { return SIMD4(a(art), 1, 1, 1) }
+        guard let tt = titleTextures else { return SIMD4(1, 1, 1, 1) }
+        return SIMD4(a(tt[0]), a(tt[1]), a(tt[2]), 1)
+    }
+
+    /// Like drawTitleForeground, smoothed: each pixel the game drew over the
+    /// picture becomes a 3x3 block by Scale3x (AdvMAME3x), with the picture's
+    /// own pixels counting as transparent, so the HUD's bars and lights get
+    /// rounded corners over the high-resolution art instead of square steps.
+    private func drawSmoothForeground() {
+        let n = CrispText.n   // 3
+        @inline(__always) func at(_ x: Int, _ y: Int) -> UInt32 {
+            guard x >= 0, x < 320, y >= 0, y < 200 else { return 0 }
+            let k = y * 320 + x
+            return titleForeground[k] != 0 && textMask[k] == 0 ? (rgba[k] | 0xFF00_0000) : 0
+        }
+        var e = [UInt32](repeating: 0, count: 9)
+        for gy in 0..<200 {
+            for gx in 0..<320 {
+                let E = at(gx, gy)
+                guard E != 0 else { continue }
+                let A = at(gx - 1, gy - 1), B = at(gx, gy - 1), C = at(gx + 1, gy - 1)
+                let D = at(gx - 1, gy), F = at(gx + 1, gy)
+                let G = at(gx - 1, gy + 1), H = at(gx, gy + 1), I = at(gx + 1, gy + 1)
+                if B != H && D != F {
+                    e[0] = D == B ? D : E
+                    e[1] = (D == B && E != C) || (B == F && E != A) ? B : E
+                    e[2] = B == F ? F : E
+                    e[3] = (D == B && E != G) || (D == H && E != A) ? D : E
+                    e[4] = E
+                    e[5] = (B == F && E != I) || (H == F && E != C) ? F : E
+                    e[6] = D == H ? D : E
+                    e[7] = (D == H && E != I) || (H == F && E != G) ? H : E
+                    e[8] = H == F ? F : E
+                } else {
+                    for i in 0..<9 { e[i] = E }
+                }
+                for sy in 0..<n {
+                    let row = (gy * n + sy) * CrispText.width + gx * n
+                    for sx in 0..<n {
+                        let c = e[sy * 3 + sx]
+                        if c != 0 && overlay[row + sx] >> 24 == 0 { overlay[row + sx] = c }
+                    }
+                }
+            }
+        }
     }
 
     /// The game's mouse pointer, lifted out of the frame by the game while crisp

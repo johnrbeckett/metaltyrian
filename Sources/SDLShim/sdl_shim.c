@@ -851,6 +851,22 @@ static int pending_text_count = 0, frame_text_count = 0;
 static Uint8 pending_mask[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT], frame_mask[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
 
 static mt_text_cursor pending_cursor, frame_cursor;
+static mt_title_frame pending_title, frame_title;
+static uint8_t pending_title_fg[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT], frame_title_fg[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
+
+void mt_set_frame_title(const mt_title_frame *title, const uint8_t *foreground)
+{
+	pthread_mutex_lock(&frame_lock);
+	if (title)
+	{
+		pending_title = *title;
+		if (foreground)
+			memcpy(pending_title_fg, foreground, sizeof(pending_title_fg));
+	}
+	else
+		pending_title.shown = 0;
+	pthread_mutex_unlock(&frame_lock);
+}
 
 void mt_set_frame_text(const mt_text_item *items, int count, const uint8_t *mask, const mt_text_cursor *cursor)
 {
@@ -883,6 +899,10 @@ void mt_present_frame(const void *pixels, int pitch, const uint32_t *palette)
 	memset(pending_mask, 0, sizeof(pending_mask));
 	frame_cursor = pending_cursor;
 	pending_cursor.shown = 0;
+	frame_title = pending_title;
+	if (frame_title.shown)
+		memcpy(frame_title_fg, pending_title_fg, sizeof(frame_title_fg));
+	pending_title.shown = 0;
 	++frame_number;
 	Uint64 n = frame_number;
 	pthread_mutex_unlock(&frame_lock);
@@ -929,7 +949,8 @@ uint64_t mt_copy_frame(uint64_t last_seen, uint8_t *pixels, uint32_t *palette)
 
 uint64_t mt_copy_frame_with_text(uint64_t last_seen, uint8_t *pixels, uint32_t *palette,
                                  mt_text_item *items, int max, int *count, uint8_t *mask,
-                                 mt_text_cursor *cursor)
+                                 mt_text_cursor *cursor, mt_title_frame *title,
+                                 uint8_t *title_foreground)
 {
 	pthread_mutex_lock(&frame_lock);
 	Uint64 n = frame_number;
@@ -943,6 +964,17 @@ uint64_t mt_copy_frame_with_text(uint64_t last_seen, uint8_t *pixels, uint32_t *
 		memcpy(mask, frame_mask, sizeof(frame_mask));
 		if (cursor)
 			*cursor = frame_cursor;
+		if (title)
+		{
+			if (frame_title.shown)
+			{
+				*title = frame_title;
+				if (title_foreground)
+					memcpy(title_foreground, frame_title_fg, sizeof(frame_title_fg));
+			}
+			else
+				title->shown = 0;
+		}
 	}
 	pthread_mutex_unlock(&frame_lock);
 	return n;
