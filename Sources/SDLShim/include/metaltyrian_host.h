@@ -180,7 +180,7 @@ typedef struct
 	uint8_t pad;
 	int16_t hole[4];                /* x, y, w, h: the game's own picture shows here (the playfield) */
 	uint8_t controls;               /* the controls overlay's opacity, 0-255 (level start, pause) */
-	uint8_t controls_lefty;         /* 1: show the left-handed keys */
+	uint8_t controls_lefty;         /* bit 0: the left-handed keys; bit 1: "Press fire to start" */
 } mt_title_frame;
 /* NULL: not the title screen. foreground: 320x200, 1 where the frame has
  * something over the picture, 2-255 where the picture is only shaded darker

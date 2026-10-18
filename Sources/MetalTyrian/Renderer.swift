@@ -423,7 +423,8 @@ final class Renderer: NSObject, MTKViewDelegate {
         // The controls overlay: as each level starts and while paused (the game says when).
         let controlsOn = controls != nil && titleOn && titleFrame.controls > 0 && titleFrame.hole.2 > 0
         if controlsOn {
-            controls?.update(lefty: titleFrame.controls_lefty != 0, autofire: Int(mt_setting(MT_SETTING_AUTOFIRE)))
+            controls?.update(lefty: titleFrame.controls_lefty & 1 != 0, start: titleFrame.controls_lefty & 2 != 0,
+                             autofire: Int(mt_setting(MT_SETTING_AUTOFIRE)))
         }
         var p = DisplayParams(
             texSize: SIMD2(320, 200),

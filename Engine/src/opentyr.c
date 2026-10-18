@@ -1339,6 +1339,9 @@ int main(int argc, char *argv[])
 				// Player quit from title screen.
 				break;
 			}
+#ifdef METALTYRIAN
+			mt_controls_new_game();   /* the controls panel greets the first level */
+#endif
 		}
 
 		if (loadDestruct)

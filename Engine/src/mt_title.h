@@ -34,8 +34,12 @@ void mt_edge_start(SDL_Surface *game);
 void mt_edge_mark(SDL_Surface *game);
 void mt_edge_rebase(SDL_Surface *game);
 void mt_edge_cancel(void);   /* no smoothing for this frame */
-/* The controls overlay on the next frame: opacity 0-255 and which hand's keys. */
-void mt_controls_overlay(int alpha, bool lefty);
+/* The controls overlay on the next frame: opacity 0-255 and flags. */
+#define MT_CONTROLS_LEFTY 1   /* show the left-handed keys */
+#define MT_CONTROLS_START 2   /* add "Press fire to start" */
+void mt_controls_overlay(int alpha, int flags);
+/* Publish the last frame's edge layers again (a frame shown twice). */
+void mt_edge_repeat(void);
 void mt_float_end(SDL_Surface *game);
 /* With each shown frame, after mt_text_present, before mt_present_frame. */
 void mt_title_present(SDL_Surface *frame);

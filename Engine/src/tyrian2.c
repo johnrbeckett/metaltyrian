@@ -989,10 +989,6 @@ start_level_first:
 
 	JE_drawPortConfigButtons();
 
-#ifdef METALTYRIAN
-	mt_controls_level_start();
-#endif
-
 	/* --- MAIN LOOP --- */
 
 	newkey = false;
@@ -2505,6 +2501,9 @@ draw_player_shot_loop_end:
 	VGAScreen = VGAScreenSeg; /* side-effect of game_screen */
 
 	JE_starShowVGA();
+#ifdef METALTYRIAN
+	mt_controls_start_wait();   /* a new game's first frame waits, controls shown */
+#endif
 
 	/*Start backgrounds if no enemies on screen
 	  End level if number of enemies left to kill equals 0.*/

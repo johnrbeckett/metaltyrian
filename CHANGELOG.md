@@ -12,7 +12,7 @@ First release.
 - Dynamic light from shots, engines and explosions.
 - Soft shadows: the playfield inset in the HUD, the score, lives and special floating over it.
 - Music on Nuked OPL3; stereo effects placed by position; limiter.
-- Mac controls for either hand: Space, Z, X, C with the arrows, or Space, /, ., , with W A S D, alongside a mouse, trackpad or gamepad; every key can be changed in Setup > Controls > Keys. Superbombs on their own key. Autofire for the main guns and sidekicks (1/2 or 0/9, or Setup > Controls). A controls panel at each level start and when paused.
+- Mac controls for either hand: Space, Z, X, C with the arrows, or Space, /, ., , with W A S D, alongside a mouse, trackpad or gamepad; every key can be changed in Setup > Controls > Keys. Superbombs on their own key. Autofire for the main guns and sidekicks (1/2 or 0/9, or Setup > Controls). A controls panel when a new game starts (the first level waits for fire) and when paused.
 - Mouse control (original or fly-to-pointer), adjustable speeds, momentum options.
 - Arcade ship picker with the game's twelve ship looks.
 - About box credits and bundled licences.

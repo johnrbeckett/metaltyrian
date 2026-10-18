@@ -24,15 +24,16 @@ is inside the app; there is nothing else to install.
 - **Dynamic light:** shots, engines and explosions light up what is near them.
 - **Soft shadows:** the playfield sits inset in the HUD, and the score, lives and special float over it.
 - **Sound:** the music on Nuked OPL3, effects in stereo where they happen on screen.
-- **Controls:** one layout for either hand, with the keyboard, a mouse or trackpad (fly to where you point) or a gamepad; autofire; a controls panel at each level start and when paused; superbombs on their own key.
+- **Controls:** one layout for either hand, with the keyboard, a mouse or trackpad (fly to where you point) or a gamepad; autofire; a controls panel at the start of a new game and when paused; superbombs on their own key.
 - **Arcade ship picker:** fly any of the game's twelve ship looks in 1 Player Arcade.
 
 ## Playing
 
 One set of controls, for either hand. Every action is on the keyboard, so the
 other hand can steer with the arrows (or W A S D), a mouse or a trackpad, and
-switch between them at any moment. A panel shows the controls as each level
-starts and whenever the game is paused.
+switch between them at any moment. A panel shows the controls when a new game
+starts (the first level waits until you press fire) and whenever the game is
+paused.
 
 | | Right-handed | Left-handed | Mouse or trackpad | Gamepad |
 |---|---|---|---|---|

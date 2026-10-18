@@ -9,7 +9,7 @@ import SDLShim
 /// when (and which hand's keys the player last steered with); this draws it.
 final class ControlsOverlay {
     /// Where it sits, in game pixels (inside the 264x184 playfield).
-    static let rect = CGRect(x: 8, y: 118, width: 248, height: 58)
+    static let rect = CGRect(x: 8, y: 108, width: 248, height: 68)
     private static let scale: CGFloat = 4
     static let width = Int(rect.width * scale), height = Int(rect.height * scale)
 
@@ -34,13 +34,13 @@ final class ControlsOverlay {
     }
 
     /// Redraws the panel when the hand or the autofire state has changed.
-    func update(lefty: Bool, autofire: Int) {
+    func update(lefty: Bool, start: Bool, autofire: Int) {
         // Redrawn when the hand, autofire or any key binding changes.
-        var key = "\(lefty ? 1 : 0)\(autofire & 3)"
+        var key = "\(lefty ? 1 : 0)\(start ? 1 : 0)\(autofire & 3)"
         for a in 0..<MT_ACT_COUNT { for s in Int32(0)..<2 { key += ",\(mt_key_binding(a, s))" } }
         guard key != drawnKey else { return }
         drawnKey = key
-        let pixels = Self.draw(lefty: lefty, autofire: autofire, font: font ?? CTFontCreateWithName("Helvetica-Bold" as CFString, 24, nil))
+        let pixels = Self.draw(lefty: lefty, start: start, autofire: autofire, font: font ?? CTFontCreateWithName("Helvetica-Bold" as CFString, 24, nil))
         pixels.withUnsafeBytes {
             texture.replace(region: MTLRegionMake2D(0, 0, Self.width, Self.height), mipmapLevel: 0,
                             withBytes: $0.baseAddress!, bytesPerRow: Self.width * 4)
@@ -54,7 +54,7 @@ final class ControlsOverlay {
         case label(String, highlight: Bool)
     }
 
-    private static func draw(lefty: Bool, autofire: Int, font baseFont: CTFont) -> [UInt32] {
+    private static func draw(lefty: Bool, start: Bool, autofire: Int, font baseFont: CTFont) -> [UInt32] {
         var pixels = [UInt32](repeating: 0, count: width * height)
         let mainOn = autofire & 1 != 0, sideOn = autofire & 2 != 0
         let slot: Int32 = lefty ? 1 : 0
@@ -65,7 +65,7 @@ final class ControlsOverlay {
         let arrows: [Int32] = [82, 81, 80, 79]   // SDL scancodes for up, down, left, right
         let steer = steerKeys == arrows ? "Arrows"
             : [MT_ACT_UP, MT_ACT_LEFT, MT_ACT_DOWN, MT_ACT_RIGHT].map { name($0) }.joined(separator: " ")
-        let rows: [[Piece]] = [
+        var rows: [[Piece]] = [
             [.key(name(MT_ACT_FIRE)), .label("Fire", highlight: false),
              .key(name(MT_ACT_SIDEKICKS)), .label("Sidekicks", highlight: false),
              .key(name(MT_ACT_REAR)), .label("Rear mode", highlight: false),
@@ -74,6 +74,10 @@ final class ControlsOverlay {
             [.key(name(MT_ACT_AUTOFIRE_MAIN)), .label("Autofire main: " + (mainOn ? "on" : "off"), highlight: mainOn),
              .key(name(MT_ACT_AUTOFIRE_SIDEKICKS)), .label("Autofire sidekicks: " + (sideOn ? "on" : "off"), highlight: sideOn)],
         ]
+        // A new game's first level waits on this panel.
+        if start {
+            rows.append([.label("Press fire to start", highlight: true)])
+        }
         pixels.withUnsafeMutableBytes { raw in
             guard let ctx = CGContext(data: raw.baseAddress, width: width, height: height, bitsPerComponent: 8,
                                       bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),

@@ -1565,26 +1565,14 @@ bool mt_lefty = false;          /* the layout last steered with (controls overla
 static bool mt_bomb_pressed = false;
 static bool mt_toggle_held[2];
 
-/* The controls overlay: shown for a few seconds as each level starts
- * (fading early once the player fires) and whenever the game is paused. */
-#define MT_HINT_TICKS 210   /* about six seconds */
-#define MT_HINT_FADE 20
-static int mt_hint_ticks = 0;
-static bool mt_manual_fire = false;
+/* The controls panel: once at the start of a new game, with the first level
+ * frozen until the player presses something, and whenever the game is
+ * paused. A training aid, not a nag: later levels don't show it. */
+static bool mt_start_pending = false;
 
-void mt_controls_level_start(void)
+void mt_controls_new_game(void)
 {
-	mt_hint_ticks = (play_demo || record_demo) ? 0 : MT_HINT_TICKS;
-}
-
-static void mt_controls_frame(void)
-{
-	if (mt_hint_ticks <= 0)
-		return;
-	if (mt_manual_fire && mt_hint_ticks < MT_HINT_TICKS - 35 && mt_hint_ticks > MT_HINT_FADE)
-		mt_hint_ticks = MT_HINT_FADE;
-	--mt_hint_ticks;
-	mt_controls_overlay(mt_hint_ticks >= MT_HINT_FADE ? 255 : mt_hint_ticks * 255 / MT_HINT_FADE, mt_lefty);
+	mt_start_pending = true;
 }
 
 static int mt_autofire(void)
@@ -3216,9 +3204,6 @@ void JE_inGameDisplays(void)
 	char stemp[21];
 	char tempstr[256];
 
-#ifdef METALTYRIAN
-	mt_controls_frame();
-#endif
 
 #ifdef METALTYRIAN
 	/* What this draws (score, lives, special, bombs) floats over the
@@ -3561,7 +3546,7 @@ void JE_pauseGame(void)
 
 		VGAScreen = VGAScreenSeg;
 #ifdef METALTYRIAN
-		mt_controls_overlay(255, mt_lefty);   /* the controls, while paused */
+		mt_controls_overlay(255, mt_lefty ? MT_CONTROLS_LEFTY : 0);   /* the controls, while paused */
 #endif
 		JE_showVGA();
 	}
@@ -3652,6 +3637,42 @@ void JE_pauseGame(void)
 
 	mouseSetRelative(true);
 }
+
+#ifdef METALTYRIAN
+/* The first frame of a new game's first level stays up, with the controls
+ * panel and "Press fire to start", until the player presses a key, a mouse
+ * button or a gamepad button. */
+void mt_controls_start_wait(void)
+{
+	if (!mt_start_pending)
+		return;
+	mt_start_pending = false;
+	if (play_demo || record_demo)
+		return;
+
+	mouseSetRelative(false);
+	SDL_Surface *temp_surface = VGAScreen;
+	VGAScreen = VGAScreenSeg;
+	mt_edge_repeat();   /* the frozen frame keeps its smooth edges */
+	mt_controls_overlay(255, (mt_lefty ? MT_CONTROLS_LEFTY : 0) | MT_CONTROLS_START);
+	JE_showVGA();
+
+	wait_noinput(true, true, true);
+	bool done = false;
+	do
+	{
+		setDelay(2);
+		push_joysticks_as_keyboard();
+		service_SDL_events(true);
+		if (newkey || newmouse)
+			done = true;
+		wait_delay();
+	} while (!done);
+
+	VGAScreen = temp_surface;
+	mouseSetRelative(true);
+}
+#endif
 
 void JE_playerMovement(Player *this_player,
                        JE_byte inputDevice,
@@ -4069,7 +4090,6 @@ redo:
 					accelXC = 0;
 					accelYC = 0;
 				}
-				mt_manual_fire = button[0];
 				if (mt_autofire() & 1)
 					button[0] = true;
 #endif

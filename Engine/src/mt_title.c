@@ -318,10 +318,17 @@ void mt_edge_rebase(SDL_Surface *game)
 		memcpy(edge_prev + y * 264, (Uint8 *)game->pixels + y * game->pitch + 24, 264);
 }
 
-void mt_controls_overlay(int alpha, bool lefty)
+void mt_controls_overlay(int alpha, int flags)
 {
 	controls_alpha = alpha < 0 ? 0 : alpha > 255 ? 255 : alpha;
-	controls_lefty = lefty;
+	controls_lefty = flags;
+}
+
+static bool edge_last = false;   /* the last presented frame had edge layers */
+
+void mt_edge_repeat(void)
+{
+	edge_ready = edge_last;
 }
 
 void mt_edge_cancel(void)
@@ -450,7 +457,8 @@ void mt_title_present(SDL_Surface *frame)
 	}
 	mt_set_frame_title(&t, foreground);
 	/* Only for the frame the layers were taken from (not a pause menu after it). */
-	if (edge_ready && t.hole[2] > 0 && edge_on())
+	edge_last = edge_ready && t.hole[2] > 0 && edge_on();
+	if (edge_last)
 		mt_set_frame_edges(edge_out_layer, edge_out_under);
 	edge_ready = false;
 	controls_alpha = -1;
