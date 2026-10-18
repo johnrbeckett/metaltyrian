@@ -42,6 +42,12 @@ struct DisplayParams {
     var logo1: SIMD4<Float>     // year logo box
     var aspects: SIMD4<Float>   // width/height of the background and the two logos
     var hole: SIMD4<Float>      // x, y, w, h game pixels where the game's own picture shows (w = 0: none)
+    var lightRect: SIMD4<Float> // the playfield, where dynamic light falls (w = 0: none)
+    var light: Float            // dynamic light gain, 0 = off
+}
+
+struct EmitParams {
+    var rect: SIMD4<Float>
 }
 
 struct BlurParams {
@@ -70,6 +76,7 @@ final class Renderer: NSObject, MTKViewDelegate {
     private let brightPSO: MTLRenderPipelineState
     private let blurPSO: MTLRenderPipelineState
     private let ambientPSO: MTLRenderPipelineState
+    private let emitPSO: MTLRenderPipelineState
 
     private let srcTex: MTLTexture
     private let brightTex: MTLTexture
@@ -77,6 +84,9 @@ final class Renderer: NSObject, MTKViewDelegate {
     private let glowN: MTLTexture
     private let glowW: MTLTexture
     private let ambTex: MTLTexture
+    private let emitTex: MTLTexture
+    private let lightTex: MTLTexture
+    private var lightFrame: UInt64 = 0
     private var ambFrame: UInt64 = 0
 
     private var indices = [UInt8](repeating: 0, count: 320 * 200)
@@ -143,6 +153,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         brightPSO = try pso("bright_frag", .rgba16Float)
         blurPSO = try pso("blur_frag", .rgba16Float)
         ambientPSO = try pso("ambient_frag", .rgba16Float)
+        emitPSO = try pso("emit_frag", .rgba16Float)
 
         func tex(_ fmt: MTLPixelFormat, target: Bool) throws -> MTLTexture {
             let d = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: fmt, width: 320, height: 200, mipmapped: false)
@@ -163,6 +174,8 @@ final class Renderer: NSObject, MTKViewDelegate {
         glowN = try tex(.rgba16Float, target: true)
         glowW = try tex(.rgba16Float, target: true)
         ambTex = try tex(.rgba16Float, target: true)
+        emitTex = try tex(.rgba16Float, target: true)
+        lightTex = try tex(.rgba16Float, target: true)
         let od = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: CrispText.width,
                                                           height: CrispText.height, mipmapped: false)
         od.usage = [.shaderRead]
@@ -302,6 +315,24 @@ final class Renderer: NSObject, MTKViewDelegate {
             glowFrame = frameNumber
         }
 
+        // Dynamic light (Graphics > Light): only in play, inside the playfield.
+        let lightGains: [Float] = [0, 22, 35, 50]   // Off, Subtle, Medium, Strong
+        let lightSetting = Int(mt_setting(MT_SETTING_LIGHT))
+        let lightGain = lightGains[max(0, min(lightGains.count - 1, lightSetting))]
+        let playfield: SIMD4<Float> = titleFrame.shown != 0 && titleFrame.hole.2 > 0
+            ? SIMD4(Float(titleFrame.hole.0), Float(titleFrame.hole.1), Float(titleFrame.hole.2), Float(titleFrame.hole.3))
+            : .zero
+        let lightOn = lightGain > 0 && playfield.z > 0
+        if lightOn && lightFrame != frameNumber {
+            encodePass(cmd, target: emitTex, pso: emitPSO) { enc in
+                var e = EmitParams(rect: playfield)
+                enc.setFragmentTexture(self.srcTex, index: 0)
+                enc.setFragmentBytes(&e, length: MemoryLayout<EmitParams>.stride, index: 0)
+            }
+            blur(cmd, from: emitTex, to: lightTex, sigma: 11, radius: 33)
+            lightFrame = frameNumber
+        }
+
         if borders == .ambient && ambFrame != frameNumber {
             blur(cmd, from: srcTex, to: ambTex, sigma: 9, radius: 27)
             ambFrame = frameNumber
@@ -343,13 +374,16 @@ final class Renderer: NSObject, MTKViewDelegate {
             logo1: logoBox(1),
             aspects: titleAspects(),
             hole: titleOn ? SIMD4(Float(titleFrame.hole.0), Float(titleFrame.hole.1),
-                                  Float(titleFrame.hole.2), Float(titleFrame.hole.3)) : .zero
+                                  Float(titleFrame.hole.2), Float(titleFrame.hole.3)) : .zero,
+            lightRect: lightOn ? playfield : .zero,
+            light: lightOn ? lightGain : 0
         )
         enc.setRenderPipelineState(displayPSO)
         enc.setFragmentTexture(srcTex, index: 0)
         enc.setFragmentTexture(glowN, index: 1)
         enc.setFragmentTexture(glowW, index: 2)
         enc.setFragmentTexture(overlayTex, index: 3)
+        enc.setFragmentTexture(lightTex, index: 7)
         if let art = artTexture, titleFrame.picture != 0 {
             enc.setFragmentTexture(art, index: 4)
             enc.setFragmentTexture(srcTex, index: 5)
@@ -379,8 +413,10 @@ final class Renderer: NSObject, MTKViewDelegate {
             for gy in 0..<200 {
                 for gx in 0..<320 {
                     let k = gy * 320 + gx
-                    guard titleForeground[k] != 0, textMask[k] == 0 else { continue }
-                    let c = rgba[k] | 0xFF00_0000
+                    let fg = titleForeground[k]
+                    guard fg != 0, textMask[k] == 0 else { continue }
+                    // 1: the game's pixel; 2-255: the art shaded darker (premultiplied black).
+                    let c = fg == 1 ? (rgba[k] | 0xFF00_0000) : UInt32(min(255, Int(fg - 2) * 255 / 253)) << 24
                     for sy in 0..<n {
                         let row = (gy * n + sy) * CrispText.width + gx * n
                         for sx in 0..<n where overlay[row + sx] >> 24 == 0 { overlay[row + sx] = c }
@@ -417,7 +453,16 @@ final class Renderer: NSObject, MTKViewDelegate {
         @inline(__always) func at(_ x: Int, _ y: Int) -> UInt32 {
             guard x >= 0, x < 320, y >= 0, y < 200 else { return 0 }
             let k = y * 320 + x
-            return titleForeground[k] != 0 && textMask[k] == 0 ? (rgba[k] | 0xFF00_0000) : 0
+            return titleForeground[k] == 1 && textMask[k] == 0 ? (rgba[k] | 0xFF00_0000) : 0
+        }
+        // Shaded pixels darken the art, square (they cover areas, not shapes).
+        for k in 0..<(320 * 200) where titleForeground[k] >= 2 && textMask[k] == 0 {
+            let a = UInt32(min(255, Int(titleForeground[k] - 2) * 255 / 253)) << 24
+            let gx = k % 320, gy = k / 320
+            for sy in 0..<n {
+                let row = (gy * n + sy) * CrispText.width + gx * n
+                for sx in 0..<n where overlay[row + sx] >> 24 == 0 { overlay[row + sx] = a }
+            }
         }
         var e = [UInt32](repeating: 0, count: 9)
         for gy in 0..<200 {

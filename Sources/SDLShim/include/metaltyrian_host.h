@@ -85,7 +85,8 @@ void mt_set_gamepad(int pad, const int16_t *axes, uint32_t buttons, uint8_t hat)
 #define MT_SETTING_MOUSE_MODE 9   /* 0 original (relative nudges), 1 direct (ship flies to the pointer) */
 #define MT_SETTING_TEXT 10        /* 0 crisp, 1 original pixel text */
 #define MT_SETTING_STEREO 11      /* 0 stereo (effects placed by position), 1 mono */
-#define MT_SETTING_COUNT 12
+#define MT_SETTING_LIGHT 12       /* dynamic light from shots and explosions: 0 off, 1 subtle, 2 medium, 3 strong */
+#define MT_SETTING_COUNT 13
 int mt_setting(int which);
 void mt_set_setting(int which, int value);
 
@@ -156,7 +157,8 @@ typedef struct
 	int16_t hole[4];                /* x, y, w, h: the game's own picture shows here (the playfield) */
 } mt_title_frame;
 /* NULL: not the title screen. foreground: 320x200, 1 where the frame has
- * something over the picture (kept apart: Swift can't import so large an array). */
+ * something over the picture, 2-255 where the picture is only shaded darker
+ * (2 + darkness, 253 = black) (kept apart: Swift can't import so large an array). */
 void mt_set_frame_title(const mt_title_frame *title, const uint8_t *foreground);
 
 /* Called by the game just before mt_present_frame: the text in that frame

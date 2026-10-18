@@ -145,6 +145,15 @@ static size_t mtMomentumCount(void) { return COUNTOF(mt_momentum_names); }
 
 static const char *const mt_mouse_mode_names[] = { "Original", "Direct" };
 static const char *const mt_stereo_names[] = { "Stereo", "Mono" };
+static const char *const mt_light_names[] = { "Off", "Subtle", "Medium", "Strong" };
+
+static size_t mtLightCount(void) { return COUNTOF(mt_light_names); }
+
+static const char *mtLightItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_light_names[i];
+}
 
 static size_t mtStereoCount(void) { return COUNTOF(mt_stereo_names); }
 
@@ -239,6 +248,7 @@ void setupMenu(void)
 		MENU_ITEM_MOMENTUM,
 		MENU_ITEM_MOUSE_MODE,
 		MENU_ITEM_STEREO,
+		MENU_ITEM_LIGHT,
 #endif
 	} MenuItemId;
 
@@ -266,7 +276,7 @@ void setupMenu(void)
 	{
 		const char *header;
 #ifdef METALTYRIAN
-		const MenuItem items[8];
+		const MenuItem items[9];
 #else
 		const MenuItem items[6];
 #endif
@@ -297,6 +307,7 @@ void setupMenu(void)
 				{ MENU_ITEM_ASPECT, "Aspect:", "Original 4:3, square pixels, or exact pixel sizes.", mtAspectCount, mtAspectItem },
 				{ MENU_ITEM_BORDERS, "Borders:", "Black bars, or the picture's colours spilling out.", mtBorderCount, mtBorderItem },
 				{ MENU_ITEM_TEXT, "Text:", "Crisp modern lettering, or the original pixel font.", mtTextCount, mtTextItem },
+				{ MENU_ITEM_LIGHT, "Light:", "Shots and explosions light up what is near them.", mtLightCount, mtLightItem },
 #else
 				{ MENU_ITEM_DISPLAY, "Display:", "Change the display mode.", getDisplayPickerItemsCount, getDisplayPickerItem },
 				{ MENU_ITEM_SCALER, "Scaler:", "Change the pixel art scaling algorithm.", getScalerPickerItemsCount, getScalerPickerItem },
@@ -356,7 +367,7 @@ void setupMenu(void)
 	const int wMenuItemValue = 95;
 	const int wMenuItem = wMenuItemName + wMenuItemValue;
 	const int yMenuItems = 37;
-	const int dyMenuItems = 21;
+	int dyMenuItems = 21;
 	const int hMenuItem = 13;
 
 	for (; ; )
@@ -382,6 +393,14 @@ void setupMenu(void)
 
 		size_t *const selectedMenuItemIndex = &selectedMenuItemIndexes[currentMenu];
 		const MenuItem *const menuItems = menu->items;
+#ifdef METALTYRIAN
+		/* Eight items (Graphics) sit closer, so Done stays clear of the help line. */
+		{
+			size_t n = 0;
+			while (menuItems[n].id != (MenuItemId)-1) n++;
+			dyMenuItems = n > 7 ? 18 : 21;
+		}
+#endif
 
 		// Draw menu items.
 
@@ -449,6 +468,10 @@ void setupMenu(void)
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, buffer, normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 			}
+
+			case MENU_ITEM_LIGHT:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_light_names[mtClamp(mt_setting(MT_SETTING_LIGHT), COUNTOF(mt_light_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
 
 			case MENU_ITEM_STEREO:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_stereo_names[mtClamp(mt_setting(MT_SETTING_STEREO), COUNTOF(mt_stereo_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
@@ -600,6 +623,7 @@ void setupMenu(void)
 									case MENU_ITEM_MOMENTUM:
 									case MENU_ITEM_MOUSE_MODE:
 									case MENU_ITEM_STEREO:
+									case MENU_ITEM_LIGHT:
 #endif
 									{
 										action = true;
@@ -897,6 +921,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_TEXT), COUNTOF(mt_text_names));
 					break;
 				}
+				case MENU_ITEM_LIGHT:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_LIGHT), COUNTOF(mt_light_names));
+					break;
+				}
 				case MENU_ITEM_STEREO:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -1076,6 +1108,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_STEREO:
 					mt_set_setting(MT_SETTING_STEREO, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_LIGHT:
+					mt_set_setting(MT_SETTING_LIGHT, (int)pickerSelectedIndex);
 					break;
 #else
 				case MENU_ITEM_DISPLAY:

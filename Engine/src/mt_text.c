@@ -775,6 +775,16 @@ void mt_text_present(SDL_Surface *frame)
 		int k = 0;
 		while (k < r->nv && !glyph_walk(r, &r->v[k], 0, 0, px, pitch, NULL))
 			k++;
+		/* A look so dark that none of its solid body shows (the darkest step
+		 * of flashing text, "Secret Level!") proves nothing: its few faint
+		 * pixels can sit in the scenery by chance, and it would stay. */
+		if (k < r->nv)
+		{
+			int body;
+			glyph_matches(r, &r->v[k], px, pitch, &body, NULL);
+			if (body == 0)
+				k = r->nv;
+		}
 		if (k < r->nv)
 		{
 			r->whole_k = k;

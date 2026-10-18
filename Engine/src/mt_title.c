@@ -273,9 +273,29 @@ static bool picture_frame(SDL_Surface *frame)
 
 	const SDL_Rect hole = hole_of(found);
 	const Uint8 *pic = pics[found].pixels;
+	/* What the game drew over the picture: 1 = its own pixel replaces the
+	 * art; 2-255 = the picture shaded darker in place (menu highlight bars,
+	 * shaded boxes: same colour, lower brightness), which the app applies to
+	 * the art as a darkening instead, so the art's detail shows through. */
 	for (int y = 0; y < H; y++)
 		for (int x = 0; x < W; x++)
-			foreground[y * W + x] = !in_hole(&hole, x, y) && px[y * pitch + x] != pic[y * W + x];
+		{
+			const Uint8 f = px[y * pitch + x], o = pic[y * W + x];
+			Uint8 v = 0;
+			if (!in_hole(&hole, x, y) && f != o)
+			{
+				v = 1;
+				const Uint32 fs = rgb_sum(rgb_palette[f]), os = rgb_sum(rgb_palette[o]);
+				if ((f >> 4) == (o >> 4) && fs < os && os > 0)
+				{
+					const Uint32 dark = 253 - fs * 253 / os;   /* 0 = as bright, 253 = black */
+					v = (Uint8)(2 + dark);
+				}
+				else if (fs == 0 && os > 0)
+					v = 255;   /* shaded to black */
+			}
+			foreground[y * W + x] = v;
+		}
 	/* The new HUD art has no painted labels: crisp text draws them, or with
 	 * crisp text off, the game's own lettering stays on top. */
 	if ((found == 3 || found == 6) && mt_setting(MT_SETTING_TEXT) != 0)

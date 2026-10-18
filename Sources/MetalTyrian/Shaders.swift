@@ -36,7 +36,11 @@ struct DisplayParams {
     float4 logo1;     // year logo box
     float4 aspects;   // width/height of the background and the two logos
     float4 hole;      // game pixels where the game's own picture shows (z = 0: none)
+    float4 lightRect; // the playfield, game pixels, where dynamic light falls (z = 0: none)
+    float light;      // dynamic light gain, 0 = off
 };
+
+static float luma(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
 
 // A logo drawn into its box (game pixels), keeping the art's shape.
 static float3 title_logo(float3 under, texture2d<float> tex, float4 box, float aspect,
@@ -66,6 +70,7 @@ fragment float4 display_frag(VOut in [[stage_in]],
                              texture2d<float> titleBg [[texture(4)]],
                              texture2d<float> titleLogo0 [[texture(5)]],
                              texture2d<float> titleLogo1 [[texture(6)]],
+                             texture2d<float> lightMap [[texture(7)]],
                              constant DisplayParams &p [[buffer(0)]]) {
     constexpr sampler lin(filter::linear, address::clamp_to_edge);
 
@@ -110,6 +115,26 @@ fragment float4 display_frag(VOut in [[stage_in]],
     }
     float3 linc = pow(c, float3(2.2));
 
+    if (p.light > 0.0 && p.lightRect.z > 0.0 && all(gp >= p.lightRect.xy) &&
+        all(gp < p.lightRect.xy + p.lightRect.zw)) {
+        // Dynamic light: shots, engines and explosions light up what is near
+        // them, in their colour. The surface's shape is guessed from the
+        // art's own shading (brighter = raised), so edges facing the light
+        // catch more of it.
+        constexpr sampler pt(filter::nearest, address::clamp_to_edge);
+        float2 t = 1.0 / p.texSize;
+        float2 cuv = (tf + 0.5) / p.texSize;     // this game pixel
+        float3 L = min(lightMap.sample(lin, cuv).rgb * p.light, float3(1.5));
+        float hl = luma(img.sample(pt, cuv - float2(t.x, 0)).rgb), hr = luma(img.sample(pt, cuv + float2(t.x, 0)).rgb);
+        float hu = luma(img.sample(pt, cuv - float2(0, t.y)).rgb), hd = luma(img.sample(pt, cuv + float2(0, t.y)).rgb);
+        float3 n = normalize(float3((hl - hr) * 2.0, (hu - hd) * 2.0, 1.0));
+        float ll = luma(lightMap.sample(lin, cuv - float2(t.x, 0)).rgb), lr = luma(lightMap.sample(lin, cuv + float2(t.x, 0)).rgb);
+        float lu = luma(lightMap.sample(lin, cuv - float2(0, t.y)).rgb), ld = luma(lightMap.sample(lin, cuv + float2(0, t.y)).rgb);
+        float3 dir = normalize(float3(lr - ll, ld - lu, 0.02 / max(p.light, 1.0)) + 1e-6);
+        float shape = 0.5 + 0.9 * saturate(dot(n, dir));
+        linc += (linc * 0.5 + luma(linc) * 0.5 + 0.06) * L * shape;
+    }
+
     if (p.mode > 0.5) {
         // Authentic VGA: faint double-scanned lines, a fine aperture grille.
         float fy = fract(in.uv.y * p.vgaLines);
@@ -148,6 +173,20 @@ fragment float4 ambient_frag(VOut in [[stage_in]],
     float d = length(out2);
     float fade = 0.38 * exp(-d * 2.2);
     return float4(c * fade, 1.0);
+}
+
+struct EmitParams {
+    float4 rect;      // the playfield, game pixels: light comes only from inside it
+};
+
+// Light sources for dynamic light: the same hot pixels as the glow, inside the playfield.
+fragment float4 emit_frag(VOut in [[stage_in]], texture2d<float> src [[texture(0)]],
+                          constant EmitParams &e [[buffer(0)]]) {
+    constexpr sampler pt(filter::nearest, address::clamp_to_edge);
+    float2 g = in.uv * float2(320.0, 200.0);
+    if (e.rect.z <= 0.0 || any(g < e.rect.xy) || any(g >= e.rect.xy + e.rect.zw)) return float4(0.0, 0.0, 0.0, 1.0);
+    float3 linc = pow(src.sample(pt, in.uv).rgb, float3(2.2));
+    return float4(linc * hotness(linc), 1.0);
 }
 
 // Bright pass at source resolution: keep only hot, saturated pixels, in linear light.

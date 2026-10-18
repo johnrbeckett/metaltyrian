@@ -44,7 +44,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                                    (MT_SETTING_MOUSE_SPEED, "mouseSpeed"),
                                                    (MT_SETTING_MOMENTUM, "momentum"),
                                                    (MT_SETTING_MOUSE_MODE, "mouseMode"),
-                                                   (MT_SETTING_STEREO, "stereo")]
+                                                   (MT_SETTING_STEREO, "stereo"),
+                                                   (MT_SETTING_LIGHT, "light")]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
@@ -64,12 +65,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // First-run look, John's pick 2026-10-17: authentic VGA with HDR glow at 2.0.
         defaults.register(defaults: ["displayMode": DisplayMode.vga.rawValue, "hdrGlow": true, "glowStrength": Float(2.0),
                                      "aspect": Aspect.square.rawValue, "borders": Borders.black.rawValue,
-                                     // Controls, tuned for fun: keys start faster than the original 1.
-                                     "keySpeed": 2, "padSpeed": 5, "mouseSpeed": 5,
-                                     "momentum": 1,     // Light
+                                     // Controls, John's picks 2026-10-18: fast keys, mouse a bit quicker, no drift.
+                                     "keySpeed": 5, "padSpeed": 5, "mouseSpeed": 7,
+                                     "momentum": 2,     // Off
                                      "mouseMode": 1,    // Direct
                                      "text": 0,         // Crisp
-                                     "stereo": 0])      // Stereo
+                                     "stereo": 0,       // Stereo
+                                     "light": 3])       // Strong
         mt_set_setting(MT_SETTING_TEXT, Int32(defaults.integer(forKey: "text")))
         for (setting, key) in Self.speedSettings {
             mt_set_setting(setting, Int32(defaults.integer(forKey: key)))

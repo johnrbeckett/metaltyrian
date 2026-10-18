@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 static volatile int running = 1;
+extern uint8_t displayTime;   /* the game's "Secret Level!" banner timer (varz.c) */
 
 static void put32(FILE *f, uint32_t v) { fwrite(&v, 4, 1, f); }
 static void put16(FILE *f, uint16_t v) { fwrite(&v, 2, 1, f); }
@@ -101,6 +102,7 @@ int main(int argc, char **argv)
 				break;
 			}
 			else if (st[0] == 'k') { int code = atoi(arg); mt_push_key(code, true, 0); release = code; step_pos = next; pause = 4; break; }
+			else if (st[0] == 's') { displayTime = 150; step_pos = next; }   /* s: show "Secret Level!" */
 			else if (st[0] == 'p') { pause = atoi(arg); step_pos = next; break; }
 			else if (st[0] == 'd') { dump_now = 1; step_pos = next; printf("script: tick %d pic %d fade %d smooth %d title %d logos %d@%d,%d %d@%d,%d screen: %.300s\n", i, title.shown ? title.picture : -1, title.fade, title.smooth, title.shown, title.logo_shown[0], title.logo_x[0], title.logo_y[0], title.logo_shown[1], title.logo_x[1], title.logo_y[1], screen_text); }
 			else step_pos = next;
@@ -151,7 +153,7 @@ int main(int argc, char **argv)
 					if (f)
 					{
 						fprintf(f, "P5\n320 200\n255\n");
-						for (int k = 0; k < 64000; k++) fputc(title.shown && title_fg[k] ? 255 : (mask[k] ? 128 : 0), f);
+						for (int k = 0; k < 64000; k++) fputc(title.shown && title_fg[k] ? title_fg[k] : 0, f);
 						fclose(f);
 					}
 					snprintf(name, sizeof name, "%s/px%d.ppm", getenv("MT_PIC_DUMP"), i);
@@ -170,6 +172,19 @@ int main(int argc, char **argv)
 							printf("find: tick %d '%s' at %d,%d %dx%d kind %d font %d hue %d level %d clip y %d-%d x %d-%d\n", i, items[k].text,
 							       items[k].x, items[k].y, items[k].w, items[k].h, items[k].kind, items[k].font, items[k].hue, items[k].level,
 							       items[k].clip_y0, items[k].clip_y1, items[k].clip_x0, items[k].clip_x1);
+				if (getenv("MT_TEXT_FIND_DUMP") && i % 50 == 0)
+					for (int k = 0; k < count; k++)
+						if (strcmp(items[k].text, getenv("MT_TEXT_FIND")) == 0)
+							for (int yy = items[k].y - 1; yy < items[k].y + 16 && yy < 200; yy++)
+							{
+								printf("  y%3d:", yy);
+								for (int xx = items[k].x - 2; xx < items[k].x + 6 && xx < 320; xx++)
+									printf(" %02x", px[yy * 320 + xx]);
+								printf("   mask:");
+								for (int xx = items[k].x - 2; xx < items[k].x + 6 && xx < 320; xx++)
+									printf("%d", mask[yy * 320 + xx]);
+								printf("\n");
+							}
 				/* Letters sorted into reading order, for MT_SCRIPT waits. */
 				static int order[MT_TEXT_MAX];
 				for (int k = 0; k < count; k++) order[k] = k;

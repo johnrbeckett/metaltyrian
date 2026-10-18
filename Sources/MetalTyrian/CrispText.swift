@@ -195,8 +195,12 @@ final class CrispText {
                 j += 1
             }
             let w = Double(Int(last.x) + Int(last.w) - Int(first.x))
-            if let m = mask(s, width: w, cap: Double(first.cap), maxSqueeze: nil) {
-                var d = Draw(x: Double(first.x), y: Double(first.y), mask: m,
+            // Menu titles (the large font): a touch smaller, centred on the
+            // original word and hung from its top, so tails on p, g and y
+            // stay inside the title boxes.
+            let shrink = first.font == 0 ? 0.90 : 1.0
+            if let m = mask(s, width: w * shrink, cap: Double(first.cap) * shrink, maxSqueeze: nil) {
+                var d = Draw(x: Double(first.x) + w * (1 - shrink) / 2, y: Double(first.y), mask: m,
                              hue: Int(first.hue), level: Int(first.level),
                              outlineDark: first.outline_dark, outlineBlack: first.outline_black,
                              outlineLevel: Int(first.outline_level))
