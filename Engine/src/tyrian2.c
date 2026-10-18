@@ -3747,6 +3747,18 @@ bool newGame(void)
 			player[0].cash = 0;
 
 			player[0].items.ship = 8;  // Stalker
+#ifdef METALTYRIAN
+			/* Any ship in the game (John, 2026-10-18: "fun... why not unlock them"). */
+			if (gameLoaded)
+			{
+				static unsigned int last_ship = 8;
+				const unsigned int picked = mt_arcade_ship_select(last_ship);
+				if (picked == 0)
+					gameLoaded = false;
+				else
+					player[0].items.ship = last_ship = picked;
+			}
+#endif
 		}
 		else if (twoPlayerMode)
 		{

@@ -33,6 +33,8 @@
 #include "sprite.h"
 #include "vga256d.h"
 #include "video.h"
+#include "varz.h"
+#include "loudness.h"
 
 char episode_name[6][31];
 char difficulty_name[7][21];
@@ -679,6 +681,148 @@ bool difficultySelect(void)
 		}
 	}
 }
+
+#ifdef METALTYRIAN
+/* MetalTyrian: 1 Player Arcade lets you fly any ship in the game (the
+ * original always gave you the Stalker). Shown on the upgrade screen's
+ * picture, with the ship's big illustration on the left. Ships differ in
+ * armour; weapons still come from pickups. Returns the ship, or 0 for back. */
+unsigned int mt_arcade_ship_select(unsigned int initial)
+{
+	if (shopSpriteSheet.data == NULL)
+		JE_loadCompShapes(&shopSpriteSheet, '1');  // need mouse pointer sprites
+
+	unsigned int ship = (initial >= 1 && initial <= SHIP_NUM) ? initial : 8;
+	bool restart = true;
+
+	for (; ; )
+	{
+		if (restart)
+			JE_loadPic(VGAScreen2, 1, false);
+
+		memcpy(VGAScreen->pixels, VGAScreen2->pixels, (size_t)VGAScreen->pitch * VGAScreen->h);
+
+		/* The ship's big picture, placed as the upgrade screen places it. */
+		const int sprite_id = ships[ship].bigshipgraphic - 1;
+		static const int ship_x[] = { 31, 0, 0, 0, 35, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 30 },
+		                 ship_y[] = { 36, 0, 0, 0, 33, 35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 30 };
+		if (sprite_id >= 27 && sprite_id - 27 < (int)COUNTOF(ship_x) && sprite_exists(OPTION_SHAPES, sprite_id))
+			blit_sprite(VGAScreen, ship_x[sprite_id - 27], ship_y[sprite_id - 27], OPTION_SHAPES, sprite_id);
+
+		/* Right-hand panel: what it is. */
+		const int xPanel = 237;
+		draw_font_hv_shadow(VGAScreen, xPanel, 9, "Choose Ship", large_font, centered, 15, -3, false, 2);
+
+		char name[32];
+		snprintf(name, sizeof(name), "%s", ships[ship].name);
+		/* Names are padded into two columns ("USP Talon   Light Fighter"): show the first part large, the rest small. */
+		char *gap = strstr(name, "   ");
+		const char *sub = NULL;
+		if (gap)
+		{
+			*gap = '\0';
+			sub = gap + 3;
+			while (*sub == ' ') sub++;
+		}
+		draw_font_hv_shadow(VGAScreen, xPanel, 52, name, normal_font, centered, 15, 2, false, 2);
+		if (sub && *sub)
+			draw_font_hv_shadow(VGAScreen, xPanel, 68, sub, small_font, centered, 15, 2, false, 1);
+
+		char line[40];
+		snprintf(line, sizeof(line), "Armor  %u", ships[ship].dmg);
+		draw_font_hv_shadow(VGAScreen, xPanel, 92, line, normal_font, centered, 15, -3, false, 2);
+		snprintf(line, sizeof(line), "%u of %u", ship, (unsigned)SHIP_NUM);
+		draw_font_hv_shadow(VGAScreen, xPanel, 120, line, small_font, centered, 15, 0, false, 1);
+
+		draw_font_hv_shadow(VGAScreen, 10, 189, "Left/right: pick a ship.  Enter: fly.  Esc: back.", small_font, left_aligned, 15, 0, false, 1);
+
+		if (restart)
+		{
+			mouseCursor = MOUSE_POINTER_NORMAL;
+			fade_palette(colors, 10, 0, 255);
+			restart = false;
+		}
+
+		service_SDL_events(true);
+
+		JE_mouseStart();
+		JE_showVGA();
+		JE_mouseReplace();
+
+		bool mouseMoved = false;
+		do
+		{
+			SDL_Delay(16);
+
+			Uint16 oldMouseX = mouse_x;
+			Uint16 oldMouseY = mouse_y;
+
+			push_joysticks_as_keyboard();
+			service_SDL_events(false);
+
+			mouseMoved = mouse_x != oldMouseX || mouse_y != oldMouseY;
+		} while (!(newkey || newmouse || mouseMoved));
+
+		int step = 0;
+		bool action = false, cancel = false;
+
+		if (newmouse)
+		{
+			if (lastmouse_but == SDL_BUTTON_RIGHT)
+				cancel = true;
+			else if (lastmouse_but == SDL_BUTTON_LEFT)
+			{
+				/* Click the ship to fly it; click the panel's left or right half to browse. */
+				if (lastmouse_x < 160)
+					action = true;
+				else
+					step = lastmouse_x < xPanel ? -1 : 1;
+			}
+		}
+		else if (newkey)
+		{
+			switch (lastkey_scan)
+			{
+			case SDL_SCANCODE_LEFT:
+			case SDL_SCANCODE_UP:
+				step = -1;
+				break;
+			case SDL_SCANCODE_RIGHT:
+			case SDL_SCANCODE_DOWN:
+				step = 1;
+				break;
+			case SDL_SCANCODE_SPACE:
+			case SDL_SCANCODE_RETURN:
+				action = true;
+				break;
+			case SDL_SCANCODE_ESCAPE:
+				cancel = true;
+				break;
+			default:
+				break;
+			}
+		}
+
+		if (step != 0)
+		{
+			JE_playSampleNum(S_CURSOR);
+			ship = (unsigned int)(((int)ship - 1 + step + SHIP_NUM) % SHIP_NUM) + 1;
+		}
+		if (action)
+		{
+			JE_playSampleNum(S_SELECT);
+			fade_black(10);
+			return ship;
+		}
+		if (cancel)
+		{
+			JE_playSampleNum(S_SPRING);
+			fade_black(15);
+			return 0;
+		}
+	}
+}
+#endif
 
 bool timedBattleSelect(void)
 {

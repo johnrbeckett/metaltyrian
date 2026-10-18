@@ -30,6 +30,9 @@ extern char timed_battle_name[4][23];
 bool gameplaySelect(void);
 bool episodeSelect(void);
 bool difficultySelect(void);
+#ifdef METALTYRIAN
+unsigned int mt_arcade_ship_select(unsigned int initial);
+#endif
 bool timedBattleSelect(void);
 
 #endif /* MENUS_H */
