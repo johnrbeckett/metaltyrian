@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                      "mouseMode": 1,    // Direct
                                      "text": 0,         // Crisp
                                      "stereo": 0,       // Stereo
-                                     "light": 3])       // Strong
+                                     "light": 2])       // Medium
         mt_set_setting(MT_SETTING_TEXT, Int32(defaults.integer(forKey: "text")))
         for (setting, key) in Self.speedSettings {
             mt_set_setting(setting, Int32(defaults.integer(forKey: key)))
