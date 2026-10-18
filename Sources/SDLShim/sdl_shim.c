@@ -1058,6 +1058,19 @@ void mt_push_mouse_button(int button, bool down, int x, int y)
 	SDL_PushEvent(&e);
 }
 
+static char title_version[64] = "Metal";
+
+void mt_set_title_version(const char *text)
+{
+	if (text)
+		snprintf(title_version, sizeof(title_version), "%s", text);
+}
+
+const char *mt_title_version(void)
+{
+	return title_version;
+}
+
 void mt_push_focus(bool focused)
 {
 	SDL_Event e;

@@ -18,6 +18,9 @@ extern "C" {
 
 /* Starts the game on its own thread. argv[0] is ignored; pass "-t", data dir. */
 void mt_start_game(int argc, const char *const *argv);
+/* The version shown on the title screen ("Metal 0.1.0"); set before mt_start_game. */
+void mt_set_title_version(const char *text);
+const char *mt_title_version(void);
 
 /* True once the game thread has finished (the game quit). */
 bool mt_game_finished(void);

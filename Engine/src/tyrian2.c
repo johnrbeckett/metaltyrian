@@ -21,6 +21,7 @@
 #ifdef METALTYRIAN
 #include "mt_text.h"
 #include "mt_title.h"
+#include "metaltyrian_host.h"
 #endif
 
 #include "animlib.h"
@@ -3396,7 +3397,11 @@ bool titleScreen(void)
 			mt_title_picture(VGAScreen);
 #endif
 
+#ifdef METALTYRIAN
+			draw_font_hv_shadow(VGAScreen, 2, 192, mt_title_version(), small_font, left_aligned, 15, 0, false, 1);
+#else
 			draw_font_hv_shadow(VGAScreen, 2, 192, opentyrian_version, small_font, left_aligned, 15, 0, false, 1);
+#endif
 
 			if (moveTyrianLogoUp)
 			{

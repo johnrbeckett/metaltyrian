@@ -117,6 +117,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         audio = Audio()
         audio.start()
 
+        // Title screen corner: "Metal" and the app's version.
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        mt_set_title_version(version.isEmpty ? "Metal" : "Metal \(version)")
+
         let args = ["metaltyrian", "-t", dataDir.path]
         var cargs = args.map { strdup($0) }
         cargs.withUnsafeMutableBufferPointer { buf in
