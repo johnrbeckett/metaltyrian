@@ -6,6 +6,7 @@
 - The controls panel greets a new game once (the first level waits for fire) and otherwise shows only when paused.
 - Single player throughout: the start menu is Mode (Full Game, Arcade, Time Attack); one list of saved games; one high score table; no two-player help or "Player 1" label.
 - Timed Battle is now called Time Attack.
+- Default edge smoothing is Soft (Light stays Medium).
 - A touch brighter, and Retro no longer darker than Sharp; effects unchanged.
 
 ## 1.0.0, 2026-10-18
