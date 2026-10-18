@@ -1,7 +1,7 @@
-# MetalTyrian app icon: the r3 Talon render inside a macOS-style rounded tile
+# MetalTyrian app icon: the r4 Talon render inside a macOS-style rounded tile
 # with a bevelled gold border.
 #
-# Usage: python3 scripts/make-icon.py Research/ai-renders/r3.png App/AppIcon-1024.png
+# Usage: python3 scripts/make-icon.py Research/ai-renders/r4.png App/AppIcon-1024.png
 # then:  python3 -c "from PIL import Image; Image.open('App/AppIcon-1024.png').save('App/AppIcon.icns')"
 import sys
 import numpy as np

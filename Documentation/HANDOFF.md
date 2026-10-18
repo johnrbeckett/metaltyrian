@@ -39,7 +39,7 @@ Engine changes so far, all under `#ifdef METALTYRIAN`:
 - `joystick.c`: `joystick_axis_reduce` scales the stick by Gamepad Speed instead of the joystick sensitivity.
 - `opentyr.c` also: Setup > Controls (Keyboard Speed 1-5, Gamepad Speed 1-10, Mouse Speed 1-10); Graphics gained Aspect (Original, Square, Exact) and Borders (Black, Ambient).
 
-John's direction, 2026-10-17: balance for "fun" over "faithful". Defaults so far: Retro look, glow 2.0, Square aspect, Black borders, Keyboard Speed 2, Gamepad Speed 5, Mouse Speed 5, Momentum Light, Mouse Mode Direct. App icon from `Research/ai-renders/r3.png` via `scripts/make-icon.py`.
+John's direction, 2026-10-17: balance for "fun" over "faithful". Defaults so far: Retro look, glow 2.0, Square aspect, Black borders, Keyboard Speed 2, Gamepad Speed 5, Mouse Speed 5, Momentum Light, Mouse Mode Direct. App icon from `Research/ai-renders/r4.png` (John switched from r3, 2026-10-18) via `scripts/make-icon.py`.
 
 ## Commits
 
