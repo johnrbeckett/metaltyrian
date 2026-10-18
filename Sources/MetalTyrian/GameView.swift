@@ -257,9 +257,30 @@ final class GameView: MTKView {
         }
     }
 
+    /// Hidden means a see-through cursor, set again every frame and given to
+    /// the view's cursor rect. (NSCursor.hide() counts hides and unhides, and
+    /// once macOS shows the pointer itself, on switching apps or windows, the
+    /// count is off and the Mac pointer comes back over the game's own.)
+    private static let blankCursor: NSCursor = {
+        let image = NSImage(size: NSSize(width: 1, height: 1))
+        image.lockFocus()
+        NSColor.clear.set()
+        NSRect(x: 0, y: 0, width: 1, height: 1).fill()
+        image.unlockFocus()
+        return NSCursor(image: image, hotSpot: .zero)
+    }()
+
     private func setPointerHidden(_ hide: Bool) {
+        if hide { Self.blankCursor.set() }
         guard hide != pointerHidden else { return }
         pointerHidden = hide
-        if hide { NSCursor.hide() } else { NSCursor.unhide() }
+        if !hide { NSCursor.arrow.set() }
+        window?.invalidateCursorRects(for: self)
+    }
+
+    override func resetCursorRects() {
+        if pointerHidden {
+            addCursorRect(pointerLocked ? bounds : pictureRect(), cursor: Self.blankCursor)
+        }
     }
 }
