@@ -73,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                      "text": 0,         // Crisp
                                      "stereo": 0,       // Stereo
                                      "light": 2,        // Medium
-                                     "edges": 1])       // Soft
+                                     "edges": 2])       // Smooth, John's pick 2026-10-18
         mt_set_setting(MT_SETTING_TEXT, Int32(defaults.integer(forKey: "text")))
         for (setting, key) in Self.speedSettings {
             mt_set_setting(setting, Int32(defaults.integer(forKey: key)))
