@@ -3,7 +3,7 @@
 Running notes kept between working sessions: state, decisions and history.
 For how the code fits together, see `ARCHITECTURE.md`.
 
-## Status, 2026-10-18: version 1.0.0 released
+## Status, 2026-10-18: version 1.0.1 being released
 
 | Item | State |
 |---|---|

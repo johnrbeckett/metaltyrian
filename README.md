@@ -5,7 +5,7 @@ by Eclipse Software (1995, Tyrian 2000 in 1999). All five episodes, single
 player, drawn with Metal, with Apple frameworks for input and sound. Not affiliated with the
 original authors.
 
-Version 1.0.0. Built on the game code of [OpenTyrian](https://github.com/opentyrian/opentyrian)
+Version 1.0.1. Built on the game code of [OpenTyrian](https://github.com/opentyrian/opentyrian)
 and [OpenTyrian2000](https://github.com/KScl/opentyrian2000).
 
 ## Download

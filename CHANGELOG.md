@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.1 (in progress)
+## 1.0.1, 2026-10-18
 
 - The Mac menu bar mirrors the game's Setup: Graphics, Sound and Controls menus. Command-F for full screen.
 - The controls panel greets a new game once (the first level waits for fire) and otherwise shows only when paused.
