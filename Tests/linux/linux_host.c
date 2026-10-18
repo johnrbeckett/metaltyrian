@@ -20,25 +20,25 @@ static void *audio_thread(void *arg)
 	FILE *f = fopen(path, "wb");
 	if (!f) { perror(path); return NULL; }
 	fwrite("RIFF\0\0\0\0WAVEfmt ", 1, 16, f);
-	put32(f, 16); put16(f, 1); put16(f, 1); put32(f, MT_AUDIO_RATE); put32(f, MT_AUDIO_RATE * 2);
-	put16(f, 2); put16(f, 16);
+	put32(f, 16); put16(f, 1); put16(f, 2); put32(f, MT_AUDIO_RATE); put32(f, MT_AUDIO_RATE * 4);
+	put16(f, 4); put16(f, 16);
 	fwrite("data\0\0\0\0", 1, 8, f);
 	uint32_t bytes = 0;
-	enum { CHUNK = 441 };  /* 10 ms, like a small Core Audio buffer */
-	float buf[CHUNK];
-	int16_t pcm[CHUNK];
+	enum { CHUNK = MT_AUDIO_RATE / 100 };  /* 10 ms, like a small Core Audio buffer */
+	float bl[CHUNK], br[CHUNK];
+	int16_t pcm[CHUNK * 2];
 	struct timespec next;
 	clock_gettime(CLOCK_MONOTONIC, &next);
 	while (running)
 	{
-		mt_audio_render(buf, CHUNK);
-		for (int i = 0; i < CHUNK; i++)
+		mt_audio_render(bl, br, CHUNK);
+		for (int i = 0; i < CHUNK * 2; i++)
 		{
-			float v = buf[i] * 32768.0f;
+			float v = (i & 1 ? br[i / 2] : bl[i / 2]) * 32768.0f;
 			pcm[i] = (int16_t)(v < -32768 ? -32768 : v > 32767 ? 32767 : v);
 		}
-		fwrite(pcm, 2, CHUNK, f);
-		bytes += CHUNK * 2;
+		fwrite(pcm, 2, CHUNK * 2, f);
+		bytes += CHUNK * 4;
 		next.tv_nsec += 10000000;
 		if (next.tv_nsec >= 1000000000) { next.tv_nsec -= 1000000000; next.tv_sec++; }
 		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);
@@ -53,6 +53,7 @@ int main(int argc, char **argv)
 {
 	const char *gargv[] = { "metaltyrian", "-t", argv[1] };
 	mt_start_game(3, gargv);
+	mt_push_focus(true);   /* as the app's window does, or the game pauses itself */
 	pthread_t at;
 	const char *wav = getenv("MT_WAV");
 	if (wav)
@@ -162,6 +163,13 @@ int main(int argc, char **argv)
 						fclose(f);
 					}
 				}
+				/* MT_TEXT_FIND=x: report items whose text is x (where and how). */
+				if (getenv("MT_TEXT_FIND"))
+					for (int k = 0; k < count; k++)
+						if (strcmp(items[k].text, getenv("MT_TEXT_FIND")) == 0)
+							printf("find: tick %d '%s' at %d,%d %dx%d kind %d font %d hue %d level %d clip y %d-%d x %d-%d\n", i, items[k].text,
+							       items[k].x, items[k].y, items[k].w, items[k].h, items[k].kind, items[k].font, items[k].hue, items[k].level,
+							       items[k].clip_y0, items[k].clip_y1, items[k].clip_x0, items[k].clip_x1);
 				/* Letters sorted into reading order, for MT_SCRIPT waits. */
 				static int order[MT_TEXT_MAX];
 				for (int k = 0; k < count; k++) order[k] = k;

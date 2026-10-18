@@ -259,6 +259,15 @@ extern Uint8 demo_keys;
 extern Uint16 demo_keys_wait;
 
 extern JE_byte soundQueue[8];
+#ifdef METALTYRIAN
+/* Where each queued sound happens (game x, as player and enemy positions),
+ * for stereo placement; MT_NO_X for none (the middle). */
+#define MT_NO_X (-32768)
+extern JE_integer soundQueueX[8];
+#define MT_SOUND_X(ch, x) (soundQueueX[ch] = (JE_integer)(x))
+#else
+#define MT_SOUND_X(ch, x) ((void)0)
+#endif
 extern JE_boolean enemyContinualDamage;
 extern JE_boolean enemiesActive;
 extern JE_boolean forceEvents;

@@ -24,6 +24,11 @@
 #include "opentyr.h"
 #include "params.h"
 
+#ifdef METALTYRIAN
+#include "metaltyrian_host.h"
+#include <math.h>
+#endif
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -85,7 +90,11 @@ bool init_audio(void)
 
 	ask.freq = 11025 * OUTPUT_QUALITY;
 	ask.format = AUDIO_S16SYS;
+#ifdef METALTYRIAN
+	ask.channels = 2;  // effects panned by where they happen (see audioCallback)
+#else
 	ask.channels = 1;
+#endif
 	ask.samples = 256 * OUTPUT_QUALITY; // ~23 ms
 	ask.callback = audioCallback;
 
@@ -125,8 +134,108 @@ bool init_audio(void)
 	return true;
 }
 
+#ifdef METALTYRIAN
+/* MetalTyrian's mixer: stereo, with each effect placed left or right by
+ * where it happens on screen (moderately: 70/30 at the screen's edges), the
+ * music in the middle, and a gentle limiter instead of hard clipping when
+ * many sounds pile up. */
+
+static float channelGainL[CHANNEL_COUNT], channelGainR[CHANNEL_COUNT];
+static float pendingPan = 0.0f;
+static float limiterGain = 1.0f;
+
+/* Music level against the effects: Nuked OPL3 is about as loud as the
+ * DOSBox emulator the game's mix was set for (twice its raw level). */
+#define MT_MUSIC_BOOST 2
+
+void mt_sound_pan_next(float pan)
+{
+	pendingPan = pan < -1.0f ? -1.0f : pan > 1.0f ? 1.0f : pan;
+}
+
+static void mt_mix(Sint16 *samples, int frames)
+{
+	static Sint16 music[1024];
+	const float musicFactor = volumeFactorTable[musicVolume] * MT_MUSIC_BOOST / 4096.0f;
+	float sampleFactors[CHANNEL_VOLUME_LEVELS];
+	for (int i = 0; i < CHANNEL_VOLUME_LEVELS; ++i)
+		sampleFactors[i] = volumeFactorTable[sampleVolume] * (i + 1) / (float)CHANNEL_VOLUME_LEVELS / 4096.0f;
+	const bool playMusic = !music_disabled && !music_stopped;
+	const bool playSamples = !samples_disabled;
+	const float threshold = 29200.0f;                 // -1 dB
+	const float release = 1.0f / (0.12f * MT_AUDIO_RATE);   // back to full in about 120 ms
+
+	while (frames > 0)
+	{
+		const int chunk = frames < 1024 ? frames : 1024;
+		if (playMusic)
+		{
+			Sint16 *remaining = music;
+			int remainingCount = chunk;
+			while (remainingCount > 0)
+			{
+				if (samplesUntilLdsUpdate == 0)
+				{
+					lds_update();
+					samplesUntilLdsUpdate += samplesPerLdsUpdate;
+					samplesUntilLdsUpdateFrac += samplesPerLdsUpdateFrac;
+					if (samplesUntilLdsUpdateFrac >= ldsUpdate2Rate)
+					{
+						samplesUntilLdsUpdate += 1;
+						samplesUntilLdsUpdateFrac -= ldsUpdate2Rate;
+					}
+				}
+				int count = MIN(samplesUntilLdsUpdate, remainingCount);
+				opl_update(remaining, count);
+				remaining += count;
+				remainingCount -= count;
+				samplesUntilLdsUpdate -= count;
+			}
+		}
+
+		for (int f = 0; f < chunk; ++f)
+		{
+			float m = playMusic ? music[f] * musicFactor : 0.0f;
+			float l = m, r = m;
+			if (playSamples)
+			{
+				for (size_t i = 0; i < CHANNEL_COUNT; ++i)
+				{
+					if (channelSampleCount[i] > 0)
+					{
+						const float v = *channelSamples[i] * sampleFactors[channelVolume[i]];
+						l += v * channelGainL[i];
+						r += v * channelGainR[i];
+						channelSamples[i] += 1;
+						channelSampleCount[i] -= 1;
+					}
+				}
+			}
+			/* Limiter: turn down at once when a peak would clip, back up slowly. */
+			const float peak = fabsf(l) > fabsf(r) ? fabsf(l) : fabsf(r);
+			const float target = peak > threshold ? threshold / peak : 1.0f;
+			if (target < limiterGain)
+				limiterGain = target;
+			else
+				limiterGain += (target - limiterGain) * release;
+			l *= limiterGain;
+			r *= limiterGain;
+			samples[2 * f]     = (Sint16)(l < -32768.0f ? -32768 : l > 32767.0f ? 32767 : l);
+			samples[2 * f + 1] = (Sint16)(r < -32768.0f ? -32768 : r > 32767.0f ? 32767 : r);
+		}
+		samples += 2 * chunk;
+		frames -= chunk;
+	}
+}
+#endif
+
 static void audioCallback(void *userdata, Uint8 *stream, int size)
 {
+#ifdef METALTYRIAN
+	(void)userdata;
+	mt_mix((Sint16 *)stream, size / (int)(2 * sizeof(Sint16)));
+	return;
+#endif
 	(void)userdata;
 
 	Sint16 *const samples = (Sint16 *)stream;
@@ -361,6 +470,14 @@ void multiSamplePlay(const Sint16 *samples, size_t sampleCount, Uint8 chan, Uint
 	channelSamples[chan] = samples;
 	channelSampleCount[chan] = sampleCount;
 	channelVolume[chan] = vol;
+#ifdef METALTYRIAN
+	/* Pan law: 70/30 at the edges, both sides full in the middle. */
+	const float g = mt_setting(MT_SETTING_STEREO) == 0 ? 0.4f * pendingPan : 0.0f;
+	const float norm = 1.0f + fabsf(g);
+	channelGainL[chan] = (1.0f - g) / norm;
+	channelGainR[chan] = (1.0f + g) / norm;
+	pendingPan = 0.0f;
+#endif
 
 	SDL_UnlockAudioDevice(audioDevice);
 }

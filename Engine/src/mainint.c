@@ -3635,9 +3635,9 @@ redo:
 			{
 				levelEndFxWait = (mt_rand() % 6) + 3;
 				if ((mt_rand() % 3) == 1)
-					soundQueue[6] = S_EXPLOSION_9;
+					soundQueue[6] = S_EXPLOSION_9, MT_SOUND_X(6, this_player->x);
 				else
-					soundQueue[5] = S_EXPLOSION_11;
+					soundQueue[5] = S_EXPLOSION_11, MT_SOUND_X(5, this_player->x);
 			}
 
 			int explosion_x = this_player->x + (mt_rand() % 32) - 16;
@@ -4671,7 +4671,7 @@ redo:
 							if (abs(this_player->sidekick[RIGHT_SIDEKICK].y - (this_player->y - 20)) + abs(this_player->sidekick[RIGHT_SIDEKICK].x - this_player->x) < 8)
 							{
 								optionAttachmentLinked = true;
-								soundQueue[2] = S_CLINK;
+								soundQueue[2] = S_CLINK, MT_SOUND_X(2, this_player->x);
 							}
 
 							if (button[3-1])
@@ -4692,7 +4692,7 @@ redo:
 							optionAttachmentLinked = false;
 							optionAttachmentReturn = false;
 							optionAttachmentMove = -20;
-							soundQueue[3] = S_WEAPON_26;
+							soundQueue[3] = S_WEAPON_26, MT_SOUND_X(3, this_player->x);
 						}
 					}
 
@@ -4924,7 +4924,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							player[1].is_alive = true;
 						}
 						enemyAvail[z] = 1;
-						soundQueue[7] = S_POWERUP;
+						soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 					}
 					else if (superArcadeMode != SA_NONE && evalue > 30000)
 					{
@@ -4947,7 +4947,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 
 						player[0].items.weapon[FRONT_WEAPON].id = tempW;
 						this_player->cash += 200;
-						soundQueue[7] = S_POWERUP;
+						soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 						enemyAvail[z] = 1;
 					}
 					else if (evalue > 32100)
@@ -4968,7 +4968,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							else
 								snprintf(tempStr, sizeof(tempStr), "%s %s", miscText[64-1], special[evalue - 32100].name);
 							JE_drawTextWindow(tempStr);
-							soundQueue[7] = S_POWERUP;
+							soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 							enemyAvail[z] = 1;
 						}
 					}
@@ -5001,7 +5001,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							shotMultiPos[SHOT_LEFT_SIDEKICK] = 0;
 							shotMultiPos[SHOT_RIGHT_SIDEKICK] = 0;
 							JE_drawOptions();
-							soundQueue[7] = S_POWERUP;
+							soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 						}
 						else if (onePlayerAction)
 						{
@@ -5015,7 +5015,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							shotMultiPos[SHOT_RIGHT_SIDEKICK] = 0;
 
 							JE_drawOptions();
-							soundQueue[7] = S_POWERUP;
+							soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 						}
 						if (enemyAvail[z] == 1)
 							this_player->cash += 250;
@@ -5033,7 +5033,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							player[1].items.weapon[REAR_WEAPON].id = evalue - 31000;
 							shotMultiPos[SHOT_REAR] = 0;
 							enemyAvail[z] = 1;
-							soundQueue[7] = S_POWERUP;
+							soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 						}
 						else if (onePlayerAction)
 						{
@@ -5042,7 +5042,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							player[0].items.weapon[REAR_WEAPON].id = evalue - 31000;
 							shotMultiPos[SHOT_REAR] = 0;
 							enemyAvail[z] = 1;
-							soundQueue[7] = S_POWERUP;
+							soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 
 							if (player[0].items.weapon[REAR_WEAPON].power == 0)  // does this ever happen?
 								player[0].items.weapon[REAR_WEAPON].power = 1;
@@ -5060,7 +5060,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							player[0].items.weapon[FRONT_WEAPON].id = evalue - 30000;
 							shotMultiPos[SHOT_FRONT] = 0;
 							enemyAvail[z] = 1;
-							soundQueue[7] = S_POWERUP;
+							soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 						}
 						else if (onePlayerAction)
 						{
@@ -5069,7 +5069,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 							player[0].items.weapon[FRONT_WEAPON].id = evalue - 30000;
 							shotMultiPos[SHOT_FRONT] = 0;
 							enemyAvail[z] = 1;
-							soundQueue[7] = S_POWERUP;
+							soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 						}
 
 						if (enemyAvail[z] == 1)
@@ -5109,7 +5109,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 					VGAScreen = VGAScreenSeg; /* side-effect of game_screen */
 					JE_drawArmor();
 					VGAScreen = game_screen; /* side-effect of game_screen */
-					soundQueue[7] = S_POWERUP;
+					soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 				}
 				else if (evalue > 10000 && enemyAvail[z] == 2)
 				{
@@ -5125,7 +5125,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 				else if (enemy[z].scoreitem)
 				{
 					enemyAvail[z] = 1;
-					soundQueue[7] = S_ITEM;
+					soundQueue[7] = S_ITEM, MT_SOUND_X(7, this_player->x);
 					if (evalue == 1)
 					{
 						cubeMax++;
@@ -5142,7 +5142,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 						JE_drawTextWindow(tempStr);
 
 						power_up_weapon(&player[0], FRONT_WEAPON);
-						soundQueue[7] = S_POWERUP;
+						soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 					}
 					else if (evalue == -2)  // got rear weapon powerup
 					{
@@ -5155,7 +5155,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 						JE_drawTextWindow(tempStr);
 
 						power_up_weapon(twoPlayerMode ? &player[1] : &player[0], REAR_WEAPON);
-						soundQueue[7] = S_POWERUP;
+						soundQueue[7] = S_POWERUP, MT_SOUND_X(7, this_player->x);
 					}
 					else if (evalue == -3)
 					{
@@ -5225,7 +5225,7 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 						// damage enemy
 						if (enemy[z].armorleft != 255)
 							enemy[z].armorleft -= armorleft;
-						soundQueue[5] = S_ENEMY_HIT;
+						soundQueue[5] = S_ENEMY_HIT, MT_SOUND_X(5, this_player->x);
 					}
 					else
 					{
@@ -5249,12 +5249,12 @@ void JE_playerCollide(Player *this_player, JE_byte playerNum_)
 									if (enemyDat[enemy[temp2].enemytype].esize == 1)
 									{
 										JE_setupExplosionLarge(enemy[temp2].enemyground, enemy[temp2].explonum, enemy_screen_x, enemy[temp2].ey);
-										soundQueue[6] = S_EXPLOSION_9;
+										soundQueue[6] = S_EXPLOSION_9, MT_SOUND_X(6, enemy_screen_x);
 									}
 									else
 									{
 										JE_setupExplosion(enemy_screen_x, enemy[temp2].ey, 0, 1, false, false);
-										soundQueue[5] = S_EXPLOSION_4;
+										soundQueue[5] = S_EXPLOSION_4, MT_SOUND_X(5, enemy_screen_x);
 									}
 								}
 							}

@@ -43,4 +43,10 @@ void set_volume(Uint8 musicVolume, Uint8 sampleVolume);
 
 void multiSamplePlay(const Sint16 *samples, size_t sampleCount, Uint8 chan, Uint8 vol);
 
+#ifdef METALTYRIAN
+/* Where the next multiSamplePlay's sound comes from: -1 left edge, 0 middle,
+ * 1 right edge. Used once, then back to the middle. */
+void mt_sound_pan_next(float pan);
+#endif
+
 #endif /* LOUDNESS_H */

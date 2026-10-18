@@ -84,15 +84,18 @@ void mt_set_gamepad(int pad, const int16_t *axes, uint32_t buttons, uint8_t hat)
 #define MT_SETTING_MOMENTUM 8     /* 0 original, 1 light, 2 off: drift from the player's own steering */
 #define MT_SETTING_MOUSE_MODE 9   /* 0 original (relative nudges), 1 direct (ship flies to the pointer) */
 #define MT_SETTING_TEXT 10        /* 0 crisp, 1 original pixel text */
-#define MT_SETTING_COUNT 11
+#define MT_SETTING_STEREO 11      /* 0 stereo (effects placed by position), 1 mono */
+#define MT_SETTING_COUNT 12
 int mt_setting(int which);
 void mt_set_setting(int which, int value);
 
-/* Sound. The app plays mono float samples at MT_AUDIO_RATE and calls
- * mt_audio_render from its audio thread for each buffer; it writes silence
- * until the game has opened and started its audio device. */
-#define MT_AUDIO_RATE 44100
-void mt_audio_render(float *out, int frames);
+/* Sound. The app plays stereo float samples at MT_AUDIO_RATE (the AdLib
+ * chip's own rate, so the music needs no resampling; macOS converts to the
+ * output device) and calls mt_audio_render from its audio thread for each
+ * buffer; it writes silence until the game has opened and started its audio
+ * device. */
+#define MT_AUDIO_RATE 49716
+void mt_audio_render(float *left, float *right, int frames);
 
 /* Called by the game (from OpenTyrian's scale_and_flip) for every frame shown. */
 void mt_present_frame(const void *pixels, int pitch, const uint32_t *palette);

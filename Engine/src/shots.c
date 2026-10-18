@@ -320,7 +320,7 @@ JE_integer player_shot_create(JE_word portNum, uint bay_i, JE_word PX, JE_word P
 	power -= weaponPort[portNum].poweruse;
 
 	if (weapon->sound > 0)
-		soundQueue[soundChannel[bay_i]] = weapon->sound;
+		soundQueue[soundChannel[bay_i]] = weapon->sound, MT_SOUND_X(soundChannel[bay_i], PX);
 
 	int shot_id = MAX_PWEAPON;
 	/*Rot*/

@@ -44,8 +44,19 @@ void adlib_getsample(Bit16s* sndptr, Bits numsamples);
 Bitu adlib_reg_read(Bitu port);
 void adlib_write_index(Bitu port, Bit8u val);
 
+#ifdef METALTYRIAN
+/* MetalTyrian plays the music on Nuked OPL3 (opl3.c, cycle-accurate) at the
+ * chip's own rate; see mt_opl.c. */
+void mt_opl_init(void);
+void mt_opl_write(Bitu idx, Bit8u val);
+void mt_opl_update(Bit16s *buf, Bits num);
+#define opl_init() mt_opl_init()
+#define opl_write(reg, val) mt_opl_write(reg, val)
+#define opl_update(buf, num) mt_opl_update(buf, num)
+#else
 #define opl_init() adlib_init(audioSampleRate)
 #define opl_write(reg, val) adlib_write(reg, val)
 #define opl_update(buf, num) adlib_getsample(buf, num)
+#endif
 
 #endif /* OPL_H */

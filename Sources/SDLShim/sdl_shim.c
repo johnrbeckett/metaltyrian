@@ -645,9 +645,9 @@ SDL_AudioDeviceID SDL_OpenAudioDevice(const char *device, int iscapture, const S
 		SDL_SetError("no recording");
 		return 0;
 	}
-	if (desired->format != AUDIO_S16SYS || desired->channels != 1 || desired->callback == NULL)
+	if (desired->format != AUDIO_S16SYS || (desired->channels != 1 && desired->channels != 2) || desired->callback == NULL)
 	{
-		SDL_SetError("MetalTyrian audio supports mono 16-bit with a callback only");
+		SDL_SetError("MetalTyrian audio supports mono or stereo 16-bit with a callback only");
 		return 0;
 	}
 	audio_lock_take();
@@ -660,7 +660,7 @@ SDL_AudioDeviceID SDL_OpenAudioDevice(const char *device, int iscapture, const S
 	audio_spec = *desired;
 	audio_spec.freq = MT_AUDIO_RATE;
 	audio_spec.silence = 0;
-	audio_spec.size = audio_spec.samples * sizeof(Sint16);
+	audio_spec.size = audio_spec.samples * audio_spec.channels * sizeof(Sint16);
 	audio_open = 1;
 	audio_paused = 1;
 	audio_lock_give();
@@ -692,31 +692,40 @@ void SDL_PauseAudioDevice(SDL_AudioDeviceID dev, int pause_on)
 void SDL_LockAudioDevice(SDL_AudioDeviceID dev) { (void)dev; audio_lock_take(); }
 void SDL_UnlockAudioDevice(SDL_AudioDeviceID dev) { (void)dev; audio_lock_give(); }
 
-void mt_audio_render(float *out, int frames)
+void mt_audio_render(float *left, float *right, int frames)
 {
 	audio_lock_take();
 	if (!audio_open || audio_paused || frames <= 0)
 	{
 		audio_lock_give();
-		memset(out, 0, (size_t)(frames > 0 ? frames : 0) * sizeof(float));
+		if (frames > 0)
+		{
+			memset(left, 0, (size_t)frames * sizeof(float));
+			memset(right, 0, (size_t)frames * sizeof(float));
+		}
 		return;
 	}
-	if (frames > audio_scratch_len)
+	const int ch = audio_spec.channels;
+	if (frames * ch > audio_scratch_len)
 	{
 		/* Grows once or twice at start-up, to the largest buffer macOS asks for. */
-		Sint16 *bigger = realloc(audio_scratch, (size_t)frames * sizeof(Sint16));
+		Sint16 *bigger = realloc(audio_scratch, (size_t)(frames * ch) * sizeof(Sint16));
 		if (bigger == NULL)
 		{
 			audio_lock_give();
-			memset(out, 0, (size_t)frames * sizeof(float));
+			memset(left, 0, (size_t)frames * sizeof(float));
+			memset(right, 0, (size_t)frames * sizeof(float));
 			return;
 		}
 		audio_scratch = bigger;
-		audio_scratch_len = frames;
+		audio_scratch_len = frames * ch;
 	}
-	audio_spec.callback(audio_spec.userdata, (Uint8 *)audio_scratch, frames * (int)sizeof(Sint16));
+	audio_spec.callback(audio_spec.userdata, (Uint8 *)audio_scratch, frames * ch * (int)sizeof(Sint16));
 	for (int i = 0; i < frames; i++)
-		out[i] = audio_scratch[i] * (1.0f / 32768.0f);
+	{
+		left[i] = audio_scratch[i * ch] * (1.0f / 32768.0f);
+		right[i] = audio_scratch[i * ch + ch - 1] * (1.0f / 32768.0f);
+	}
 	audio_lock_give();
 }
 

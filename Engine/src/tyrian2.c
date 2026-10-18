@@ -469,7 +469,7 @@ enemy_still_exists:
 									{
 										temp = mt_rand() % 8;
 									} while (temp == 3);
-									soundQueue[temp] = weapons[temp3].sound;
+									soundQueue[temp] = weapons[temp3].sound, MT_SOUND_X(temp, tempX);
 								}
 
 								if (enemy[i].aniactive == 2)
@@ -622,7 +622,7 @@ enemy_still_exists:
 						{
 							temp = mt_rand() % 8;
 						} while (temp == 3);
-						soundQueue[temp] = randomEnemyLaunchSounds[(mt_rand() % 3)];
+						soundQueue[temp] = randomEnemyLaunchSounds[(mt_rand() % 3)], MT_SOUND_X(temp, tempX);
 
 						if (enemy[i].launchspecial == 1 &&
 						    enemy[i].linknum < 100)
@@ -1627,7 +1627,7 @@ level_loop:
 								}
 							}
 
-							soundQueue[5] = S_ENEMY_HIT;
+							soundQueue[5] = S_ENEMY_HIT, MT_SOUND_X(5, tempShotX);
 
 							if ((armorleft - damage <= enemy[b].edlevel) &&
 							    ((!enemy[b].edamaged) ^ (enemy[b].edani < 0)))
@@ -1788,12 +1788,12 @@ level_loop:
 										if (enemyDat[enemy[temp2].enemytype].esize == 1)
 										{
 											JE_setupExplosionLarge(enemy[temp2].enemyground, enemy[temp2].explonum, enemy_screen_x, enemy[temp2].ey);
-											soundQueue[6] = S_EXPLOSION_9;
+											soundQueue[6] = S_EXPLOSION_9, MT_SOUND_X(6, enemy_screen_x);
 										}
 										else
 										{
 											JE_setupExplosion(enemy_screen_x, enemy[temp2].ey, 0, 1, false, false);
-											soundQueue[6] = S_EXPLOSION_8;
+											soundQueue[6] = S_EXPLOSION_8, MT_SOUND_X(6, enemy_screen_x);
 										}
 									}
 								}
@@ -1989,9 +1989,9 @@ draw_player_shot_loop_end:
 				JE_setupExplosionLarge(false, 2, tempX, tempY);
 
 				if (rep_explosions[i].ttl == 1 || mt_rand() % 5 == 1)
-					soundQueue[7] = S_EXPLOSION_11;
+					soundQueue[7] = S_EXPLOSION_11, MT_SOUND_X(7, tempX);
 				else
-					soundQueue[6] = S_EXPLOSION_9;
+					soundQueue[6] = S_EXPLOSION_9, MT_SOUND_X(6, tempX);
 
 				rep_explosions[i].delay = 4 + (mt_rand() % 3);
 			}
@@ -1999,7 +1999,7 @@ draw_player_shot_loop_end:
 			{
 				JE_setupExplosion(tempX, tempY, 0, 1, false, false);
 
-				soundQueue[5] = S_EXPLOSION_4;
+				soundQueue[5] = S_EXPLOSION_4, MT_SOUND_X(5, tempX);
 
 				rep_explosions[i].delay = 3;
 			}
@@ -2140,6 +2140,11 @@ draw_player_shot_loop_end:
 				else   /*Lightning*/
 					temp3 = fxPlayVol / 2;
 
+#ifdef METALTYRIAN
+				/* Stereo: the playfield's middle is about x 148 (the ship flies 40-256). */
+				mt_sound_pan_next(soundQueueX[temp2] == MT_NO_X ? 0.0f : (soundQueueX[temp2] - 148) / 120.0f);
+				soundQueueX[temp2] = MT_NO_X;
+#endif
 				multiSamplePlay(soundSamples[temp-1], soundSampleCount[temp-1], temp2, temp3);
 
 				soundQueue[temp2] = S_NONE;

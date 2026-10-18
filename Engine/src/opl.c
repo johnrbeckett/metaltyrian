@@ -25,6 +25,8 @@
  */
 #include "opl.h"
 
+#ifndef METALTYRIAN   /* MetalTyrian uses Nuked OPL3 instead (mt_opl.c) */
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h> // rand()
@@ -1618,3 +1620,5 @@ void adlib_getsample(Bit16s* sndptr, Bits numsamples) {
 
 	}
 }
+
+#endif /* !METALTYRIAN */

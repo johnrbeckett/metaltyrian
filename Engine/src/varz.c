@@ -231,6 +231,9 @@ Uint16 demo_keys_wait;
 
 /* Sound Effects Queue */
 JE_byte soundQueue[8]; /* [0..7] */
+#ifdef METALTYRIAN
+JE_integer soundQueueX[8] = { MT_NO_X, MT_NO_X, MT_NO_X, MT_NO_X, MT_NO_X, MT_NO_X, MT_NO_X, MT_NO_X };
+#endif
 
 /*Level Event Data*/
 JE_boolean enemyContinualDamage;
@@ -1054,7 +1057,7 @@ JE_byte JE_playerDamage(JE_byte temp,
                         Player *this_player)
 {
 	int playerDamage = 0;
-	soundQueue[7] = S_SHIELD_HIT;
+	soundQueue[7] = S_SHIELD_HIT, MT_SOUND_X(7, this_player->x);
 
 	/* Player Damage Routines */
 	if (this_player->shield < temp)
@@ -1080,13 +1083,13 @@ JE_byte JE_playerDamage(JE_byte temp,
 					this_player->exploding_ticks = 60;
 					levelEnd = 40;
 					tempVolume = tyrMusicVolume;
-					soundQueue[1] = S_EXPLOSION_22;
+					soundQueue[1] = S_EXPLOSION_22, MT_SOUND_X(1, this_player->x);
 				}
 			}
 			else
 			{
 				this_player->armor -= temp;
-				soundQueue[7] = S_HULL_HIT;
+				soundQueue[7] = S_HULL_HIT, MT_SOUND_X(7, this_player->x);
 			}
 		}
 	}

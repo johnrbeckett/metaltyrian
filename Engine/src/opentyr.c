@@ -144,6 +144,15 @@ static const char *const mt_momentum_names[] = { "Original", "Light", "Off" };
 static size_t mtMomentumCount(void) { return COUNTOF(mt_momentum_names); }
 
 static const char *const mt_mouse_mode_names[] = { "Original", "Direct" };
+static const char *const mt_stereo_names[] = { "Stereo", "Mono" };
+
+static size_t mtStereoCount(void) { return COUNTOF(mt_stereo_names); }
+
+static const char *mtStereoItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_stereo_names[i];
+}
 
 static size_t mtMouseModeCount(void) { return COUNTOF(mt_mouse_mode_names); }
 
@@ -229,6 +238,7 @@ void setupMenu(void)
 		MENU_ITEM_MOUSE_SPEED,
 		MENU_ITEM_MOMENTUM,
 		MENU_ITEM_MOUSE_MODE,
+		MENU_ITEM_STEREO,
 #endif
 	} MenuItemId;
 
@@ -301,6 +311,9 @@ void setupMenu(void)
 			.items = {
 				{ MENU_ITEM_MUSIC_VOLUME, "Music Volume", "Change volume with the left/right arrow keys." },
 				{ MENU_ITEM_SOUND_VOLUME, "Sound Volume", "Change volume with the left/right arrow keys." },
+#ifdef METALTYRIAN
+				{ MENU_ITEM_STEREO, "Output:", "Stereo places each sound where it happens.", mtStereoCount, mtStereoItem },
+#endif
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
 			},
@@ -436,6 +449,10 @@ void setupMenu(void)
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, buffer, normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 			}
+
+			case MENU_ITEM_STEREO:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_stereo_names[mtClamp(mt_setting(MT_SETTING_STEREO), COUNTOF(mt_stereo_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
 
 			case MENU_ITEM_MOUSE_MODE:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_mouse_mode_names[mtClamp(mt_setting(MT_SETTING_MOUSE_MODE), COUNTOF(mt_mouse_mode_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
@@ -582,6 +599,7 @@ void setupMenu(void)
 									case MENU_ITEM_MOUSE_SPEED:
 									case MENU_ITEM_MOMENTUM:
 									case MENU_ITEM_MOUSE_MODE:
+									case MENU_ITEM_STEREO:
 #endif
 									{
 										action = true;
@@ -879,6 +897,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_TEXT), COUNTOF(mt_text_names));
 					break;
 				}
+				case MENU_ITEM_STEREO:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_STEREO), COUNTOF(mt_stereo_names));
+					break;
+				}
 				case MENU_ITEM_MOUSE_MODE:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -1047,6 +1073,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_MOUSE_MODE:
 					mt_set_setting(MT_SETTING_MOUSE_MODE, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_STEREO:
+					mt_set_setting(MT_SETTING_STEREO, (int)pickerSelectedIndex);
 					break;
 #else
 				case MENU_ITEM_DISPLAY:
