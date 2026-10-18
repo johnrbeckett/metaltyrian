@@ -46,11 +46,6 @@ void mt_push_focus(bool focused);
  * play) the app hides and locks the pointer and sends only movement. */
 bool mt_cursor_wanted(void);
 bool mt_relative_mouse(void);
-/* A scroll stroke: change the rear weapon's mode once. The game takes it in
- * play only (mt_take_change_fire); one older than a moment is dropped, so a
- * scroll in a menu never fires later. */
-void mt_push_change_fire(void);
-bool mt_take_change_fire(void);
 void mt_push_quit(void);
 
 /* Gamepads. The game sees two gamepads, "MetalTyrian Gamepad 1" and "2" (one

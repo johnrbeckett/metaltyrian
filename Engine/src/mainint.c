@@ -3821,9 +3821,6 @@ redo:
 					button[1] |= mouse_pressed[1];
 					button[2] |= mouse_pressed[2];
 					button[3] |= mouse_pressed[3];
-#ifdef METALTYRIAN
-					button[3] |= mt_take_change_fire();   /* scroll wheel or trackpad stroke */
-#endif
 
 					Sint32 mouseXR;
 					Sint32 mouseYR;
