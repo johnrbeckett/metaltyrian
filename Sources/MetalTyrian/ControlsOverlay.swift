@@ -74,6 +74,8 @@ final class ControlsOverlay {
             [.key(name(MT_ACT_AUTOFIRE_MAIN)), .label("Autofire main: " + (mainOn ? "on" : "off"), highlight: mainOn),
              .key(name(MT_ACT_AUTOFIRE_SIDEKICKS)), .label("Autofire sidekicks: " + (sideOn ? "on" : "off"), highlight: sideOn)],
         ]
+        // How the special weapon fires, which autofire doesn't change.
+        rows.append([.key(name(MT_ACT_FIRE)), .label("tap: special weapon (its lamp, top left, green = ready)", highlight: false)])
         // A new game's first level waits on this panel.
         if start {
             rows.append([.label("Press fire to start", highlight: true)])

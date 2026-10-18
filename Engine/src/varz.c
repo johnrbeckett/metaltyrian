@@ -772,7 +772,15 @@ void JE_doSpecialShot(JE_byte playerNum, uint *armor, uint *shield)
 		{
 			fireButtonHeld = false;
 		}
-		if (!button[1-1] && !(superArcadeMode != SA_NONE && (button[2-1] || button[3-1])))
+#ifdef METALTYRIAN
+		/* The special goes off on a fresh press of Fire. With main-gun
+		 * autofire the guns' Fire is always held, so the player's own press
+		 * counts here (otherwise the special fired once and never again). */
+		const bool fireDown = mt_fire_manual;
+#else
+		const bool fireDown = button[1-1];
+#endif
+		if (!fireDown && !(superArcadeMode != SA_NONE && (button[2-1] || button[3-1])))
 		{
 			fireButtonHeld = false;
 		}

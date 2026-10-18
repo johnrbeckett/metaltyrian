@@ -81,6 +81,7 @@ void JE_mainKeyboardInput(void);
 void JE_pauseGame(void);
 #ifdef METALTYRIAN
 void mt_controls_new_game(void);
+extern bool mt_fire_manual;
 void mt_controls_start_wait(void);
 #endif
 

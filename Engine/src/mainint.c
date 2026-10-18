@@ -1619,6 +1619,7 @@ static int mt_steer_vx[2], mt_steer_vy[2];
  * 1 and 2 (or 0 and 9) toggle autofire for the main guns and the sidekicks.
  * Return and the middle mouse button also change the rear mode. */
 bool mt_lefty = false;          /* the layout last steered with (controls overlay) */
+bool mt_fire_manual = false;    /* Fire really held (not autofire): the special weapon fires on a fresh press */
 static bool mt_bomb_pressed = false;
 static bool mt_toggle_held[2];
 
@@ -4150,6 +4151,7 @@ redo:
 					accelXC = 0;
 					accelYC = 0;
 				}
+				mt_fire_manual = button[0];
 				if (mt_autofire() & 1)
 					button[0] = true;
 #endif

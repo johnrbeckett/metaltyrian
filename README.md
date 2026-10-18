@@ -53,6 +53,8 @@ pointer during play (for the menu bar). Left-handed mouse users can swap the
 buttons in the Mac's System Settings > Mouse > Primary mouse button, and the
 game follows. Autofire is also under Setup > Controls; with it on, weapons that
 build up a charge fire at their lowest charge, so turn it off to charge them.
+The special weapon (its icon top left, with a lamp that's green when it's
+ready) fires on each fresh tap of Fire, with or without autofire.
 
 ### Settings
 
