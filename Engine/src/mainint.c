@@ -17,6 +17,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #include "mainint.h"
+#ifdef METALTYRIAN
+#include "mt_title.h"
+#endif
 
 #include "backgrnd.h"
 #include "config.h"
@@ -3155,43 +3158,22 @@ void JE_operation(JE_byte slot)
 }
 
 
-#ifdef METALTYRIAN
-/* The playfield's own overlays (score, lives, special, bombs) float above it:
- * a soft drop shadow (the picture darkened, 2 pixels down and right) under
- * each, like the HUD frame's shadow on the playfield. */
-static void mt_shadow_text(SDL_Surface *screen, int x, int y, const char *s)
-{
-	for (int i = 0; s[i] != '\0'; ++i)
-	{
-		const int sprite_id = font_ascii[(unsigned char)s[i]];
-		if (s[i] == ' ')
-			x += 6;
-		else if (s[i] != '~' && sprite_id != -1 && sprite_exists(TINY_FONT, sprite_id))
-		{
-			blit_sprite_dark(screen, x + 2, y + 2, TINY_FONT, sprite_id, false);
-			x += sprite(TINY_FONT, sprite_id)->width + 1;
-		}
-	}
-}
-#define MT_SHADOW_TEXT(x, y, s) mt_shadow_text(VGAScreen, (x), (y), (s))
-#define MT_SHADOW2(x, y, sheet, i) blit_sprite2_darken(VGAScreen, (x) + 2, (y) + 2, (sheet), (i))
-#define MT_SHADOW2x2(x, y, sheet, i) blit_sprite2x2_darken(VGAScreen, (x) + 2, (y) + 2, (sheet), (i))
-#else
-#define MT_SHADOW_TEXT(x, y, s) ((void)0)
-#define MT_SHADOW2(x, y, sheet, i) ((void)0)
-#define MT_SHADOW2x2(x, y, sheet, i) ((void)0)
-#endif
 
 void JE_inGameDisplays(void)
 {
 	char stemp[21];
 	char tempstr[256];
 
+#ifdef METALTYRIAN
+	/* What this draws (score, lives, special, bombs) floats over the
+	 * playfield: the app casts a soft shadow under it (mt_title.c). */
+	mt_float_begin(VGAScreen);
+#endif
+
 	for (uint i = 0; i < ((twoPlayerMode && !galagaMode) ? 2 : 1); ++i)
 	{
 		snprintf(tempstr, sizeof(tempstr), "%lu", player[i].cash);
 
-		MT_SHADOW_TEXT(30 + 200 * i, 175, tempstr);
 		if (smoothies[6-1])
 			JE_textShade(VGAScreen, 30 + 200 * i, 175, tempstr, 8, 8, FULL_SHADE);
 		else
@@ -3200,10 +3182,7 @@ void JE_inGameDisplays(void)
 
 	/*Special Weapon?*/
 	if (player[0].items.special > 0)
-	{
-		MT_SHADOW2x2(25, 1, spriteSheet10, special[player[0].items.special].itemgraphic);
 		blit_sprite2x2(VGAScreen, 25, 1, spriteSheet10, special[player[0].items.special].itemgraphic);
-	}
 
 	/*Lives Left*/
 	if (onePlayerAction || twoPlayerMode)
@@ -3217,18 +3196,15 @@ void JE_inGameDisplays(void)
 
 			if (extra_lives >= 5)
 			{
-				MT_SHADOW2(tempW, y, spriteSheet9, 285);
 				blit_sprite2(VGAScreen, tempW, y, spriteSheet9, 285);
 				tempW = (temp == 0) ? 45 : 250;
 				sprintf(tempstr, "%d", extra_lives);
-				MT_SHADOW_TEXT(tempW, y + 3, tempstr);
 				JE_textShade(VGAScreen, tempW, y + 3, tempstr, 15, 1, FULL_SHADE);
 			}
 			else if (extra_lives >= 1)
 			{
 				for (uint i = 0; i < extra_lives; ++i)
 				{
-					MT_SHADOW2(tempW, y, spriteSheet9, 285);
 					blit_sprite2(VGAScreen, tempW, y, spriteSheet9, 285);
 
 					tempW += (temp == 0) ? 12 : -12;
@@ -3242,7 +3218,6 @@ void JE_inGameDisplays(void)
 			}
 
 			tempW = (temp == 0) ? 28 : (285 - JE_textWidth(stemp, TINY_FONT));
-			MT_SHADOW_TEXT(tempW, y - 7, stemp);
 			JE_textShade(VGAScreen, tempW, y - 7, stemp, 2, 6, FULL_SHADE);
 		}
 	}
@@ -3254,7 +3229,6 @@ void JE_inGameDisplays(void)
 
 		for (uint j = player[i].superbombs; j > 0; --j)
 		{
-			MT_SHADOW2(x, 160, spriteSheet9, 304);
 			blit_sprite2(VGAScreen, x, 160, spriteSheet9, 304);
 			x += (i == 0) ? 12 : -12;
 		}
@@ -3264,6 +3238,10 @@ void JE_inGameDisplays(void)
 	{
 		JE_outText(VGAScreen, 90, 170, "Cheaters always prosper.", 3, 4);
 	}
+
+#ifdef METALTYRIAN
+	mt_float_end(VGAScreen);
+#endif
 }
 
 void JE_mainKeyboardInput(void)

@@ -71,6 +71,7 @@ fragment float4 display_frag(VOut in [[stage_in]],
                              texture2d<float> titleLogo0 [[texture(5)]],
                              texture2d<float> titleLogo1 [[texture(6)]],
                              texture2d<float> lightMap [[texture(7)]],
+                             texture2d<float> floatMask [[texture(8)]],
                              constant DisplayParams &p [[buffer(0)]]) {
     constexpr sampler lin(filter::linear, address::clamp_to_edge);
 
@@ -100,6 +101,25 @@ fragment float4 display_frag(VOut in [[stage_in]],
         t = title_logo(t, titleLogo0, p.logo0, p.aspects.y, in.uv, p.outSize, ms);
         t = title_logo(t, titleLogo1, p.logo1, p.aspects.z, in.uv, p.outSize, ms);
         c = t * p.titleFade;
+    }
+
+    if (p.hole.z > 0.0 && inHole > 0.5) {
+        // The playfield's own overlays (score, lives, special, bombs) float:
+        // a soft shadow under each, 2 game pixels down and right, on the
+        // playfield only (not on the overlays themselves), under the crisp text.
+        constexpr sampler mpt(filter::nearest, address::clamp_to_edge);
+        float2 t = 1.0 / p.texSize;
+        float2 sp = in.uv - 2.0 * t;
+        float acc = 0.0, wsum = 0.0;
+        for (int j = -2; j <= 2; j++) {
+            for (int i = -2; i <= 2; i++) {
+                float w = exp(-float(i * i + j * j) / 3.0);
+                acc += floatMask.sample(lin, sp + float2(i, j) * t * 0.8).r * w;
+                wsum += w;
+            }
+        }
+        float self = floatMask.sample(mpt, in.uv).r;
+        c *= 1.0 - 0.65 * (acc / wsum) * (1.0 - self);
     }
 
     if (p.textOn > 0.5) {

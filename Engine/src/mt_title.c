@@ -20,6 +20,10 @@
 #define W 320
 #define H 200
 
+/* The playfield overlays, in screen pixels (game_screen shows from column 24). */
+static Uint8 float_before[184 * 264];
+static Uint8 float_mask[W * H];
+
 static const unsigned logo_sprite[2] = { 146, 151 };   /* PLANET_SHAPES */
 
 static struct
@@ -193,6 +197,8 @@ void mt_picture_loaded(SDL_Surface *surface, int number)
 		pics[number].brightness += (Uint64)pics[number].hist[i] * (colors[i].r + colors[i].g + colors[i].b);
 	pics[number].loaded = true;
 	pics[number].stamp = ++load_count;
+	if (number == 3 || number == 6)
+		memset(float_mask, 0, sizeof(float_mask));
 }
 
 void mt_picture_sprite(int number, unsigned table, unsigned index, int x, int y)
@@ -244,6 +250,21 @@ static bool shows(int n, const Uint8 *px, int pitch)
 	return total > 0 && same * 10 >= total * 3 && detail > 0 && detail_same * 10 >= detail * 3;
 }
 
+
+void mt_float_begin(SDL_Surface *game)
+{
+	for (int y = 0; y < 184; y++)
+		memcpy(float_before + y * 264, (Uint8 *)game->pixels + y * game->pitch + 24, 264);
+}
+
+void mt_float_end(SDL_Surface *game)
+{
+	memset(float_mask, 0, sizeof(float_mask));
+	for (int y = 0; y < 184; y++)
+		for (int x = 0; x < 264; x++)
+			float_mask[y * W + x] = ((Uint8 *)game->pixels)[y * game->pitch + 24 + x] != float_before[y * 264 + x];
+}
+
 static bool picture_frame(SDL_Surface *frame)
 {
 	const Uint8 *px = frame->pixels;
@@ -282,7 +303,13 @@ static bool picture_frame(SDL_Surface *frame)
 		{
 			const Uint8 f = px[y * pitch + x], o = pic[y * W + x];
 			Uint8 v = 0;
-			if (!in_hole(&hole, x, y) && f != o)
+			if (in_hole(&hole, x, y))
+			{
+				/* In the playfield: 1 marks the overlays that float (shadow only). */
+				foreground[y * W + x] = float_mask[y * W + x];
+				continue;
+			}
+			if (f != o)
 			{
 				v = 1;
 				const Uint32 fs = rgb_sum(rgb_palette[f]), os = rgb_sum(rgb_palette[o]);

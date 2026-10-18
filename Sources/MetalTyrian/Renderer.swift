@@ -85,6 +85,9 @@ final class Renderer: NSObject, MTKViewDelegate {
     private let glowW: MTLTexture
     private let ambTex: MTLTexture
     private let emitTex: MTLTexture
+    // The playfield's floating overlays (score, lives...), for their soft shadow.
+    private let floatTex: MTLTexture
+    private var floatMask = [UInt8](repeating: 0, count: 320 * 200)
     private let lightTex: MTLTexture
     private var lightFrame: UInt64 = 0
     private var ambFrame: UInt64 = 0
@@ -175,6 +178,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         glowW = try tex(.rgba16Float, target: true)
         ambTex = try tex(.rgba16Float, target: true)
         emitTex = try tex(.rgba16Float, target: true)
+        floatTex = try tex(.r8Unorm, target: false)
         lightTex = try tex(.rgba16Float, target: true)
         let od = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: CrispText.width,
                                                           height: CrispText.height, mipmapped: false)
@@ -280,6 +284,23 @@ final class Renderer: NSObject, MTKViewDelegate {
                 if !textOn {
                     overlay.withUnsafeMutableBytes { _ = memset($0.baseAddress!, 0, $0.count) }
                 }
+                // Inside the playfield the game's frame shows as it is; marked pixels
+                // there are the overlays that float, for the soft shadow.
+                let hx = Int(titleFrame.hole.0), hy = Int(titleFrame.hole.1)
+                let hw = Int(titleFrame.hole.2), hh = Int(titleFrame.hole.3)
+                if hw > 0 && hh > 0 {
+                    for y in max(0, hy)..<min(200, hy + hh) {
+                        for x in max(0, hx)..<min(320, hx + hw) {
+                            let k = y * 320 + x
+                            floatMask[k] = titleForeground[k] != 0 ? 255 : 0
+                            titleForeground[k] = 0
+                        }
+                    }
+                    floatMask.withUnsafeBytes {
+                        floatTex.replace(region: MTLRegionMake2D(0, 0, 320, 200), mipmapLevel: 0,
+                                         withBytes: $0.baseAddress!, bytesPerRow: 320)
+                    }
+                }
                 if titleFrame.smooth != 0 { drawSmoothForeground() } else { drawTitleForeground() }
                 textOn = true
                 // The picture fades with the palette (worked out by the game); the art fades with it.
@@ -384,6 +405,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         enc.setFragmentTexture(glowW, index: 2)
         enc.setFragmentTexture(overlayTex, index: 3)
         enc.setFragmentTexture(lightTex, index: 7)
+        enc.setFragmentTexture(floatTex, index: 8)
         if let art = artTexture, titleFrame.picture != 0 {
             enc.setFragmentTexture(art, index: 4)
             enc.setFragmentTexture(srcTex, index: 5)

@@ -23,6 +23,10 @@ void mt_picture_loaded(SDL_Surface *surface, int number);
 /* A sprite drawn as part of a picture at x, y counts as picture from now on
  * (the in-game message strip on the HUD). */
 void mt_picture_sprite(int number, unsigned table, unsigned index, int x, int y);
+/* Around the drawing of the playfield's own overlays (score, lives...) into
+ * game_screen: what changes floats, and the app shades a soft shadow under it. */
+void mt_float_begin(SDL_Surface *game);
+void mt_float_end(SDL_Surface *game);
 /* With each shown frame, after mt_text_present, before mt_present_frame. */
 void mt_title_present(SDL_Surface *frame);
 
