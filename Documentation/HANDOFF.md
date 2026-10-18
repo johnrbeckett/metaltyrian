@@ -3,15 +3,16 @@
 Running notes kept between working sessions: state, decisions and history.
 For how the code fits together, see `ARCHITECTURE.md`.
 
-## Status, 2026-10-18 (end of session)
+## Status, 2026-10-18: version 1.0.0 released
 
 | Item | State |
 |---|---|
 | Folder | `~/Developer/MetalTyrian/` |
 | Git | `main` on GitHub, `johnrbeckett/metaltyrian` (public from 1.0.0). Pushes use a token sent as an `http.extraHeader` for that push only, so no credential is stored in `.git/config`. Commit author John Beckett. |
+| Release | **1.0.0 released 2026-10-18**: tag `v1.0.0` (1d0872c), GitHub release "MetalTyrian 1.0.0" with the signed, notarised, stapled `MetalTyrian-1.0.0.zip` (Apple Silicon, 18.8 MB) attached; the repo went public the same day. John: "plays nice!" |
 | Version | `VERSION` 1.0.0 (John, 2026-10-18); the title screen shows "Metal 1.0.0" and the About box the same, with the build number (commit count). Releases: see Releases below. |
-| Build | `scripts/build-app.sh` builds to `~/Library/Caches/MetalTyrian-build/MetalTyrian.app`; Swift can only be compiled on the Mac. Engine and shim are checked headless on Linux with `Tests/linux/run.sh` (see Testing). |
-| Seen working on the Mac by John | Everything up to d0dca16 (2026-10-18): game, menus, mouse, gamepads, crisp text, HD title and pictures, new HUD with Orbitron labels, stereo audio, dynamic light (Light: Medium too), title version "Metal 0.1.0", menu titles at 90%, the shaded equipped-item bar, the "!" fix. |
+| Build | Apple Silicon only (John: no Intel build). `scripts/build-app.sh` builds to `~/Library/Caches/MetalTyrian-build/MetalTyrian.app`; Swift can only be compiled on the Mac. Engine and shim are checked headless on Linux with `Tests/linux/run.sh` (see Testing). |
+| Seen working on the Mac by John | The 1.0.0 release build (2026-10-18): "plays nice!". Not yet reported on one by one: the controls overlay's look, the Keys screen, autofire, superbomb key, the pointer fix. |
 | Research | `Documentation/RESEARCH.md`, `Research/` (gitignored): pictures, sprite sheets, crisp checks, screen checks, light preview. |
 | Art inputs | `Art/Incoming/` (gitignored): title art originals, ChatGPT-regenerated screens (`screens/`), Magnific tests. |
 
@@ -25,20 +26,22 @@ For how the code fits together, see `ARCHITECTURE.md`.
 - Controls (2026-10-18, John: "keyboard and touchpad collapse into one", "hard wire left and right handed controls", "sidekicks fire together"): defaults in `mainint.c` under METALTYRIAN, both layouts always live; changeable in Setup > Controls > Keys (`mt_keys.c`; John: "these should be the defaults, changeable by the user"), each action two keys (`mt_key_binding`, saved as `MT_SETTING_KEYS`+n, 0 = default; a clash swaps keys; Esc, P and Command reserved). Right: arrows; Space fire, Z sidekicks (both), X rear mode, C superbomb. Left: W A S D; Space, /, ., ,. Return still changes rear mode; mouse fixed (left fire, right sidekicks, middle rear mode); gamepad Y superbomb. Superbombs only on their own key (the sidekick buttons no longer spend them). Autofire (`MT_SETTING_AUTOFIRE`, bit 0 main, bit 1 sidekicks; Setup > Controls, toggled in play with 1/2 or 0/9, message in the HUD strip). Options lost Keyboard and Mouse. Controls overlay: the game sets it per frame (`mt_controls_overlay`, carried in `mt_title_frame.controls`), about six seconds at level start (fades early once you fire) and while paused; `ControlsOverlay.swift` draws keycaps in Orbitron, shown by `display_frag`. Scroll-wheel rear mode was tried and reverted (John: make it a key). Speeds: Keyboard 5, Gamepad 5, Mouse Direct at 7, Momentum Off.
 - Single player only (John, 2026-10-18): 2 Player Arcade is off the start menu; the engine's two-player code is left in place, unreachable.
 
-## Next (offered, waiting for John's choice)
+## Next, after 1.0.0 (offered, waiting for John's choice)
 
 1. Sprite art upscaling (ship selector art: done as is, John 2026-10-18). Magnific tests: the big ship-screen silver ship (OPTION_SHAPES 32, 93x110; earlier mislabelled the Talon, which is 31, the gold one) came out faithful with creative mode, VideoGameAssets, creativity 3, resemblance 6, then mirrored and cut to the original outline. Offered: the other four big ships (27, 31 the Talon, 44, 45), about 720 credits (balance about 236,700). In-game sprites need a replacement pipeline (talked about: start with pickups); John wants exact shapes, no invented parts.
 2. Small leaks: text shaded over by a dark menu box stays as old pixel font (the faint "Player" under the in-game menu); two coincidental hits from the leak test (a jukebox 'e' on the title, P/S on the Next Level map); level-start glow text and credits untested.
 3. Crisp text: the large font's descenders overhang title boxes a little; the 90% shrink is the current answer (per-letter descender squeezing looked worse and was reverted).
 4. Lighting: tune strength or reach once John has played more; per-sprite normal maps only if the light spill proves itself.
-5. Phase 4 Mac polish from `PLAN-V1.md`: window sizes, full-screen behaviour, ProMotion pacing, signing for release. (About box credits and bundled licences done for 1.0.0.)
+5. Phase 4 Mac polish from `PLAN-V1.md`: window sizes, full-screen behaviour, ProMotion pacing. (Signing, notarisation, About box credits and bundled licences done for 1.0.0.)
+7. Controls overlay and Keys screen: first versions; refine their look from John's screenshots (overlay size, position, keycap style; the Keys screen is crowded at 12 rows).
+8. Optional: a dedicated superbomb button for the mouse; gamepad remapping beyond the game's Joystick screen.
 6. (Dropped: two-player HUD check, now single player only.)
 
 ## Releases
 
 1. Update the README's "What's new" and Credits (the About box's `Credits.rtf` is made from the README's Credits and Licence sections by `scripts/make-credits.sh` at build time) and this handoff. New third-party code, fonts or art: add its licence to `App/Licenses/` (bundled under Contents/Resources/Licenses) and a Credits line.
 2. `scripts/tag-version.sh X.Y.Z`: writes `VERSION`, commits "MetalTyrian X.Y.Z", tags `vX.Y.Z`.
-3. On the Mac: `scripts/release.sh` (`--check` for a dry run). Night Watch's pattern: Developer ID `John Beckett (PDF9QMZ5G4)`, hardened runtime, notarytool profile `orbitangel`, staple, zip from the stapled app, `spctl` check on the extracted zip. Output `~/Developer/Outputs/MetalTyrian-X.Y.Z.zip`; scratch and logs in `~/Developer/Trash/metaltyrian-release-*`.
+3. On the Mac: `scripts/release.sh` (needs the scripts executable: editing them from the Linux VM can drop the bit, so check `git ls-files -s scripts` shows 100755) (`--check` for a dry run). Night Watch's pattern: Developer ID `John Beckett (PDF9QMZ5G4)`, hardened runtime, notarytool profile `orbitangel`, staple, zip from the stapled app, `spctl` check on the extracted zip. Output `~/Developer/Outputs/MetalTyrian-X.Y.Z.zip`; scratch and logs in `~/Developer/Trash/metaltyrian-release-*`.
 4. Push with `--follow-tags` (credentials as in Status) and `gh release create vX.Y.Z <zip>`.
 
 Licence sweep for 1.0.0: GPL 2+ (MetalTyrian, OpenTyrian, OpenTyrian2000, hqNx by Maxim Stepin), LGPL 2.1+ (Nuked OPL3), BSD (Mersenne Twister, `mtrand.c`: binary distributions must carry the notice), OFL 1.1 (Orbitron), Tyrian freeware terms (game data). DOSBox's `opl.c` is compiled out. The CC-BY "Remastered Tyrian Graphics" pack (`Art/Remastered`) is not used in the app. Scale3x is our own code after Andrea Mazzoleni's method (credited).
@@ -104,9 +107,17 @@ John's direction, 2026-10-17: balance for "fun" over "faithful". Defaults so far
 | a27991d and before | Icon from the silver ship, arcade ship picker, handoff | Yes |
 | 27e666a | Soft Metal drop shadows under the playfield's score, lives and special | Yes |
 | 8ca83ab | Ship picker: armour bar and name under the ship | Yes |
-| 05740c2, 7c0dfa8 | Edge smoothing (Graphics > Edges), default Smooth | Not yet |
+| 05740c2, 7c0dfa8 | Edge smoothing (Graphics > Edges), default Smooth | Yes |
+| af67f33 | Mac pointer kept hidden over the game's own (see-through cursor, not NSCursor.hide) | Yes |
+| 168007e, 91b0552 | 1.0.0 docs: About box credits from the README, bundled licences, README/ARCHITECTURE/CHANGELOG/CONTRIBUTING | Yes |
+| 2f9ab54 | `scripts/release.sh` (signed, notarised releases, Night Watch's pattern); `scripts/tag-version.sh` | Yes |
+| 003885a, 7cff854 | Scroll-wheel rear mode, then reverted (John: make it a key) | Yes |
+| 62d053f | Controls for either hand, superbomb key, autofire, controls overlay, single player | Yes |
+| f61a1b9 | Setup > Controls > Keys: every key changeable | Yes |
+| 6c89adb, 960a23e, 1d0872c | Apple Silicon only; game-code warnings quieted; scripts executable again | Yes |
+| v1.0.0 | Released on GitHub with the notarised zip; repo public | Yes |
 
-Everything up to 9695afd was pushed to `origin/main` on 2026-10-18.
+Everything up to 1d0872c (tag v1.0.0) was pushed to `origin/main` on 2026-10-18.
 
 ## Notes
 
