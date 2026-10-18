@@ -152,6 +152,14 @@ fragment float4 display_frag(VOut in [[stage_in]],
         float3 g = (glowN.sample(lin, in.uv).rgb * 0.55 + glowW.sample(lin, in.uv).rgb * 0.35) * (1.0 - art);
         linc = linc * boost + g * p.glow;
     }
+    // The playfield sits inset in the HUD: a soft shadow along its edges
+    // under the HUD frame (right and bottom), as if the frame stood proud.
+    if (p.hole.z > 0.0 && inHole > 0.5) {
+        float dx = p.hole.x + p.hole.z - gp.x;
+        float dy = p.hole.y + p.hole.w - gp.y;
+        float sh = max(1.0 - smoothstep(0.0, 10.0, dx), 1.0 - smoothstep(0.0, 10.0, dy));
+        linc *= 1.0 - 0.7 * pow(sh, 1.6);
+    }
     return float4(linc, 1.0);
 }
 
