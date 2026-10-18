@@ -19,13 +19,16 @@
 #include "game_menu.h"
 
 #ifdef METALTYRIAN
-/* The joystick page's first four rows (joystick number, analog, sensitivity,
- * threshold) do nothing in MetalTyrian: there is one gamepad, it is always
- * analog, and Setup > Controls sets its speed. They are hidden, and the
- * button assignments move up. Selections keep the game's numbering. */
-#define MT_JOY_HIDDEN 4
+/* The joystick page's Analog, Sensitivity and Threshold rows (selections 3-5)
+ * do nothing in MetalTyrian: gamepads are always analog and Setup > Controls
+ * sets their speed. They are hidden and the rows below move up; the
+ * Joystick row stays, to pick Gamepad 1 or 2. Selections keep the game's
+ * numbering; MT_JOY_SCREEN maps a selection to its on-screen slot. */
+#define MT_JOY_HIDDEN(sel) ((sel) >= 3 && (sel) <= 5)
+#define MT_JOY_SCREEN(sel) ((sel) <= 2 ? (sel) : (sel) - 3)
 #else
-#define MT_JOY_HIDDEN 0
+#define MT_JOY_HIDDEN(sel) false
+#define MT_JOY_SCREEN(sel) (sel)
 #endif
 
 #include "backgrnd.h"
@@ -446,13 +449,16 @@ void JE_itemScreen(void)
 				menuInt[6][10]
 			};
 
-			if (curSel[curMenu] < 2 + MT_JOY_HIDDEN)
-				curSel[curMenu] = 2 + MT_JOY_HIDDEN;
+			if (MT_JOY_HIDDEN(curSel[curMenu]))
+				curSel[curMenu] = 6;
 
-			for (uint i = MT_JOY_HIDDEN; i < COUNTOF(menu_item); i++)
+			for (uint i = 0; i < COUNTOF(menu_item); i++)
 			{
+				if (MT_JOY_HIDDEN((int)i + 2))
+					continue;
+
 				int temp = (i == curSel[curMenu] - 2u) ? 15 : 28;
-				const int jy = 38 + (int)(i - MT_JOY_HIDDEN) * 8;
+				const int jy = 38 + (MT_JOY_SCREEN((int)i + 2) - 2) * 8;
 
 				JE_textShade(VGAScreen, 166, jy, menu_item[i], temp / 16, temp % 16 - 8, DARKEN);
 
@@ -1165,8 +1171,10 @@ void JE_itemScreen(void)
 
 				int selection = (mouseY - 38) / mouseSelectionY[curMenu]+2;
 
-				if (curMenu == MENU_JOYSTICK_CONFIG)
-					selection += MT_JOY_HIDDEN;
+#ifdef METALTYRIAN
+				if (curMenu == MENU_JOYSTICK_CONFIG && selection > 2)
+					selection += 3;  // past the hidden rows
+#endif
 
 				if (curMenu == MENU_2_PLAYER_ARCADE)
 				{
@@ -1389,8 +1397,8 @@ void JE_itemScreen(void)
 					curSel[curMenu] = 3;
 				}
 
-				if (curMenu == MENU_JOYSTICK_CONFIG && curSel[curMenu] < 2 + MT_JOY_HIDDEN)
-					curSel[curMenu] = menuChoices[curMenu];  // skip the hidden rows
+				if (curMenu == MENU_JOYSTICK_CONFIG && MT_JOY_HIDDEN(curSel[curMenu]))
+					curSel[curMenu] = 2;  // skip the hidden rows
 
 				break;
 
@@ -1423,8 +1431,8 @@ void JE_itemScreen(void)
 					curSel[curMenu] = 6;
 				}
 
-				if (curMenu == MENU_JOYSTICK_CONFIG && curSel[curMenu] < 2 + MT_JOY_HIDDEN)
-					curSel[curMenu] = 2 + MT_JOY_HIDDEN;  // skip the hidden rows
+				if (curMenu == MENU_JOYSTICK_CONFIG && MT_JOY_HIDDEN(curSel[curMenu]))
+					curSel[curMenu] = 6;  // skip the hidden rows
 
 				break;
 
@@ -3061,7 +3069,7 @@ void JE_menuFunction(JE_byte select)
 			// int temp = 254;
 			// JE_textShade(VGAScreen, 236, 38 + i * 8, value, temp / 16, temp % 16 - 8, DARKEN);
 
-			JE_rectangle(VGAScreen, 235, 21 + (select - MT_JOY_HIDDEN) * 8, 310, 30 + (select - MT_JOY_HIDDEN) * 8, 248);
+			JE_rectangle(VGAScreen, 235, 21 + MT_JOY_SCREEN(select) * 8, 310, 30 + MT_JOY_SCREEN(select) * 8, 248);
 
 			Joystick_assignment temp;
 			if (detect_joystick_assignment(joystick_config, &temp))

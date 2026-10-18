@@ -2,42 +2,55 @@ import AppKit
 import GameController
 import SDLShim
 
-/// Reads every connected controller (Xbox, PlayStation, Switch and other
-/// MFi pads) and hands the game one merged gamepad. Polled once per display
-/// refresh, which is several times per game frame.
+/// Gives the game two gamepads, one per player. The first controller to
+/// connect (Xbox, PlayStation, Switch and other MFi pads) takes slot 1, the
+/// next slot 2; a slot frees up when its controller disconnects. Controllers
+/// that have player lights show their number. Polled every display refresh
+/// and on every change, so input reaches the game at once.
 enum Gamepads {
-    private static var lastButtons: UInt32 = .max
-    private static var lastAxes: [Int16] = []
-    private static var lastHat: UInt8 = .max
+    private static var slots: [GCController?] = Array(repeating: nil, count: Int(MT_PADS))
+    private static var last: [(buttons: UInt32, hat: UInt8, axes: [Int16])?] = Array(repeating: nil, count: Int(MT_PADS))
 
     static func start() {
-        // Controllers that connect later show up in GCController.controllers()
-        // without further work; this only makes macOS look for them promptly.
+        // Controllers that connect later still arrive by notification; this
+        // only makes macOS look for wireless ones promptly.
         GCController.startWirelessControllerDiscovery(completionHandler: nil)
 
-        // Lower latency: pass every stick or button change to the game at once,
-        // rather than waiting for the next display refresh.
-        GCController.controllers().forEach(watch)
+        GCController.controllers().forEach(connect)
         NotificationCenter.default.addObserver(forName: .GCControllerDidConnect, object: nil, queue: .main) { note in
-            if let c = note.object as? GCController { watch(c) }
+            if let c = note.object as? GCController { connect(c) }
+        }
+        NotificationCenter.default.addObserver(forName: .GCControllerDidDisconnect, object: nil, queue: .main) { note in
+            if let c = note.object as? GCController { disconnect(c) }
         }
     }
 
-    private static func watch(_ controller: GCController) {
+    private static func connect(_ controller: GCController) {
+        guard controller.extendedGamepad != nil,
+              !slots.contains(where: { $0 === controller }),
+              let free = slots.firstIndex(where: { $0 == nil }) else { return }
+        slots[free] = controller
+        controller.playerIndex = free == 0 ? .index1 : .index2
         controller.handlerQueue = .main
         controller.extendedGamepad?.valueChangedHandler = { _, _ in
             poll(active: NSApp.isActive && NSApp.keyWindow != nil)
         }
     }
 
-    static func poll(active: Bool) {
-        var axes: [Int16] = [0, 0, 0, 0]
-        var buttons: UInt32 = 0
-        var hat: UInt8 = 0
+    private static func disconnect(_ controller: GCController) {
+        guard let i = slots.firstIndex(where: { $0 === controller }) else { return }
+        slots[i] = nil
+        // Any controller waiting without a slot can take it.
+        GCController.controllers().forEach(connect)
+    }
 
-        if active {
-            for controller in GCController.controllers() {
-                guard let pad = controller.extendedGamepad else { continue }
+    static func poll(active: Bool) {
+        for i in 0..<slots.count {
+            var axes: [Int16] = [0, 0, 0, 0]
+            var buttons: UInt32 = 0
+            var hat: UInt8 = 0
+
+            if active, let pad = slots[i]?.extendedGamepad {
                 func press(_ bit: Int32, _ b: GCControllerButtonInput?) {
                     if b?.isPressed == true { buttons |= 1 << UInt32(bit) }
                 }
@@ -62,20 +75,14 @@ enum Gamepads {
                 // GameController's y axis points up; the game's points down.
                 let sticks: [Float] = [pad.leftThumbstick.xAxis.value, -pad.leftThumbstick.yAxis.value,
                                        pad.rightThumbstick.xAxis.value, -pad.rightThumbstick.yAxis.value]
-                for i in 0..<4 {
-                    let v = Int16(max(-32767, min(32767, sticks[i] * 32767)))
-                    if abs(Int(v)) > abs(Int(axes[i])) { axes[i] = v }   // strongest pad wins
+                for a in 0..<4 {
+                    axes[a] = Int16(max(-32767, min(32767, sticks[a] * 32767)))
                 }
             }
-            // Opposite directions from two pads cancel out rather than flicker.
-            if hat & 0x05 == 0x05 { hat &= ~0x05 }
-            if hat & 0x0A == 0x0A { hat &= ~0x0A }
-        }
 
-        guard buttons != lastButtons || hat != lastHat || axes != lastAxes else { return }
-        lastButtons = buttons
-        lastHat = hat
-        lastAxes = axes
-        axes.withUnsafeBufferPointer { mt_set_gamepad($0.baseAddress, buttons, hat) }
+            if let l = last[i], l.buttons == buttons, l.hat == hat, l.axes == axes { continue }
+            last[i] = (buttons, hat, axes)
+            axes.withUnsafeBufferPointer { mt_set_gamepad(Int32(i), $0.baseAddress, buttons, hat) }
+        }
     }
 }

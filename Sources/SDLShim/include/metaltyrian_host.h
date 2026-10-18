@@ -45,13 +45,15 @@ bool mt_cursor_wanted(void);
 bool mt_relative_mouse(void);
 void mt_push_quit(void);
 
-/* Gamepad. The game sees one gamepad, "MetalTyrian Gamepad", with this
+/* Gamepads. The game sees two gamepads, "MetalTyrian Gamepad 1" and "2" (one
+ * per player; pad is 0 or 1), each with this
  * layout. Axes run -32768..32767, down and right positive. buttons is a bit
  * mask (bit n = button n). hat is SDL_HAT_* bits: up 1, right 2, down 4,
  * left 8. The game's default assignments use axes 0-1, the hat and buttons
  * 0-5, in this order: fire, change fire, left sidekick, right sidekick,
  * menu, pause. Fire and menu also confirm in menus; change fire and pause
  * go back. */
+#define MT_PADS 2
 #define MT_PAD_AXES 4      /* left x, left y, right x, right y */
 #define MT_PAD_BUTTONS 12
 #define MT_PAD_A 0         /* fire, confirm */
@@ -66,7 +68,7 @@ void mt_push_quit(void);
 #define MT_PAD_RT 9
 #define MT_PAD_L3 10
 #define MT_PAD_R3 11
-void mt_set_gamepad(const int16_t *axes, uint32_t buttons, uint8_t hat);
+void mt_set_gamepad(int pad, const int16_t *axes, uint32_t buttons, uint8_t hat);
 
 /* Display settings, shared by the game's Graphics menu and the Mac View menu.
  * Either side may change one; the app watches for changes, applies them and
