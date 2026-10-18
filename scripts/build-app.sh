@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build MetalTyrian.app: a universal (Apple Silicon and Intel) release build,
+# Build MetalTyrian.app: an Apple Silicon release build,
 # assembled into an app bundle with the Tyrian 2000 data inside, ad hoc signed
 # for running on this Mac. scripts/release.sh makes the signed, notarised build.
 #
@@ -15,7 +15,7 @@ BUILD="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)"
 
 echo "MetalTyrian $VERSION (build $BUILD)"
 
-ARCHS=(--arch arm64 --arch x86_64)
+ARCHS=(--arch arm64)   # Apple Silicon only (John, 2026-10-18)
 xcrun swift build -c release "${ARCHS[@]}" --package-path "$ROOT" --scratch-path "$SCRATCH/spm"
 BIN="$(xcrun swift build -c release "${ARCHS[@]}" --package-path "$ROOT" --scratch-path "$SCRATCH/spm" --show-bin-path)"
 

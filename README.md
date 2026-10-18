@@ -12,7 +12,7 @@ and [OpenTyrian2000](https://github.com/KScl/opentyrian2000).
 
 Get the signed app from [Releases](https://github.com/johnrbeckett/metaltyrian/releases),
 unzip it and drag MetalTyrian to Applications. It runs on macOS 13 Ventura or
-later, on Apple Silicon and Intel Macs. The Tyrian 2000 game data (freeware)
+later, on Macs with Apple Silicon. The Tyrian 2000 game data (freeware)
 is inside the app; there is nothing else to install.
 
 ## What's new on the Mac

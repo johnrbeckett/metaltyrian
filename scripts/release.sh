@@ -36,11 +36,11 @@ if [ -n "$TAGGED" ]; then echo "ok   HEAD is v$VERSION"
 elif [ $CHECK_ONLY = 1 ]; then echo "note HEAD is not tagged v$VERSION (fine for a dry run)"
 else fail "HEAD is not tagged v$VERSION: run scripts/tag-version.sh $VERSION"; fi
 
-echo "== 1. Release build (universal), signed with the Developer ID"
+echo "== 1. Release build (Apple Silicon), signed with the Developer ID"
 MT_SIGN_IDENTITY="$IDENTITY" scripts/build-app.sh > "$SCRATCH/build.log" 2>&1 \
   || { grep -m5 "error:" "$SCRATCH/build.log"; fail "build failed (log: $SCRATCH/build.log)"; }
 ARCHS="$(lipo -archs "$BUILT/Contents/MacOS/MetalTyrian")"
-case "$ARCHS" in *x86_64*arm64*|*arm64*x86_64*) echo "ok   archs = $ARCHS" ;; *) fail "archs are '$ARCHS', need both x86_64 and arm64" ;; esac
+[ "$ARCHS" = "arm64" ] && echo "ok   archs = $ARCHS" || fail "archs are '$ARCHS', expected arm64"
 
 # ditto into a fresh place; the old copy moves to Trash first.
 [ -d "$APP" ] && mv "$APP" "$DEV/Trash/outputs-metaltyrian-$STAMP.app"

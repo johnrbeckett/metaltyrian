@@ -4,7 +4,7 @@
 
 First release.
 
-- The whole of Tyrian 2000 for one player (five episodes, full game, arcade, timed battle) running natively on macOS 13 or later, Apple Silicon and Intel. Two-player modes are left out in favour of single player.
+- The whole of Tyrian 2000 for one player (five episodes, full game, arcade, timed battle) running natively on macOS 13 or later on Apple Silicon. Two-player modes are left out in favour of single player.
 - Metal display: Sharp or Retro (VGA scanlines) look, HDR glow, aspect and border choices, full screen.
 - High-resolution title screen and repainted menu, shop and HUD pictures.
 - Crisp Orbitron text throughout, or the original font.
