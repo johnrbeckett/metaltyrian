@@ -45,7 +45,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                                    (MT_SETTING_MOMENTUM, "momentum"),
                                                    (MT_SETTING_MOUSE_MODE, "mouseMode"),
                                                    (MT_SETTING_STEREO, "stereo"),
-                                                   (MT_SETTING_LIGHT, "light")]
+                                                   (MT_SETTING_LIGHT, "light"),
+                                                   (MT_SETTING_EDGES, "edges")]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let dataDir = GameData.locate(), GameData.isPresent(in: dataDir) else {
@@ -71,7 +72,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                                      "mouseMode": 1,    // Direct
                                      "text": 0,         // Crisp
                                      "stereo": 0,       // Stereo
-                                     "light": 2])       // Medium
+                                     "light": 2,        // Medium
+                                     "edges": 1])       // Soft
         mt_set_setting(MT_SETTING_TEXT, Int32(defaults.integer(forKey: "text")))
         for (setting, key) in Self.speedSettings {
             mt_set_setting(setting, Int32(defaults.integer(forKey: key)))

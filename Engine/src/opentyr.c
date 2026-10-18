@@ -149,6 +149,16 @@ static const char *const mt_light_names[] = { "Off", "Subtle", "Medium", "Strong
 
 static size_t mtLightCount(void) { return COUNTOF(mt_light_names); }
 
+static const char *const mt_edge_names[] = { "Off", "Soft", "Smooth" };
+
+static size_t mtEdgeCount(void) { return COUNTOF(mt_edge_names); }
+
+static const char *mtEdgeItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_edge_names[i];
+}
+
 static const char *mtLightItem(size_t i, char *buffer, size_t bufferSize)
 {
 	(void)buffer, (void)bufferSize;
@@ -249,6 +259,7 @@ void setupMenu(void)
 		MENU_ITEM_MOUSE_MODE,
 		MENU_ITEM_STEREO,
 		MENU_ITEM_LIGHT,
+		MENU_ITEM_EDGES,
 #endif
 	} MenuItemId;
 
@@ -276,7 +287,7 @@ void setupMenu(void)
 	{
 		const char *header;
 #ifdef METALTYRIAN
-		const MenuItem items[9];
+		const MenuItem items[10];
 #else
 		const MenuItem items[6];
 #endif
@@ -308,6 +319,7 @@ void setupMenu(void)
 				{ MENU_ITEM_BORDERS, "Borders:", "Black bars, or the picture's colours spilling out.", mtBorderCount, mtBorderItem },
 				{ MENU_ITEM_TEXT, "Text:", "Crisp modern lettering, or the original pixel font.", mtTextCount, mtTextItem },
 				{ MENU_ITEM_LIGHT, "Light:", "Shots and explosions light up what is near them.", mtLightCount, mtLightItem },
+				{ MENU_ITEM_EDGES, "Edges:", "Smooth outlines on ships, shots and scenery.", mtEdgeCount, mtEdgeItem },
 #else
 				{ MENU_ITEM_DISPLAY, "Display:", "Change the display mode.", getDisplayPickerItemsCount, getDisplayPickerItem },
 				{ MENU_ITEM_SCALER, "Scaler:", "Change the pixel art scaling algorithm.", getScalerPickerItemsCount, getScalerPickerItem },
@@ -394,11 +406,11 @@ void setupMenu(void)
 		size_t *const selectedMenuItemIndex = &selectedMenuItemIndexes[currentMenu];
 		const MenuItem *const menuItems = menu->items;
 #ifdef METALTYRIAN
-		/* Eight items (Graphics) sit closer, so Done stays clear of the help line. */
+		/* Longer menus (Graphics) sit closer, so Done stays clear of the help line. */
 		{
 			size_t n = 0;
 			while (menuItems[n].id != (MenuItemId)-1) n++;
-			dyMenuItems = n > 7 ? 18 : 21;
+			dyMenuItems = n > 8 ? 16 : n > 7 ? 18 : 21;
 		}
 #endif
 
@@ -471,6 +483,10 @@ void setupMenu(void)
 
 			case MENU_ITEM_LIGHT:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_light_names[mtClamp(mt_setting(MT_SETTING_LIGHT), COUNTOF(mt_light_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
+
+			case MENU_ITEM_EDGES:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_edge_names[mtClamp(mt_setting(MT_SETTING_EDGES), COUNTOF(mt_edge_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 
 			case MENU_ITEM_STEREO:
@@ -624,6 +640,7 @@ void setupMenu(void)
 									case MENU_ITEM_MOUSE_MODE:
 									case MENU_ITEM_STEREO:
 									case MENU_ITEM_LIGHT:
+									case MENU_ITEM_EDGES:
 #endif
 									{
 										action = true;
@@ -929,6 +946,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_LIGHT), COUNTOF(mt_light_names));
 					break;
 				}
+				case MENU_ITEM_EDGES:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_EDGES), COUNTOF(mt_edge_names));
+					break;
+				}
 				case MENU_ITEM_STEREO:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -1111,6 +1136,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_LIGHT:
 					mt_set_setting(MT_SETTING_LIGHT, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_EDGES:
+					mt_set_setting(MT_SETTING_EDGES, (int)pickerSelectedIndex);
 					break;
 #else
 				case MENU_ITEM_DISPLAY:

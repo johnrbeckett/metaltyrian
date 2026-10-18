@@ -863,6 +863,33 @@ static mt_text_cursor pending_cursor, frame_cursor;
 static mt_title_frame pending_title, frame_title;
 static uint8_t pending_title_fg[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT], frame_title_fg[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
 
+static uint8_t pending_layer[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT], pending_under[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
+static uint8_t frame_layer[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT], frame_under[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
+static uint8_t copied_layer[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT], copied_under[MT_SCREEN_WIDTH * MT_SCREEN_HEIGHT];
+static int pending_edges = 0, frame_edges = 0, copied_edges = 0;
+
+void mt_set_frame_edges(const uint8_t *layer, const uint8_t *under)
+{
+	pthread_mutex_lock(&frame_lock);
+	pending_edges = layer && under;
+	if (pending_edges)
+	{
+		memcpy(pending_layer, layer, sizeof(pending_layer));
+		memcpy(pending_under, under, sizeof(pending_under));
+	}
+	pthread_mutex_unlock(&frame_lock);
+}
+
+int mt_copied_frame_edges(uint8_t *layer, uint8_t *under)
+{
+	if (copied_edges)
+	{
+		memcpy(layer, copied_layer, sizeof(copied_layer));
+		memcpy(under, copied_under, sizeof(copied_under));
+	}
+	return copied_edges;
+}
+
 void mt_set_frame_title(const mt_title_frame *title, const uint8_t *foreground)
 {
 	pthread_mutex_lock(&frame_lock);
@@ -912,6 +939,13 @@ void mt_present_frame(const void *pixels, int pitch, const uint32_t *palette)
 	if (frame_title.shown)
 		memcpy(frame_title_fg, pending_title_fg, sizeof(frame_title_fg));
 	pending_title.shown = 0;
+	frame_edges = pending_edges;
+	if (frame_edges)
+	{
+		memcpy(frame_layer, pending_layer, sizeof(frame_layer));
+		memcpy(frame_under, pending_under, sizeof(frame_under));
+	}
+	pending_edges = 0;
 	++frame_number;
 	Uint64 n = frame_number;
 	pthread_mutex_unlock(&frame_lock);
@@ -983,6 +1017,12 @@ uint64_t mt_copy_frame_with_text(uint64_t last_seen, uint8_t *pixels, uint32_t *
 			}
 			else
 				title->shown = 0;
+		}
+		copied_edges = frame_edges;
+		if (copied_edges)
+		{
+			memcpy(copied_layer, frame_layer, sizeof(copied_layer));
+			memcpy(copied_under, frame_under, sizeof(copied_under));
 		}
 	}
 	pthread_mutex_unlock(&frame_lock);

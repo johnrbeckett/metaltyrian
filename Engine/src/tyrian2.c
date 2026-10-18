@@ -101,6 +101,10 @@ void JE_starShowVGA(void)
 		}
 #endif
 
+#ifdef METALTYRIAN
+		if (starShowVGASpecialCode != 0)
+			mt_edge_cancel();   /* flipped or spotlit: the layers no longer line up */
+#endif
 		if (starShowVGASpecialCode == 1)
 		{
 			src += game_screen->pitch * 183;
@@ -1383,6 +1387,10 @@ level_loop:
 		VGAScreen = game_screen;
 	}
 
+	#ifdef METALTYRIAN
+	mt_edge_start(VGAScreen);   /* the bottom background is layer 0 */
+#endif
+
 	/*-----------------------BACKGROUNDS------------------------*/
 	/*-----------------------BACKGROUND 2------------------------*/
 	if (background2over == 3)
@@ -1402,15 +1410,24 @@ level_loop:
 		}
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	if (smoothies[0] && processorType > 2 && smoothie_data[0] == 0)
 	{
 		lava_filter(game_screen, VGAScreen);
 		VGAScreen = game_screen;
+#ifdef METALTYRIAN
+		mt_edge_rebase(VGAScreen);
+#endif
 	}
 	if (smoothies[2-1] && processorType > 2)
 	{
 		water_filter(game_screen, VGAScreen);
 		VGAScreen = game_screen;
+#ifdef METALTYRIAN
+		mt_edge_rebase(VGAScreen);
+#endif
 	}
 
 	/*-----------------------Ground Enemy------------------------*/
@@ -1421,6 +1438,9 @@ level_loop:
 	JE_drawEnemy(50);
 	JE_drawEnemy(100);
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	if (enemyOnScreen == 0 || enemyOnScreen == lastEnemyOnScreen)
 	{
 		if (stopBackgroundNum == 1)
@@ -1431,12 +1451,18 @@ level_loop:
 	{
 		lava_filter(game_screen, VGAScreen);
 		VGAScreen = game_screen;
+#ifdef METALTYRIAN
+		mt_edge_rebase(VGAScreen);
+#endif
 	}
 
 	if (superWild)
 	{
 		neat += 3;
 		JE_darkenBackground(neat);
+#ifdef METALTYRIAN
+		mt_edge_rebase(VGAScreen);
+#endif
 	}
 
 	/*-----------------------BACKGROUNDS------------------------*/
@@ -1457,11 +1483,20 @@ level_loop:
 	{
 		neat++;
 		JE_darkenBackground(neat);
+#ifdef METALTYRIAN
+		mt_edge_rebase(VGAScreen);
+#endif
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	if (background3over == 2)
 		draw_background_3(VGAScreen);
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/* New Enemy */
 	if (enemiesActive && mt_rand() % 100 > levelEnemyFrequency)
 	{
@@ -1475,13 +1510,22 @@ level_loop:
 	{
 		iced_blur_filter(game_screen, VGAScreen);
 		VGAScreen = game_screen;
+#ifdef METALTYRIAN
+		mt_edge_rebase(VGAScreen);
+#endif
 	}
 	if (processorType > 1 && smoothies[4-1])
 	{
 		blur_filter(game_screen, VGAScreen);
 		VGAScreen = game_screen;
+#ifdef METALTYRIAN
+		mt_edge_rebase(VGAScreen);
+#endif
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/* Draw Sky Enemy */
 	if (!skyEnemyOverAll)
 	{
@@ -1498,9 +1542,15 @@ level_loop:
 		}
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	if (background3over == 0)
 		draw_background_3(VGAScreen);
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/* Draw Top Enemy */
 	if (!topEnemyOver)
 	{
@@ -1509,6 +1559,9 @@ level_loop:
 		JE_drawEnemy(75);
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/* Player Shot Images */
 	for (int z = 0; z < MAX_PWEAPON; z++)
 	{
@@ -1833,6 +1886,9 @@ draw_player_shot_loop_end:
 		player[i].last_y_shot_move = player[i].y;
 	}
 	
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/*=================================*/
 	/*=======Collisions Detection======*/
 	/*=================================*/
@@ -1844,6 +1900,9 @@ draw_player_shot_loop_end:
 	if (firstGameOver)
 		JE_mainGamePlayerFunctions();      /*--------PLAYER DRAW+MOVEMENT---------*/
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	if (!endLevel)
 	{    /*MAIN DRAWING IS STOPPED STARTING HERE*/
 
@@ -1940,9 +1999,15 @@ draw_player_shot_loop_end:
 		}
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	if (background3over == 1)
 		draw_background_3(VGAScreen);
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/* Draw Top Enemy */
 	if (topEnemyOver)
 	{
@@ -1951,6 +2016,9 @@ draw_player_shot_loop_end:
 		JE_drawEnemy(75);
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/* Draw Sky Enemy */
 	if (skyEnemyOverAll)
 	{
@@ -1967,6 +2035,9 @@ draw_player_shot_loop_end:
 		}
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/*-------------------------- Sequenced Explosions -------------------------*/
 	enemyStillExploding = false;
 	for (int i = 0; i < MAX_REPEATING_EXPLOSIONS; i++)
@@ -2009,6 +2080,9 @@ draw_player_shot_loop_end:
 		}
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/*---------------------------- Draw Explosions ----------------------------*/
 	for (int j = 0; j < MAX_EXPLOSIONS; j++)
 	{
@@ -2042,6 +2116,9 @@ draw_player_shot_loop_end:
 		}
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	if (!portConfigChange)
 		portConfigDone = true;
 
@@ -2059,6 +2136,9 @@ draw_player_shot_loop_end:
 		}
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	/*-------------------------Warning---------------------------*/
 	if ((player[0].is_alive && player[0].armor < 6) ||
 	    (twoPlayerMode && !galagaMode && player[1].is_alive && player[1].armor < 6))
@@ -2400,6 +2480,9 @@ draw_player_shot_loop_end:
 #endif
 
 	/** Test **/
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	JE_drawSP();
 
 	/*Filtration*/
@@ -2408,6 +2491,9 @@ draw_player_shot_loop_end:
 		JE_filterScreen(levelFilter, levelBrightness);
 	}
 
+#ifdef METALTYRIAN
+	mt_edge_mark(VGAScreen);
+#endif
 	draw_boss_bar();
 
 	JE_inGameDisplays();

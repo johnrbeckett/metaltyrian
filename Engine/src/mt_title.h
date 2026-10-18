@@ -26,6 +26,12 @@ void mt_picture_sprite(int number, unsigned table, unsigned index, int x, int y)
 /* Around the drawing of the playfield's own overlays (score, lives...) into
  * game_screen: what changes floats, and the app shades a soft shadow under it. */
 void mt_float_begin(SDL_Surface *game);
+/* Edge smoothing: start after the bottom background, mark after each layer,
+ * rebase after a filter that reworks the whole playfield. */
+void mt_edge_start(SDL_Surface *game);
+void mt_edge_mark(SDL_Surface *game);
+void mt_edge_rebase(SDL_Surface *game);
+void mt_edge_cancel(void);   /* no smoothing for this frame */
 void mt_float_end(SDL_Surface *game);
 /* With each shown frame, after mt_text_present, before mt_present_frame. */
 void mt_title_present(SDL_Surface *frame);

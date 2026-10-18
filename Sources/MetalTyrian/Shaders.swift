@@ -38,7 +38,63 @@ struct DisplayParams {
     float4 hole;      // game pixels where the game's own picture shows (z = 0: none)
     float4 lightRect; // the playfield, game pixels, where dynamic light falls (z = 0: none)
     float light;      // dynamic light gain, 0 = off
+    float edges;      // edge smoothing strength, 0 = off
 };
+
+// Edge smoothing. Every playfield pixel knows the layer it was drawn in
+// (background 0, islands, enemies, shots, ship, explosions higher) and the
+// colour it covered. Around each point the four nearest pixels' layers are
+// blended (bilinear); where a layer's share crosses one half is its smooth
+// outline. Stair-steps become clean diagonals, corners round off, and what
+// shows past the outline is the real colour underneath. Inside a shape
+// nothing changes: the pixel art stays crisp.
+static float3 smooth_edges(float3 c, float2 gp, float4 hole,
+                           texture2d<float> img, texture2d<float> layer,
+                           texture2d<float> under, texture2d<float> floatMask,
+                           float aaw) {
+    int2 P = int2(floor(gp));
+    if (floatMask.read(uint2(P)).r > 0.5) return c;   // the floating overlays stay as they are
+    float2 q = gp - 0.5;
+    int2 B = int2(floor(q));
+    float2 f = q - float2(B);
+    int2 cell[4] = { B, B + int2(1, 0), B + int2(0, 1), B + int2(1, 1) };
+    float w[4] = { (1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y };
+    int L[4];
+    bool solid[4];   // outside the playfield or a floating overlay: never an outline
+    int2 lo = int2(hole.xy), hi = int2(hole.xy + hole.zw) - 1;
+    for (int i = 0; i < 4; i++) {
+        int2 k = clamp(cell[i], int2(0), int2(319, 199));
+        bool outside = any(cell[i] < lo) || any(cell[i] > hi);
+        solid[i] = outside || floatMask.read(uint2(k)).r > 0.5;
+        L[i] = int(round(layer.read(uint2(k)).r * 255.0));
+    }
+    int LP = int(round(layer.read(uint2(P)).r * 255.0));
+
+    // This pixel's own shape: where its layer's share drops below one half,
+    // what it covered shows through.
+    float vOwn = 0.0;
+    for (int i = 0; i < 4; i++)
+        vOwn += (solid[i] || L[i] >= LP) ? w[i] : 0.0;
+    float3 cp = img.read(uint2(P)).rgb;
+    float3 r = LP > 0 ? mix(under.read(uint2(P)).rgb, cp, smoothstep(0.5 - aaw, 0.5 + aaw, vOwn)) : cp;
+
+    // Shapes drawn above this pixel reach over it where their share passes
+    // one half (lowest first, so the highest ends on top).
+    int done = LP;
+    for (int pass = 0; pass < 3; pass++) {
+        int best = 1000, bi = -1;
+        for (int i = 0; i < 4; i++)
+            if (!solid[i] && L[i] > done && (L[i] < best || (L[i] == best && w[i] > w[bi]))) { best = L[i]; bi = i; }
+        if (bi < 0) break;
+        float v = 0.0;
+        for (int j = 0; j < 4; j++)
+            v += (!solid[j] && L[j] >= best) ? w[j] : 0.0;
+        float a = smoothstep(0.5 - aaw, 0.5 + aaw, v);
+        r = mix(r, img.read(uint2(clamp(cell[bi], int2(0), int2(319, 199)))).rgb, a);
+        done = best;
+    }
+    return r;
+}
 
 static float luma(float3 c) { return dot(c, float3(0.2126, 0.7152, 0.0722)); }
 
@@ -72,6 +128,8 @@ fragment float4 display_frag(VOut in [[stage_in]],
                              texture2d<float> titleLogo1 [[texture(6)]],
                              texture2d<float> lightMap [[texture(7)]],
                              texture2d<float> floatMask [[texture(8)]],
+                             texture2d<float> layerMap [[texture(9)]],
+                             texture2d<float> underMap [[texture(10)]],
                              constant DisplayParams &p [[buffer(0)]]) {
     constexpr sampler lin(filter::linear, address::clamp_to_edge);
 
@@ -101,6 +159,13 @@ fragment float4 display_frag(VOut in [[stage_in]],
         t = title_logo(t, titleLogo0, p.logo0, p.aspects.y, in.uv, p.outSize, ms);
         t = title_logo(t, titleLogo1, p.logo1, p.aspects.z, in.uv, p.outSize, ms);
         c = t * p.titleFade;
+    }
+
+    if (p.edges > 0.0 && p.hole.z > 0.0 && inHole > 0.5) {
+        // About one screen pixel of anti-aliasing along each outline.
+        float aaw = clamp(0.5 * p.texSize.x / p.outSize.x, 0.02, 0.5);
+        float3 sm = smooth_edges(c, gp, p.hole, img, layerMap, underMap, floatMask, aaw);
+        c = mix(c, sm, p.edges);
     }
 
     if (p.hole.z > 0.0 && inHole > 0.5) {

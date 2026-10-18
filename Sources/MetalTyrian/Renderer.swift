@@ -44,6 +44,7 @@ struct DisplayParams {
     var hole: SIMD4<Float>      // x, y, w, h game pixels where the game's own picture shows (w = 0: none)
     var lightRect: SIMD4<Float> // the playfield, where dynamic light falls (w = 0: none)
     var light: Float            // dynamic light gain, 0 = off
+    var edges: Float            // edge smoothing strength, 0 = off
 }
 
 struct EmitParams {
@@ -88,8 +89,18 @@ final class Renderer: NSObject, MTKViewDelegate {
     // The playfield's floating overlays (score, lives...), for their soft shadow.
     private let floatTex: MTLTexture
     private var floatMask = [UInt8](repeating: 0, count: 320 * 200)
+    /// Edges: Off, Soft, Smooth.
+    static let edgeStrengths: [Float] = [0, 0.5, 1]
     private let lightTex: MTLTexture
     private var lightFrame: UInt64 = 0
+    // Edge smoothing (Graphics > Edges): each playfield pixel's layer and the
+    // colour it covered, from the game.
+    private let layerTex: MTLTexture
+    private let underTex: MTLTexture
+    private var layerBytes = [UInt8](repeating: 0, count: 320 * 200)
+    private var underIndices = [UInt8](repeating: 0, count: 320 * 200)
+    private var underRGBA = [UInt32](repeating: 0, count: 320 * 200)
+    private var edgesReady = false
     private var ambFrame: UInt64 = 0
 
     private var indices = [UInt8](repeating: 0, count: 320 * 200)
@@ -180,6 +191,8 @@ final class Renderer: NSObject, MTKViewDelegate {
         emitTex = try tex(.rgba16Float, target: true)
         floatTex = try tex(.r8Unorm, target: false)
         lightTex = try tex(.rgba16Float, target: true)
+        layerTex = try tex(.r8Unorm, target: false)
+        underTex = try tex(.bgra8Unorm, target: false)
         let od = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: CrispText.width,
                                                           height: CrispText.height, mipmapped: false)
         od.usage = [.shaderRead]
@@ -319,6 +332,28 @@ final class Renderer: NSObject, MTKViewDelegate {
                 srcTex.replace(region: MTLRegionMake2D(0, 0, 320, 200), mipmapLevel: 0,
                                withBytes: $0.baseAddress!, bytesPerRow: 320 * 4)
             }
+            edgesReady = false
+            if mt_setting(MT_SETTING_EDGES) > 0 && titleOn {
+                let got = layerBytes.withUnsafeMutableBufferPointer { lp in
+                    underIndices.withUnsafeMutableBufferPointer { up in
+                        mt_copied_frame_edges(lp.baseAddress, up.baseAddress)
+                    }
+                }
+                if got != 0 {
+                    for i in 0..<(320 * 200) {
+                        underRGBA[i] = palette[Int(underIndices[i])] | 0xFF00_0000
+                    }
+                    layerBytes.withUnsafeBytes {
+                        layerTex.replace(region: MTLRegionMake2D(0, 0, 320, 200), mipmapLevel: 0,
+                                         withBytes: $0.baseAddress!, bytesPerRow: 320)
+                    }
+                    underRGBA.withUnsafeBytes {
+                        underTex.replace(region: MTLRegionMake2D(0, 0, 320, 200), mipmapLevel: 0,
+                                         withBytes: $0.baseAddress!, bytesPerRow: 320 * 4)
+                    }
+                    edgesReady = true
+                }
+            }
         }
 
         guard let cmd = queue.makeCommandBuffer() else {
@@ -397,7 +432,8 @@ final class Renderer: NSObject, MTKViewDelegate {
             hole: titleOn ? SIMD4(Float(titleFrame.hole.0), Float(titleFrame.hole.1),
                                   Float(titleFrame.hole.2), Float(titleFrame.hole.3)) : .zero,
             lightRect: lightOn ? playfield : .zero,
-            light: lightOn ? lightGain : 0
+            light: lightOn ? lightGain : 0,
+            edges: edgesReady && titleOn ? Self.edgeStrengths[max(0, min(2, Int(mt_setting(MT_SETTING_EDGES))))] : 0
         )
         enc.setRenderPipelineState(displayPSO)
         enc.setFragmentTexture(srcTex, index: 0)
@@ -406,6 +442,8 @@ final class Renderer: NSObject, MTKViewDelegate {
         enc.setFragmentTexture(overlayTex, index: 3)
         enc.setFragmentTexture(lightTex, index: 7)
         enc.setFragmentTexture(floatTex, index: 8)
+        enc.setFragmentTexture(layerTex, index: 9)
+        enc.setFragmentTexture(underTex, index: 10)
         if let art = artTexture, titleFrame.picture != 0 {
             enc.setFragmentTexture(art, index: 4)
             enc.setFragmentTexture(srcTex, index: 5)

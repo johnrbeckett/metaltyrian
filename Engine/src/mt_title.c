@@ -23,6 +23,11 @@
 /* The playfield overlays, in screen pixels (game_screen shows from column 24). */
 static Uint8 float_before[184 * 264];
 static Uint8 float_mask[W * H];
+/* Edge smoothing: the playfield's layers this frame (see mt_edge_mark). */
+static Uint8 edge_prev[184 * 264], edge_layer[184 * 264], edge_under[184 * 264];
+static Uint8 edge_out_layer[W * H], edge_out_under[W * H];
+static Uint8 edge_count;
+static bool edge_started, edge_ready;
 
 static const unsigned logo_sprite[2] = { 146, 151 };   /* PLANET_SHAPES */
 
@@ -199,6 +204,7 @@ void mt_picture_loaded(SDL_Surface *surface, int number)
 	pics[number].stamp = ++load_count;
 	if (number == 3 || number == 6)
 		memset(float_mask, 0, sizeof(float_mask));
+		edge_ready = false;
 }
 
 void mt_picture_sprite(int number, unsigned table, unsigned index, int x, int y)
@@ -251,8 +257,86 @@ static bool shows(int n, const Uint8 *px, int pitch)
 }
 
 
+/* Edge smoothing. The playfield is drawn in layers (background, islands,
+ * ground enemies, sky enemies, shots, the ship, explosions...); the game
+ * calls mt_edge_mark after each, and every pixel that layer changed is
+ * stamped with the layer's number and the colour it covered. The app then
+ * smooths the outlines between layers and keeps everything inside crisp. */
+static bool edge_on(void)
+{
+	return mt_setting(MT_SETTING_EDGES) != 0;
+}
+
+void mt_edge_start(SDL_Surface *game)
+{
+	edge_started = edge_on();
+	if (!edge_started)
+		return;
+	for (int y = 0; y < 184; y++)
+		memcpy(edge_prev + y * 264, (Uint8 *)game->pixels + y * game->pitch + 24, 264);
+	memcpy(edge_under, edge_prev, sizeof(edge_under));
+	memset(edge_layer, 0, sizeof(edge_layer));
+	edge_count = 0;
+}
+
+void mt_edge_mark(SDL_Surface *game)
+{
+	if (!edge_started)
+		return;
+	const Uint8 next = edge_count < 254 ? edge_count + 1 : 254;
+	bool any = false;
+	for (int y = 0; y < 184; y++)
+	{
+		const Uint8 *row = (Uint8 *)game->pixels + y * game->pitch + 24;
+		for (int x = 0; x < 264; x++)
+		{
+			const int k = y * 264 + x;
+			if (row[x] != edge_prev[k])
+			{
+				edge_under[k] = edge_prev[k];
+				edge_layer[k] = next;
+				edge_prev[k] = row[x];
+				any = true;
+			}
+		}
+	}
+	if (any)
+		edge_count = next;
+}
+
+/* After a filter that reworks the whole playfield (water, lava, blur,
+ * darkening): its changes are not a layer, only the new starting point. */
+void mt_edge_rebase(SDL_Surface *game)
+{
+	if (!edge_started)
+		return;
+	for (int y = 0; y < 184; y++)
+		memcpy(edge_prev + y * 264, (Uint8 *)game->pixels + y * game->pitch + 24, 264);
+}
+
+void mt_edge_cancel(void)
+{
+	edge_ready = false;
+}
+
 void mt_float_begin(SDL_Surface *game)
 {
+	if (edge_started)
+	{
+		mt_edge_mark(game);
+		memset(edge_out_layer, 0, sizeof(edge_out_layer));
+		memset(edge_out_under, 0, sizeof(edge_out_under));
+		for (int y = 0; y < 184; y++)
+		{
+			memcpy(edge_out_layer + y * W, edge_layer + y * 264, 264);
+			memcpy(edge_out_under + y * W, edge_under + y * 264, 264);
+		}
+		edge_ready = true;
+		edge_started = false;
+	}
+	else if (!edge_on())
+		edge_ready = false;
+
 	for (int y = 0; y < 184; y++)
 		memcpy(float_before + y * 264, (Uint8 *)game->pixels + y * game->pitch + 24, 264);
 }
@@ -348,6 +432,10 @@ void mt_title_present(SDL_Surface *frame)
 		return;
 	}
 	mt_set_frame_title(&t, foreground);
+	/* Only for the frame the layers were taken from (not a pause menu after it). */
+	if (edge_ready && t.hole[2] > 0 && edge_on())
+		mt_set_frame_edges(edge_out_layer, edge_out_under);
+	edge_ready = false;
 }
 
 #endif /* METALTYRIAN */

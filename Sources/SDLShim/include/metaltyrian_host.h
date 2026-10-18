@@ -89,7 +89,8 @@ void mt_set_gamepad(int pad, const int16_t *axes, uint32_t buttons, uint8_t hat)
 #define MT_SETTING_TEXT 10        /* 0 crisp, 1 original pixel text */
 #define MT_SETTING_STEREO 11      /* 0 stereo (effects placed by position), 1 mono */
 #define MT_SETTING_LIGHT 12       /* dynamic light from shots and explosions: 0 off, 1 subtle, 2 medium, 3 strong */
-#define MT_SETTING_COUNT 13
+#define MT_SETTING_EDGES 13       /* edge smoothing on the playfield: 0 off, 1 soft, 2 smooth */
+#define MT_SETTING_COUNT 14
 int mt_setting(int which);
 void mt_set_setting(int which, int value);
 
@@ -163,6 +164,15 @@ typedef struct
  * something over the picture, 2-255 where the picture is only shaded darker
  * (2 + darkness, 253 = black) (kept apart: Swift can't import so large an array). */
 void mt_set_frame_title(const mt_title_frame *title, const uint8_t *foreground);
+
+/* Edge smoothing: for the next frame, per game pixel (320x200), the layer the
+ * pixel was last drawn in (0 = the bottom background, higher = drawn later)
+ * and the palette index that pixel had before that layer covered it. NULL:
+ * none for this frame. */
+void mt_set_frame_edges(const uint8_t *layer, const uint8_t *under);
+/* The edges of the frame mt_copy_frame_with_text last copied: 1 and filled
+ * in, or 0 when that frame had none. Call from the thread that copies. */
+int mt_copied_frame_edges(uint8_t *layer, uint8_t *under);
 
 /* Called by the game just before mt_present_frame: the text in that frame
  * (cursor may be NULL). */

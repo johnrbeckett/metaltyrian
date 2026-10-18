@@ -54,6 +54,7 @@ int main(int argc, char **argv)
 {
 	const char *gargv[] = { "metaltyrian", "-t", argv[1] };
 	mt_start_game(3, gargv);
+	if (getenv("MT_EDGES")) mt_set_setting(MT_SETTING_EDGES, atoi(getenv("MT_EDGES")));
 	mt_push_focus(true);   /* as the app's window does, or the game pauses itself */
 	pthread_t at;
 	const char *wav = getenv("MT_WAV");
@@ -163,6 +164,22 @@ int main(int argc, char **argv)
 						fprintf(f, "P6\n320 200\n255\n");
 						for (int k = 0; k < 64000; k++) { uint32_t c = pal[px[k]]; fputc(c >> 16, f); fputc(c >> 8, f); fputc(c, f); }
 						fclose(f);
+					}
+					/* Edge smoothing: each pixel's layer and the colour it covered. */
+					static uint8_t layer[64000], under[64000];
+					if (mt_copied_frame_edges(layer, under))
+					{
+						snprintf(name, sizeof name, "%s/lay%d.pgm", getenv("MT_PIC_DUMP"), i);
+						f = fopen(name, "wb");
+						if (f) { fprintf(f, "P5\n320 200\n255\n"); fwrite(layer, 1, 64000, f); fclose(f); }
+						snprintf(name, sizeof name, "%s/und%d.ppm", getenv("MT_PIC_DUMP"), i);
+						f = fopen(name, "wb");
+						if (f)
+						{
+							fprintf(f, "P6\n320 200\n255\n");
+							for (int k = 0; k < 64000; k++) { uint32_t c = pal[under[k]]; fputc(c >> 16, f); fputc(c >> 8, f); fputc(c, f); }
+							fclose(f);
+						}
 					}
 				}
 				/* MT_TEXT_FIND=x: report items whose text is x (where and how). */
