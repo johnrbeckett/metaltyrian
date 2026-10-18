@@ -6,7 +6,7 @@
 |---|---|
 | Folder | `~/Developer/MetalTyrian/` |
 | Git | `main`, pushed to the private GitHub repo `johnrbeckett/metaltyrian` (remote `origin`, 2026-10-18; John asked for the push). Push with the keyserver key `GITHUB_TOKEN_ORBIT_ANGEL` (edit, account johnrbeckett) materialised into a registered scratch folder (e.g. `~/Developer/.claude-tmp-env-mt-1018`), sent as an `http.extraHeader`, so no token is stored in `.git/config`; clear the `.env` afterwards. Commit author `John Beckett <johnreabeckett@gmail.com>`. |
-| Version | `VERSION` 0.1.0; the title screen shows "Metal 0.1.0" (from the bundle's short version). |
+| Version | `VERSION` 1.0.0 (John, 2026-10-18); the title screen shows "Metal 1.0.0" and the About box the same, with the build number (commit count). Releases: see Releases below. |
 | Build | `scripts/build-app.sh` builds to `~/Library/Caches/MetalTyrian-build/MetalTyrian.app`; Swift can only be compiled on the Mac. Engine and shim are checked headless on Linux with `Tests/linux/run.sh` (see Testing). |
 | Seen working on the Mac by John | Everything up to d0dca16 (2026-10-18): game, menus, mouse, gamepads, crisp text, HD title and pictures, new HUD with Orbitron labels, stereo audio, dynamic light (Light: Medium too), title version "Metal 0.1.0", menu titles at 90%, the shaded equipped-item bar, the "!" fix. |
 | Research | `Documentation/RESEARCH.md`, `Research/` (gitignored): pictures, sprite sheets, crisp checks, screen checks, light preview. |
@@ -15,7 +15,9 @@
 ## Where things stand
 
 - Fun over faithful; game mechanics matter. Remove dead options. Talk features through and get John's yes before coding.
-- Graphics: Sharp/VGA look, HDR glow, Aspect, Borders, Text (Crisp/Original), Light (Off/Subtle/Medium/Strong, default Medium). Crisp Orbitron text everywhere, with a leak finder. High-resolution art for the title (John's) and every other tyrian.pic picture (ChatGPT, prepared by `scripts/build-pictures.py`, needs `Research/pics` and `Research/screens-check/live_mask.npy`).
+- Graphics: Sharp/VGA look, HDR glow, Aspect, Borders, Text (Crisp/Original), Light (Off/Subtle/Medium/Strong, default Medium), Edges (Off/Soft/Smooth, default Smooth). Soft Metal shadows: playfield inset in the HUD, floating score/lives/special.
+- Edge smoothing (2026-10-18, John: "that is beautiful. default needs to be smooth"): `tyrian2.c` calls `mt_edge_start` after the bottom background, `mt_edge_mark` after each layer (islands, ground enemies, sky enemies, top enemies, shots, ship, enemy shots, explosions, superpixels), `mt_edge_rebase` after whole-screen filters; `mt_title.c` stamps each playfield pixel with its layer and the colour it covered and hands both to the app (`mt_set_frame_edges`); `smooth_edges` in `Shaders.swift` thresholds the bilinear share of each layer at one half (stair-steps become diagonals, the true colour underneath shows past the outline). Off on the flipped and spotlight levels. `Research/edge-preview/preview.py` (gitignored) is a CPU copy for previews from the Linux host (`MT_EDGES=2`, `MT_PIC_DUMP` writes `lay`/`und` files).
+- Arcade: Game Menu > Ship opens a 12-look picker (grid, hover/click/arrows); the selected ship's armour fills the helmet bar and its name sits under it in the left window. Crisp Orbitron text everywhere, with a leak finder. High-resolution art for the title (John's) and every other tyrian.pic picture (ChatGPT, prepared by `scripts/build-pictures.py`, needs `Research/pics` and `Research/screens-check/live_mask.npy`).
 - Sound: Nuked OPL3 music at 49716 Hz, stereo effects placed by screen position (70/30), limiter; Sound > Output Stereo/Mono.
 - Controls: Keyboard 5, Gamepad 5, Mouse Direct at 7, Momentum Off by default; two gamepads for couch co-op.
 
@@ -25,8 +27,16 @@
 2. Small leaks: text shaded over by a dark menu box stays as old pixel font (the faint "Player" under the in-game menu); two coincidental hits from the leak test (a jukebox 'e' on the title, P/S on the Next Level map); level-start glow text and credits untested.
 3. Crisp text: the large font's descenders overhang title boxes a little; the 90% shrink is the current answer (per-letter descender squeezing looked worse and was reverted).
 4. Lighting: tune strength or reach once John has played more; per-sprite normal maps only if the light spill proves itself.
-5. Phase 4 Mac polish from `PLAN-V1.md`: window sizes, About box with credits (OpenTyrian, Nuked OPL3, Orbitron, art), full-screen behaviour, ProMotion pacing, signing for release.
+5. Phase 4 Mac polish from `PLAN-V1.md`: window sizes, full-screen behaviour, ProMotion pacing, signing for release. (About box credits and bundled licences done for 1.0.0.)
 6. Two-player HUD art (picture 6) has had its labels removed and Orbitron labels added but hasn't been looked at closely on the Mac.
+
+## Releases
+
+1. Update the README's "What's new" and Credits (the About box's `Credits.rtf` is made from the README's Credits and Licence sections by `scripts/make-credits.sh` at build time) and this handoff. New third-party code, fonts or art: add its licence to `App/Licenses/` (bundled under Contents/Resources/Licenses) and a Credits line.
+2. `scripts/release.sh X.Y.Z`: writes `VERSION`, commits "MetalTyrian X.Y.Z", tags `vX.Y.Z`.
+3. Push with the keyserver header as in Status, adding `--follow-tags`.
+
+Licence sweep for 1.0.0: GPL 2+ (MetalTyrian, OpenTyrian, OpenTyrian2000, hqNx by Maxim Stepin), LGPL 2.1+ (Nuked OPL3), BSD (Mersenne Twister, `mtrand.c`: binary distributions must carry the notice), OFL 1.1 (Orbitron), Tyrian freeware terms (game data). DOSBox's `opl.c` is compiled out. The CC-BY "Remastered Tyrian Graphics" pack (`Art/Remastered`) is not used in the app. Scale3x is our own code after Andrea Mazzoleni's method (credited).
 
 ## Testing (Linux, headless)
 
@@ -86,6 +96,10 @@ John's direction, 2026-10-17: balance for "fun" over "faithful". Defaults so far
 | b0c665b | Audio: Nuked OPL3 music, stereo effects placed by position, limiter | Yes |
 | 21a40c1 | Dynamic light, smaller menu titles, shading over new art, fixes | Yes |
 | 9695afd | Title screen shows "Metal" and the app's version | Yes |
+| a27991d and before | Icon from the silver ship, arcade ship picker, handoff | Yes |
+| 27e666a | Soft Metal drop shadows under the playfield's score, lives and special | Yes |
+| 8ca83ab | Ship picker: armour bar and name under the ship | Yes |
+| 05740c2, 7c0dfa8 | Edge smoothing (Graphics > Edges), default Smooth | Not yet |
 
 Everything up to 9695afd was pushed to `origin/main` on 2026-10-18.
 

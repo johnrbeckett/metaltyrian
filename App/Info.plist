@@ -25,6 +25,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Unofficial port. Tyrian by Eclipse Software, freeware since 2004. Game code from OpenTyrian and OpenTyrian2000, GPLv2 or later.</string>
+	<string>Unofficial Mac port by John Beckett. Tyrian © Eclipse Software, freeware.</string>
 </dict>
 </plist>

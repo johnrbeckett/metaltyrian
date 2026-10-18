@@ -32,6 +32,11 @@ cp "$ROOT/App/Title/"*.png "$APP/Contents/Resources/Title/"
 mkdir -p "$APP/Contents/Resources/Pictures"
 cp "$ROOT/App/Pictures/"*.png "$APP/Contents/Resources/Pictures/"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" "$ROOT/App/Info.plist" > "$APP/Contents/Info.plist"
+# The About box's credits, made from the README's Credits and Licence
+# sections so they are kept in one place.
+"$ROOT/scripts/make-credits.sh" "$ROOT/README.md" > "$APP/Contents/Resources/Credits.rtf"
+mkdir -p "$APP/Contents/Resources/Licenses"
+cp "$ROOT/App/Licenses/"* "$APP/Contents/Resources/Licenses/"
 
 # Game data: the Tyrian 2000 data files only, not the DOS programs.
 find "$ROOT/GameData/tyrian2000" -maxdepth 1 -type f \
