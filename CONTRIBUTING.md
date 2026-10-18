@@ -22,6 +22,12 @@ Updating the engine from upstream:
 git subtree pull --prefix=Engine https://github.com/KScl/opentyrian2000.git master
 ```
 
-Cutting a release: update `CHANGELOG.md` and the README, then
-`scripts/release.sh X.Y.Z` (writes `VERSION`, commits, tags `vX.Y.Z`), push
-with tags, and attach the signed, notarised app to the GitHub release.
+Cutting a release (maintainer, on the Mac with the Developer ID):
+
+1. Update `CHANGELOG.md` and the README.
+2. `scripts/tag-version.sh X.Y.Z`: writes `VERSION`, commits, tags `vX.Y.Z`.
+3. `scripts/release.sh` (or `--check` for a dry run): signed build with the
+   hardened runtime, checks, notarisation, stapling, and a zip verified the
+   way a visitor gets it, in `~/Developer/Outputs/MetalTyrian-X.Y.Z.zip`.
+4. Push `main` with tags and attach the zip to the GitHub release
+   (`gh release create`, as the script prints).

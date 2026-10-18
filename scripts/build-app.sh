@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build MetalTyrian.app: a universal (Apple Silicon and Intel) release build,
 # assembled into an app bundle with the Tyrian 2000 data inside, ad hoc signed
-# for running on this Mac. Developer ID signing and notarisation come later.
+# for running on this Mac. scripts/release.sh makes the signed, notarised build.
 #
 # Usage: scripts/build-app.sh
 # Output: ~/Library/Caches/MetalTyrian-build/MetalTyrian.app
@@ -43,7 +43,13 @@ find "$ROOT/GameData/tyrian2000" -maxdepth 1 -type f \
     ! -iname '*.exe' ! -iname '*.pif' ! -iname '*.ovl' ! -iname '*.ico' \
     -exec cp {} "$APP/Contents/Resources/GameData/" \;
 
-codesign --force --sign - "$APP"
+# Ad hoc signed for this Mac, unless scripts/release.sh asks for the
+# Developer ID (hardened runtime and secure timestamp, as notarisation needs).
+if [ -n "${MT_SIGN_IDENTITY:-}" ]; then
+    codesign --force --options runtime --timestamp --sign "$MT_SIGN_IDENTITY" "$APP"
+else
+    codesign --force --sign - "$APP"
+fi
 
 echo "Architectures: $(lipo -archs "$APP/Contents/MacOS/MetalTyrian")"
 echo "Data files: $(ls "$APP/Contents/Resources/GameData" | wc -l | tr -d ' ')"
