@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include "mt_menu.h"
 #include "tyrian2.h"
 
 #ifdef METALTYRIAN
@@ -3611,10 +3612,10 @@ bool titleScreen(void)
 			for (size_t i = 0; i < COUNTOF(menuText); ++i)
 			{
 				const int xMenuItem = xCenter - wMenuItem[i] / 2;
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem[i])
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem[i]))
 				{
 					const int yMenuItem = yMenuItems + hMenuItem * i;
-					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+					if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, hMenuItem))
 					{
 						if (selectedIndex != i)
 						{
@@ -3624,8 +3625,8 @@ bool titleScreen(void)
 						}
 
 						if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-						    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem[i] &&
-						    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+						    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem[i]) &&
+						    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, hMenuItem))
 						{
 							action = true;
 						}

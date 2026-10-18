@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include "mt_menu.h"
 #include "opentyr.h"
 #ifdef METALTYRIAN
 #include "mt_keys.h"
@@ -618,12 +619,12 @@ void setupMenu(void)
 			if (mouseMoved || newmouse)
 			{
 				// Find menu item name or value that was hovered or clicked.
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem)
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem))
 				{
 					for (size_t i = 0; i < menuItemsCount; ++i)
 					{
 						const int yMenuItem = yMenuItems + dyMenuItems * i;
-						if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+						if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							if (*selectedMenuItemIndex != i)
 							{
@@ -633,7 +634,7 @@ void setupMenu(void)
 							}
 
 							if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-							    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+							    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 							{
 								// Act on menu item via name.
 								if (lastmouse_x >= xMenuItemName && lastmouse_x < xMenuItemName + wMenuItemName)
@@ -1061,7 +1062,7 @@ void setupMenu(void)
 					{
 						const int yPickerItem = yPicker + dyPickerItem * i;
 
-						if (mouse_y >= yPickerItem && mouse_y < yPickerItem + hPickerItem)
+						if (MT_HIT_Y(mouse_y, yPickerItem, hPickerItem, dyPickerItem))
 						{
 							if (pickerSelectedIndex != i)
 							{
@@ -1072,8 +1073,8 @@ void setupMenu(void)
 
 							// Act on picker item.
 							if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-							    lastmouse_x >= xMenuItemValue && lastmouse_y < xMenuItemValue + wMenuItemName &&
-							    lastmouse_y >= yPickerItem && lastmouse_y < yPickerItem + hPickerItem)
+							    lastmouse_x >= xMenuItemValue && lastmouse_x < xMenuItemValue + wMenuItemValue &&
+							    MT_HIT_Y(lastmouse_y, yPickerItem, hPickerItem, dyPickerItem))
 							{
 								action = true;
 							}

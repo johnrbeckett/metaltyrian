@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include "mt_menu.h"
 #include "menus.h"
 #include "nortvars.h"
 
@@ -142,10 +143,10 @@ bool gameplaySelect(void)
 			for (size_t i = 0; i < menuItemsCount; ++i)
 			{
 				const int xMenuItem = xCenter - wMenuItem[i] / 2;
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem[i])
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem[i]))
 				{
 					const int yMenuItem = yMenuItems + dyMenuItems * i;
-					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+					if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 					{
 						if (selectedIndex != i)
 						{
@@ -155,8 +156,8 @@ bool gameplaySelect(void)
 						}
 
 						if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-						    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem[i] &&
-						    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+						    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem[i]) &&
+						    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							action = true;
 						}
@@ -339,10 +340,10 @@ bool episodeSelect(void)
 			// Find menu item that was hovered or clicked.
 			for (size_t i = 0; i < menuItemsCount; ++i)
 			{
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem[i])
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem[i]))
 				{
 					const int yMenuItem = yMenuItems + dyMenuItems * i;
-					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+					if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 					{
 						if (selectedIndex != i)
 						{
@@ -352,8 +353,8 @@ bool episodeSelect(void)
 						}
 
 						if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-						    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem[i] &&
-						    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+						    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem[i]) &&
+						    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							action = true;
 						}
@@ -570,10 +571,10 @@ bool difficultySelect(void)
 			for (size_t i = 0; i < menuItemsVisibleCount; ++i)
 			{
 				const int xMenuItem = xCenter - wMenuItem[i] / 2;
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem[i])
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem[i]))
 				{
 					const int yMenuItem = yMenuItems + dyMenuItems * i;
-					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+					if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 					{
 						if (selectedIndex != i)
 						{
@@ -583,8 +584,8 @@ bool difficultySelect(void)
 						}
 
 						if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-						    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem[i] &&
-						    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+						    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem[i]) &&
+						    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							action = true;
 						}
@@ -1028,10 +1029,10 @@ bool timedBattleSelect(void)
 			for (size_t i = 0; i < menuItemsCount; ++i)
 			{
 				const int xMenuItem = xCenter - wMenuItem[i] / 2;
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem[i])
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem[i]))
 				{
 					const int yMenuItem = yMenuItems + dyMenuItems * i;
-					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+					if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 					{
 						if (selectedIndex != i)
 						{
@@ -1041,8 +1042,8 @@ bool timedBattleSelect(void)
 						}
 
 						if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-						    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem[i] &&
-						    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+						    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem[i]) &&
+						    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							action = true;
 						}

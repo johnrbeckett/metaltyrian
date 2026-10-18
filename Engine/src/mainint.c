@@ -16,6 +16,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+#include "mt_menu.h"
 #include "mainint.h"
 #ifdef METALTYRIAN
 #include "mt_title.h"
@@ -307,10 +308,10 @@ void JE_helpSystem(JE_byte startTopic)
 			for (size_t i = 0; i < menuItemsCount; ++i)
 			{
 				const int xMenuItem = xCenter - wMenuItem[i] / 2;
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem[i])
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem[i]))
 				{
 					const int yMenuItem = yMenuItems + dyMenuItems * i;
-					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+					if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 					{
 						if (selectedIndex != i)
 						{
@@ -320,8 +321,8 @@ void JE_helpSystem(JE_byte startTopic)
 						}
 
 						if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-						    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem[i] &&
-						    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+						    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem[i]) &&
+						    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							action = true;
 						}
@@ -831,12 +832,12 @@ bool JE_loadScreen(void)
 			else
 			{
 				// Find menu item that was hovered or clicked.
-				if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem)
+				if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem))
 				{
 					for (size_t i = 0; i < menuItemsCount; ++i)
 					{
 						const int yMenuItem = yMenuItems + dyMenuItems * i;
-						if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+						if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							if (selectedIndex != i)
 							{
@@ -846,8 +847,8 @@ bool JE_loadScreen(void)
 							}
 
 							if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-							    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem &&
-							    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+							    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem) &&
+							    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 							{
 								action = true;
 							}
@@ -1820,7 +1821,7 @@ JE_boolean JE_inGameSetup(void)
 		if (mouseMoved || newmouse)
 		{
 			// Find menu item that was hovered or clicked.
-			if (mouse_x >= xMenuItem && mouse_x < xMenuItem + wMenuItem)
+			if (MT_HIT_X(mouse_x, xMenuItem, wMenuItem))
 			{
 				for (size_t i = 0; i < menuItemsCount; ++i)
 				{
@@ -1828,7 +1829,7 @@ JE_boolean JE_inGameSetup(void)
 						continue;
 
 					const int yMenuItem = yMenuItems + dyMenuItems * MT_ROW(i);
-					if (mouse_y >= yMenuItem && mouse_y < yMenuItem + hMenuItem)
+					if (MT_HIT_Y(mouse_y, yMenuItem, hMenuItem, dyMenuItems))
 					{
 						if (selectedIndex != i)
 						{
@@ -1838,8 +1839,8 @@ JE_boolean JE_inGameSetup(void)
 						}
 
 						if (newmouse && lastmouse_but == SDL_BUTTON_LEFT &&
-						    lastmouse_x >= xMenuItem && lastmouse_x < xMenuItem + wMenuItem &&
-						    lastmouse_y >= yMenuItem && lastmouse_y < yMenuItem + hMenuItem)
+						    MT_HIT_X(lastmouse_x, xMenuItem, wMenuItem) &&
+						    MT_HIT_Y(lastmouse_y, yMenuItem, hMenuItem, dyMenuItems))
 						{
 							// Act on menu item via name.
 							if (lastmouse_x >= xMenuItemName && lastmouse_x < xMenuItemName + wMenuItemName)
