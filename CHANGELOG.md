@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.3, 2026-10-19
 
 - Autofire no longer fires the special weapon with the guns: in 1.0.2 it made the quick specials too strong. Holding Fire repeats a quick special about three times a second, a steady tapper's pace; slow ones still need a tap.
 - New: Autofire Specials, a third switch (3, or 8 left-handed; Setup > Controls; the Mac Controls menu). On, the quick specials fire by themselves at that pace, no button held. Off by default. The controls panel shows it.
