@@ -694,6 +694,26 @@ void JE_specialComplete(JE_byte playerNum, JE_byte specialType)
 	}
 }
 
+#ifdef METALTYRIAN
+/* A "quick" special is ready again within about a second (30 frames) of
+ * firing, so it keeps going while Fire is down, autofire included. Slow
+ * ones (Flare and the rest, ~7 s; MegaLaser, Missile Pod, ~3-5 s; Super
+ * Pretzel; Zinglon) still need a fresh press. Worked out from the data. */
+static bool mt_special_quick(JE_byte t)
+{
+	switch (special[t].stype)
+	{
+	case 1:  return weapons[special[t].wpn].shotrepeat <= 30;  /* one shot, weapon's own repeat */
+	case 2:                                                     /* Repulsor */
+	case 4:  return true;                                       /* Attractor */
+	case 9:  return special[t].pwr <= 30;                       /* burst, then wait pwr frames */
+	case 10:                                                    /* Protron Dispersal: burst, 15 frames */
+	case 16: return true;                                       /* Minefield (spray): burst, 15 frames */
+	default: return false;
+	}
+}
+#endif
+
 void JE_doSpecialShot(JE_byte playerNum, uint *armor, uint *shield)
 {
 	if (player[0].items.special > 0)
@@ -773,10 +793,16 @@ void JE_doSpecialShot(JE_byte playerNum, uint *armor, uint *shield)
 			fireButtonHeld = false;
 		}
 #ifdef METALTYRIAN
-		/* The special goes off on a fresh press of Fire. With main-gun
-		 * autofire the guns' Fire is always held, so the player's own press
-		 * counts here (otherwise the special fired once and never again). */
-		const bool fireDown = mt_fire_manual;
+		/* Quick specials keep firing while Fire is down, autofire included
+		 * (John, 2026-10-19: no frantic tapping). Slow ones go off on a fresh
+		 * press of the player's own Fire: with main-gun autofire the guns'
+		 * Fire is always held, so autofire alone never spends them (and
+		 * before, the special fired once and never again). */
+		static int mt_special_hold = 0;  /* Repulsor/Attractor have no repeat of their own */
+		const bool quick = mt_special_quick(player[0].items.special);
+		const bool fireDown = quick ? button[1-1] : mt_fire_manual;
+		if (mt_special_hold > 0)
+			mt_special_hold--;
 #else
 		const bool fireDown = button[1-1];
 #endif
@@ -784,11 +810,23 @@ void JE_doSpecialShot(JE_byte playerNum, uint *armor, uint *shield)
 		{
 			fireButtonHeld = false;
 		}
+#ifdef METALTYRIAN
+		else if (shotRepeat[SHOT_SPECIAL] == 0 && (!fireButtonHeld || (quick && mt_special_hold == 0)) && !(flareDuration > 0) && specialWait == 0)
+		{
+			fireButtonHeld = true;
+			JE_specialComplete(playerNum, player[0].items.special);
+			/* A special with no wait of its own would go every frame when
+			 * held; hold it to about 8 a second, a fast tapper's pace. */
+			if (shotRepeat[SHOT_SPECIAL] == 0 && flareDuration == 0)
+				mt_special_hold = 3;
+		}
+#else
 		else if (shotRepeat[SHOT_SPECIAL] == 0 && !fireButtonHeld && !(flareDuration > 0) && specialWait == 0)
 		{
 			fireButtonHeld = true;
 			JE_specialComplete(playerNum, player[0].items.special);
 		}
+#endif
 
 	}  /*Main End*/
 

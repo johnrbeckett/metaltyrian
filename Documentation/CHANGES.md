@@ -57,6 +57,7 @@ behaviour is always one `#else` away.
 - A mouse or trackpad works alongside the keys: the original mouse control, or fly to where you point. Adjustable speeds and momentum.
 - Gamepads through Apple's Game Controller framework.
 - Hold Command to free the mouse pointer during play.
+- Quick special weapons (ready again within about a second) keep firing while Fire is held, and with autofire. Slow ones still need a tap, so autofire never spends them.
 - A controls panel when a new game starts (the first level waits until you press fire) and whenever the game is paused.
 
 ## Easier menus

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- No more frantic tapping for the special weapon: quick specials (ready again within about a second, such as Pearl Wind, Ice Beam, Pulse Blast and Dual Vulcan) keep firing while Fire is held, and fire with autofire. Slow ones (Flare, MegaLaser, Missile Pod and the like) still need a tap. The controls panel says so.
+
 ## 1.0.1, 2026-10-18
 
 - The Mac menu bar mirrors the game's Setup: Graphics, Sound and Controls menus. Command-F for full screen.
