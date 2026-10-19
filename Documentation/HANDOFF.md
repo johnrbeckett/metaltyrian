@@ -3,13 +3,13 @@
 Running notes kept between working sessions: state, decisions and history.
 For how the code fits together, see `ARCHITECTURE.md`.
 
-## Status, 2026-10-19: version 1.0.2 tagged, waiting for signing
+## Status, 2026-10-19: version 1.0.2 released
 
 | Item | State |
 |---|---|
 | Folder | `~/Developer/MetalTyrian/` |
 | Git | `main` on GitHub, `johnrbeckett/metaltyrian` (public from 1.0.0). Pushes use a token sent as an `http.extraHeader` for that push only, so no credential is stored in `.git/config`. Commit author John Beckett. |
-| Release | **1.0.2 tagged 2026-10-19**: quick specials keep firing with Fire held or autofire, slow ones need a tap (varz.c `mt_special_quick`); screenshots and Documentation/CHANGES.md. John runs `scripts/release.sh`, then the release goes up on GitHub. **1.0.1 released 2026-10-18** (tag `v1.0.1`, 4161395; signed, notarised `MetalTyrian-1.0.1.zip` on the GitHub release). Before it, **1.0.0 released 2026-10-18**: tag `v1.0.0` (1d0872c), GitHub release "MetalTyrian 1.0.0" with the signed, notarised, stapled `MetalTyrian-1.0.0.zip` (Apple Silicon, 18.8 MB) attached; the repo went public the same day. John: "plays nice!" |
+| Release | **1.0.2 released 2026-10-19** (tag `v1.0.2`, 08351bf; signed, notarised `MetalTyrian-1.0.2.zip`, 18,852,230 bytes, on the GitHub release, marked latest): quick specials keep firing with Fire held or autofire, slow ones need a tap (varz.c `mt_special_quick`); screenshots and Documentation/CHANGES.md. **1.0.1 released 2026-10-18** (tag `v1.0.1`, 4161395; signed, notarised `MetalTyrian-1.0.1.zip` on the GitHub release). Before it, **1.0.0 released 2026-10-18**: tag `v1.0.0` (1d0872c), GitHub release "MetalTyrian 1.0.0" with the signed, notarised, stapled `MetalTyrian-1.0.0.zip` (Apple Silicon, 18.8 MB) attached; the repo went public the same day. John: "plays nice!" |
 | Version | `VERSION` 1.0.0 (John, 2026-10-18); the title screen shows "Metal 1.0.0" and the About box the same, with the build number (commit count). Releases: see Releases below. |
 | Build | Apple Silicon only (John: no Intel build). `scripts/build-app.sh` builds to `~/Library/Caches/MetalTyrian-build/MetalTyrian.app`; Swift can only be compiled on the Mac. Engine and shim are checked headless on Linux with `Tests/linux/run.sh` (see Testing). |
 | Seen working on the Mac by John | The 1.0.0 release build (2026-10-18): "plays nice!". Not yet reported on one by one: the controls overlay's look, the Keys screen, autofire, superbomb key, the pointer fix. |
@@ -120,7 +120,8 @@ John's direction, 2026-10-17: balance for "fun" over "faithful". Defaults so far
 | v1.0.0 | Released on GitHub with the notarised zip; repo public | Yes |
 | e2d3e4f ... f6656b7 | 1.0.1: controls panel greets a new game; single-player wording (Mode, Saved Games, high scores, help); Time Attack; Mac menus mirror Setup, Command-F; mouse targets in all menus, hover and one-click in game/shop menus; special-weapon autofire fix; brightness +10% to the eye; full screen and Edges Soft by default | Yes |
 | v1.0.1 | Released on GitHub with the notarised zip | Yes |
-| 1a30dc7, e33839f | 1.0.2: screenshots and the full list of changes from OpenTyrian (Documentation/CHANGES.md); quick specials keep firing with Fire held or autofire, slow ones need a tap, Repulsor/Attractor/Pulse Blast held to ~8 a second | Tagged |
+| 1a30dc7, e33839f | 1.0.2: screenshots and the full list of changes from OpenTyrian (Documentation/CHANGES.md); quick specials keep firing with Fire held or autofire, slow ones need a tap, Repulsor/Attractor/Pulse Blast held to ~8 a second | Yes |
+| v1.0.2 | Released on GitHub with the notarised zip | Yes |
 
 Everything up to 1d0872c (tag v1.0.0) was pushed to `origin/main` on 2026-10-18.
 
