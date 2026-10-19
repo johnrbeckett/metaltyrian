@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Starting in full screen no longer shows a blank white window on the way: the window appears once it is full screen.
 - The autofire keys (1, 2, 3 or 0, 9, 8) also work on the controls panel that starts a new game, instead of starting it; any other key starts as before.
 
 ## 1.0.3, 2026-10-19

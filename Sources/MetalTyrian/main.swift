@@ -139,9 +139,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }
         cargs.forEach { free($0) }
 
+        // Starting in full screen: the window stays invisible until it is
+        // there, so the switch shows no blank white window (John, 2026-10-19).
+        // Shown anyway after a few seconds, in case full screen never comes.
+        if defaults.bool(forKey: "fullScreen") {
+            window.alphaValue = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in self?.revealWindow() }
+        }
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(view)
         NSApp.activate(ignoringOtherApps: true)
+        // Go full screen straight away rather than from the first frame (an
+        // invisible window may not get frames drawn).
+        if defaults.bool(forKey: "fullScreen") && !window.styleMask.contains(.fullScreen) {
+            fullScreenChanging = true
+            window.toggleFullScreen(nil)
+        }
+    }
+
+    /// Fades the window in once (see the launch into full screen above).
+    private func revealWindow() {
+        guard window.alphaValue < 1 else { return }
+        // A moment for the first full-screen frame to be drawn.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            guard let self else { return }
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.25
+                self.window.animator().alphaValue = 1
+            }
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -194,6 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
 
     private func fullScreenChanged(_ on: Bool) {
         fullScreenChanging = false
+        revealWindow()
         mt_set_setting(MT_SETTING_FULLSCREEN, on ? 1 : 0)
         defaults.set(on, forKey: "fullScreen")
     }

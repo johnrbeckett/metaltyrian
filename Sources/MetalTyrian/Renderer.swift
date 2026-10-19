@@ -150,6 +150,9 @@ final class Renderer: NSObject, MTKViewDelegate {
         view.colorspace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)
         (view.layer as? CAMetalLayer)?.wantsExtendedDynamicRangeContent = true
         view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+        // Black, not blank, before the first frame is drawn.
+        view.layer?.backgroundColor = CGColor(red: 0, green: 0, blue: 0, alpha: 1)
+        view.layer?.isOpaque = true
         view.preferredFramesPerSecond = 120
         // Lower latency: at most one finished frame waiting for the screen.
         (view.layer as? CAMetalLayer)?.maximumDrawableCount = 2
