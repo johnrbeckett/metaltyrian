@@ -45,6 +45,7 @@ For how the code fits together, see `ARCHITECTURE.md`.
 2. `scripts/tag-version.sh X.Y.Z`: writes `VERSION`, commits "MetalTyrian X.Y.Z", tags `vX.Y.Z`.
 3. On the Mac: `scripts/release.sh` (needs the scripts executable: editing them from the Linux VM can drop the bit, so check `git ls-files -s scripts` shows 100755) (`--check` for a dry run). Night Watch's pattern: Developer ID `John Beckett (PDF9QMZ5G4)`, hardened runtime, notarytool profile `orbitangel`, staple, zip from the stapled app, `spctl` check on the extracted zip. Output `~/Developer/Outputs/MetalTyrian-X.Y.Z.zip`; scratch and logs in `~/Developer/Trash/metaltyrian-release-*`.
 4. Push with `--follow-tags` (credentials as in Status) and `gh release create vX.Y.Z <zip>`.
+5. Attach the same zip a second time, named plain `MetalTyrian.zip`, and mark the release latest. johnbeckett.info/metaltyrian, its Studio card and the README link to `releases/latest/download/MetalTyrian.zip`, which only works if the latest release has that file (done for 1.0.5 on 2026-10-19). The repo's website is set to johnbeckett.info/metaltyrian.
 
 Licence sweep for 1.0.0: GPL 2+ (MetalTyrian, OpenTyrian, OpenTyrian2000, hqNx by Maxim Stepin), LGPL 2.1+ (Nuked OPL3), BSD (Mersenne Twister, `mtrand.c`: binary distributions must carry the notice), OFL 1.1 (Orbitron), Tyrian freeware terms (game data). DOSBox's `opl.c` is compiled out. The CC-BY "Remastered Tyrian Graphics" pack (`Art/Remastered`) is not used in the app. Scale3x is our own code after Andrea Mazzoleni's method (credited).
 

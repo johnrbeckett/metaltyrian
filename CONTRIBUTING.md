@@ -30,4 +30,6 @@ Cutting a release (maintainer, on the Mac with the Developer ID):
    hardened runtime, checks, notarisation, stapling, and a zip verified the
    way a visitor gets it, in `~/Developer/Outputs/MetalTyrian-X.Y.Z.zip`.
 4. Push `main` with tags and attach the zip to the GitHub release
-   (`gh release create`, as the script prints).
+   (`gh release create`, as the script prints). Attach it a second time
+   named plain `MetalTyrian.zip`: the website's Download button links to
+   `releases/latest/download/MetalTyrian.zip`.

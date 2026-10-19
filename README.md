@@ -5,6 +5,9 @@ by Eclipse Software (1995, Tyrian 2000 in 1999). All five episodes, single
 player, drawn with Metal, with Apple frameworks for input and sound. Not affiliated with the
 original authors.
 
+Home page: [johnbeckett.info/metaltyrian](https://johnbeckett.info/metaltyrian).
+Download the latest: [MetalTyrian.zip](https://github.com/johnrbeckett/metaltyrian/releases/latest/download/MetalTyrian.zip).
+
 ![MetalTyrian title screen](Documentation/Images/title.png)
 
 Version 1.0.5. Built on the game code of [OpenTyrian](https://github.com/opentyrian/opentyrian)
