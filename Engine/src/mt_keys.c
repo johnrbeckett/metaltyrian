@@ -27,13 +27,13 @@
 
 static const char *const action_names[MT_ACT_COUNT] = {
 	"Up", "Down", "Left", "Right", "Fire", "Sidekicks", "Rear Mode", "Superbomb",
-	"Autofire Main", "Autofire Sidekicks",
+	"Autofire Main", "Autofire Sidekicks", "Autofire Specials",
 };
 
 enum { ROW_RESET = MT_ACT_COUNT, ROW_DONE, ROW_COUNT };
 
 static const int xName = 40, xSlot[2] = { 170, 232 }, wSlot = 56;
-static const int yRows = 36, dyRow = 12, hRow = 11;
+static const int yRows = 36, dyRow = 11, hRow = 10;  /* 11 actions + Reset and Done above the help line */
 
 /* Keys that stay the game's own. */
 static bool reserved(SDL_Scancode sc)

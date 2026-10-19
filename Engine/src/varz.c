@@ -797,15 +797,17 @@ void JE_doSpecialShot(JE_byte playerNum, uint *armor, uint *shield)
 			fireButtonHeld = false;
 		}
 #ifdef METALTYRIAN
-		/* The special answers the player's own Fire, never autofire (with
-		 * main-gun autofire the guns' Fire is always held; before 1.0.1 the
-		 * special then fired once and never again). Holding Fire repeats a
+		/* The special answers the player's own Fire, never main-gun autofire
+		 * (with it the guns' Fire is always held; before 1.0.1 the special
+		 * then fired once and never again). Holding Fire repeats a
 		 * quick special at about 3 a second, a steady tapper's pace, so no
 		 * frantic tapping and no more power than tapping (John, 2026-10-19).
 		 * Slow specials need a fresh press. A tap always fires at once. */
 		static int mt_special_hold = 0;  /* frames until a held repeat */
 		const bool quick = mt_special_quick(player[0].items.special);
-		const bool fireDown = mt_fire_manual;
+		/* Autofire specials (key 3, or Setup > Controls): a quick special
+		 * then goes off by itself at the same pace, no button held. */
+		const bool fireDown = mt_fire_manual || (quick && mt_autofire_specials());
 		if (mt_special_hold > 0)
 			mt_special_hold--;
 #else

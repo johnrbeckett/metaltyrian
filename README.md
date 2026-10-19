@@ -51,6 +51,7 @@ paused.
 | Superbomb, if you carry any | C | , | | Y |
 | Autofire main guns on/off | 1 | 0 | | |
 | Autofire sidekicks on/off | 2 | 9 | | |
+| Autofire quick specials on/off | 3 | 8 | | |
 | Pause | P | P | | Options |
 | Game menu | Esc | Esc | | Menu |
 
@@ -61,18 +62,20 @@ buttons in the Mac's System Settings > Mouse > Primary mouse button, and the
 game follows. Autofire is also under Setup > Controls; with it on, weapons that
 build up a charge fire at their lowest charge, so turn it off to charge them.
 The special weapon (its icon top left, with a lamp that's green when it's
-ready) fires with your own press of Fire; autofire never fires it. Holding
-Fire repeats a quick special (one that's ready again within about a second,
-such as Pearl Wind, Ice Beam, Pulse Blast or Dual Vulcan) about three times a
-second, so there's no need for frantic tapping. Slow ones (Flare, MegaLaser,
-Missile Pod and the like) need a fresh tap.
+ready) fires with your own press of Fire; main-gun autofire never fires it.
+Quick specials (ready again within about a second, such as Pearl Wind, Ice
+Beam, Pulse Blast or Dual Vulcan) repeat about three times a second while you
+hold Fire, or by themselves with Autofire Specials on (3, or 8 left-handed,
+or Setup > Controls). Slow ones (Flare, MegaLaser, Missile Pod and the like)
+always need a fresh tap. While paused, the autofire keys switch autofire and
+the panel shows the change; any other key resumes.
 
 ### Settings
 
 In the game: **Setup > Graphics** (Display, Look, Glow, Aspect, Borders,
 Text, Light, Edges), **Setup > Sound** (volumes, Stereo or Mono) and
 **Setup > Controls** (keyboard, gamepad and mouse speed, mouse mode,
-momentum, autofire).
+momentum, autofire, autofire specials).
 The Mac menu bar mirrors them: **Graphics**, **Sound** and **Controls** menus
 with the same settings, kept in step with the game. Shortcuts: Command-F full
 screen (Control-Command-F and Fn-F work too), Command-1 Sharp, Command-2 Retro,

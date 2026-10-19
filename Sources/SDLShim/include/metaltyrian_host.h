@@ -91,8 +91,9 @@ void mt_set_gamepad(int pad, const int16_t *axes, uint32_t buttons, uint8_t hat)
 #define MT_SETTING_LIGHT 12       /* dynamic light from shots and explosions: 0 off, 1 subtle, 2 medium, 3 strong */
 #define MT_SETTING_EDGES 13       /* edge smoothing on the playfield: 0 off, 1 soft, 2 smooth */
 #define MT_SETTING_AUTOFIRE 14    /* bit 0 main guns, bit 1 sidekicks */
-#define MT_SETTING_KEYS 15        /* 20 settings: each action's two keys (SDL scancodes, 0 = default) */
-#define MT_SETTING_COUNT 35
+#define MT_SETTING_KEYS 15        /* 22 settings: each action's two keys (SDL scancodes, 0 = default) */
+#define MT_SETTING_AUTOFIRE_SPECIALS 37  /* 1: quick specials fire by themselves (varz.c) */
+#define MT_SETTING_COUNT 38
 
 /* Keys (Setup > Controls > Keys): each action has two keys, slot 0 the
  * right-handed default and slot 1 the left-handed one. */
@@ -106,7 +107,8 @@ void mt_set_gamepad(int pad, const int16_t *axes, uint32_t buttons, uint8_t hat)
 #define MT_ACT_BOMB 7
 #define MT_ACT_AUTOFIRE_MAIN 8
 #define MT_ACT_AUTOFIRE_SIDEKICKS 9
-#define MT_ACT_COUNT 10
+#define MT_ACT_AUTOFIRE_SPECIALS 10
+#define MT_ACT_COUNT 11
 int mt_key_default(int action, int slot);
 int mt_key_binding(int action, int slot);      /* the scancode in use */
 void mt_set_key_binding(int action, int slot, int scancode);   /* 0 = back to the default */

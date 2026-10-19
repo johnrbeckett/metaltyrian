@@ -424,7 +424,7 @@ final class Renderer: NSObject, MTKViewDelegate {
         let controlsOn = controls != nil && titleOn && titleFrame.controls > 0 && titleFrame.hole.2 > 0
         if controlsOn {
             controls?.update(lefty: titleFrame.controls_lefty & 1 != 0, start: titleFrame.controls_lefty & 2 != 0,
-                             autofire: Int(mt_setting(MT_SETTING_AUTOFIRE)))
+                             autofire: Int(mt_setting(MT_SETTING_AUTOFIRE)) | (mt_setting(MT_SETTING_AUTOFIRE_SPECIALS) != 0 ? 4 : 0))
         }
         var p = DisplayParams(
             texSize: SIMD2(320, 200),

@@ -34,9 +34,10 @@ final class ControlsOverlay {
     }
 
     /// Redraws the panel when the hand or the autofire state has changed.
+    /// `autofire`: bit 0 main guns, bit 1 sidekicks, bit 2 quick specials.
     func update(lefty: Bool, start: Bool, autofire: Int) {
         // Redrawn when the hand, autofire or any key binding changes.
-        var key = "\(lefty ? 1 : 0)\(start ? 1 : 0)\(autofire & 3)"
+        var key = "\(lefty ? 1 : 0)\(start ? 1 : 0)\(autofire & 7)"
         for a in 0..<MT_ACT_COUNT { for s in Int32(0)..<2 { key += ",\(mt_key_binding(a, s))" } }
         guard key != drawnKey else { return }
         drawnKey = key
@@ -56,7 +57,7 @@ final class ControlsOverlay {
 
     private static func draw(lefty: Bool, start: Bool, autofire: Int, font baseFont: CTFont) -> [UInt32] {
         var pixels = [UInt32](repeating: 0, count: width * height)
-        let mainOn = autofire & 1 != 0, sideOn = autofire & 2 != 0
+        let mainOn = autofire & 1 != 0, sideOn = autofire & 2 != 0, specialsOn = autofire & 4 != 0
         let slot: Int32 = lefty ? 1 : 0
         func name(_ action: Int32) -> String {
             String(cString: mt_key_name(mt_key_binding(action, slot)))
@@ -74,9 +75,10 @@ final class ControlsOverlay {
             [.key(name(MT_ACT_AUTOFIRE_MAIN)), .label("Autofire main: " + (mainOn ? "on" : "off"), highlight: mainOn),
              .key(name(MT_ACT_AUTOFIRE_SIDEKICKS)), .label("Autofire sidekicks: " + (sideOn ? "on" : "off"), highlight: sideOn)],
         ]
-        // How the special weapon fires (varz.c mt_special_quick): autofire
-        // never fires it; hold Fire to repeat a quick one, tap for a slow one.
-        rows.append([.key(name(MT_ACT_FIRE)), .label("special: hold to repeat quick ones, tap slow ones", highlight: false)])
+        // The special (varz.c mt_special_quick): autofire specials fires the
+        // quick ones by themselves; otherwise hold Fire for those, tap for slow ones.
+        rows.append([.key(name(MT_ACT_AUTOFIRE_SPECIALS)), .label("Autofire specials: " + (specialsOn ? "on" : "off"), highlight: specialsOn),
+                     .key(name(MT_ACT_FIRE)), .label("hold: quick special, tap: slow", highlight: false)])
         // A new game's first level waits on this panel.
         if start {
             rows.append([.label("Press fire to start", highlight: true)])

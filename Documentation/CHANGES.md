@@ -53,11 +53,12 @@ behaviour is always one `#else` away.
 - One layout for either hand. Right-handed: Space, Z, X, C with the arrows. Left-handed: Space, /, . and , with W A S D. Both work at once.
 - Every key can be changed in Setup > Controls > Keys.
 - Superbombs on their own key (C or comma, gamepad Y).
-- Autofire for the main guns and for the sidekicks, each with its own key (1 and 2, or 0 and 9) and a setting in Setup > Controls.
+- Autofire for the main guns, the sidekicks and the quick specials, each with its own key (1, 2 and 3, or 0, 9 and 8) and a setting in Setup > Controls.
 - A mouse or trackpad works alongside the keys: the original mouse control, or fly to where you point. Adjustable speeds and momentum.
 - Gamepads through Apple's Game Controller framework.
 - Hold Command to free the mouse pointer during play.
-- Hold Fire to repeat a quick special weapon (one that is ready again within about a second) about three times a second, instead of tapping frantically. Slow ones still need a tap, and autofire never fires the special.
+- Hold Fire to repeat a quick special weapon (one that is ready again within about a second) about three times a second, instead of tapping frantically, or switch on Autofire Specials (key 3) and they fire by themselves at that pace. Slow ones still need a tap.
+- While paused, the autofire keys switch autofire and the controls panel shows the change.
 - A controls panel when a new game starts (the first level waits until you press fire) and whenever the game is paused.
 
 ## Easier menus

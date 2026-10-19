@@ -164,6 +164,16 @@ static const char *mtAutofireItem(size_t i, char *buffer, size_t bufferSize)
 	return mt_autofire_names[i];
 }
 
+static const char *const mt_off_on_names[] = { "Off", "On" };
+
+static size_t mtOffOnCount(void) { return COUNTOF(mt_off_on_names); }
+
+static const char *mtOffOnItem(size_t i, char *buffer, size_t bufferSize)
+{
+	(void)buffer, (void)bufferSize;
+	return mt_off_on_names[i];
+}
+
 static size_t mtEdgeCount(void) { return COUNTOF(mt_edge_names); }
 
 static const char *mtEdgeItem(size_t i, char *buffer, size_t bufferSize)
@@ -274,6 +284,7 @@ void setupMenu(void)
 		MENU_ITEM_LIGHT,
 		MENU_ITEM_EDGES,
 		MENU_ITEM_AUTOFIRE,
+		MENU_ITEM_AUTOFIRE_SPECIALS,
 		MENU_ITEM_KEYS,
 #endif
 	} MenuItemId;
@@ -367,6 +378,7 @@ void setupMenu(void)
 				{ MENU_ITEM_MOUSE_SPEED, "Mouse Speed", "How far the ship goes for your hand's movement." },
 				{ MENU_ITEM_MOMENTUM, "Momentum", "How far the ship drifts after you stop steering.", mtMomentumCount, mtMomentumItem },
 				{ MENU_ITEM_AUTOFIRE, "Autofire", "Keep firing without holding. In play: 1 main, 2 sidekicks.", mtAutofireCount, mtAutofireItem },
+				{ MENU_ITEM_AUTOFIRE_SPECIALS, "Autofire Specials", "Quick specials fire by themselves. In play: 3.", mtOffOnCount, mtOffOnItem },
 				{ MENU_ITEM_DONE, "Done", "Return to the previous menu." },
 				{ -1 }
 			},
@@ -512,6 +524,10 @@ void setupMenu(void)
 
 			case MENU_ITEM_AUTOFIRE:
 				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_autofire_names[mtClamp(mt_setting(MT_SETTING_AUTOFIRE), COUNTOF(mt_autofire_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
+				break;
+
+			case MENU_ITEM_AUTOFIRE_SPECIALS:
+				draw_font_hv_shadow(VGAScreen, xMenuItemValue, y, mt_off_on_names[mtClamp(mt_setting(MT_SETTING_AUTOFIRE_SPECIALS), COUNTOF(mt_off_on_names))], normal_font, left_aligned, 15, -3 + (selected ? 2 : 0) + (disabled ? -4 : 0), false, 2);
 				break;
 
 			case MENU_ITEM_MOUSE_MODE:
@@ -660,6 +676,7 @@ void setupMenu(void)
 									case MENU_ITEM_MOMENTUM:
 									case MENU_ITEM_MOUSE_MODE:
 									case MENU_ITEM_AUTOFIRE:
+									case MENU_ITEM_AUTOFIRE_SPECIALS:
 									case MENU_ITEM_STEREO:
 									case MENU_ITEM_LIGHT:
 									case MENU_ITEM_EDGES:
@@ -998,6 +1015,14 @@ void setupMenu(void)
 					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_AUTOFIRE), COUNTOF(mt_autofire_names));
 					break;
 				}
+				case MENU_ITEM_AUTOFIRE_SPECIALS:
+				{
+					JE_playSampleNum(S_CLICK);
+
+					currentPicker = selectedMenuItemId;
+					pickerSelectedIndex = mtClamp(mt_setting(MT_SETTING_AUTOFIRE_SPECIALS), COUNTOF(mt_off_on_names));
+					break;
+				}
 				case MENU_ITEM_MOUSE_MODE:
 				{
 					JE_playSampleNum(S_CLICK);
@@ -1169,6 +1194,9 @@ void setupMenu(void)
 					break;
 				case MENU_ITEM_AUTOFIRE:
 					mt_set_setting(MT_SETTING_AUTOFIRE, (int)pickerSelectedIndex);
+					break;
+				case MENU_ITEM_AUTOFIRE_SPECIALS:
+					mt_set_setting(MT_SETTING_AUTOFIRE_SPECIALS, (int)pickerSelectedIndex);
 					break;
 				case MENU_ITEM_STEREO:
 					mt_set_setting(MT_SETTING_STEREO, (int)pickerSelectedIndex);

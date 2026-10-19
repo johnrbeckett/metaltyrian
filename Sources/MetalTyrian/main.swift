@@ -47,7 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
                                                    (MT_SETTING_STEREO, "stereo"),
                                                    (MT_SETTING_LIGHT, "light"),
                                                    (MT_SETTING_EDGES, "edges"),
-                                                   (MT_SETTING_AUTOFIRE, "autofire")]
+                                                   (MT_SETTING_AUTOFIRE, "autofire"),
+                                                   (MT_SETTING_AUTOFIRE_SPECIALS, "autofireSpecials")]
         // Setup > Controls > Keys: each action's two keys (0 = the default).
         + (0..<(2 * Int(MT_ACT_COUNT))).map { (MT_SETTING_KEYS + Int32($0), "key\($0)") }
 
@@ -78,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
                                      "stereo": 0,       // Stereo
                                      "light": 2,        // Medium
                                      "autofire": 0,
+                                     "autofireSpecials": 0,
                                      "edges": 1])       // Soft, John's pick 2026-10-18 (was Smooth)
         mt_set_setting(MT_SETTING_TEXT, Int32(defaults.integer(forKey: "text")))
         for (setting, key) in Self.speedSettings {
@@ -350,6 +352,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         addChoices(controlsMenu, title: "Mouse Speed", setting: MT_SETTING_MOUSE_SPEED, names: (1...10).map { String($0) }, first: 1)
         addChoices(controlsMenu, title: "Momentum", setting: MT_SETTING_MOMENTUM, names: ["Original", "Light", "Off"])
         addChoices(controlsMenu, title: "Autofire", setting: MT_SETTING_AUTOFIRE, names: ["Off", "Main", "Sidekicks", "Both"])
+        addChoices(controlsMenu, title: "Autofire Specials", setting: MT_SETTING_AUTOFIRE_SPECIALS, names: ["Off", "On"])
         controlsMenu.addItem(.separator())
         let keysNote = controlsMenu.addItem(withTitle: "Keys: in the game, Setup > Controls > Keys", action: nil, keyEquivalent: "")
         keysNote.isEnabled = false

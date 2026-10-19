@@ -82,6 +82,7 @@ void JE_pauseGame(void);
 #ifdef METALTYRIAN
 void mt_controls_new_game(void);
 extern bool mt_fire_manual;
+bool mt_autofire_specials(void);
 void mt_controls_start_wait(void);
 #endif
 

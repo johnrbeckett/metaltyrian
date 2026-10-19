@@ -1616,12 +1616,13 @@ static int mt_steer_vx[2], mt_steer_vy[2];
  * Setup > Controls > Keys (mt_key_binding). Defaults:
  *   right-handed: arrows to steer; Space fire, Z sidekicks, X rear mode, C superbomb
  *   left-handed:  W A S D to steer; Space fire, / sidekicks, . rear mode, , superbomb
- * 1 and 2 (or 0 and 9) toggle autofire for the main guns and the sidekicks.
+ * 1, 2 and 3 (or 0, 9 and 8) toggle autofire for the main guns, the
+ * sidekicks and the quick specials, in play or while paused.
  * Return and the middle mouse button also change the rear mode. */
 bool mt_lefty = false;          /* the layout last steered with (controls overlay) */
 bool mt_fire_manual = false;    /* Fire really held (not autofire): the special weapon fires on a fresh press */
 static bool mt_bomb_pressed = false;
-static bool mt_toggle_held[2];
+static bool mt_toggle_held[3];
 
 /* The controls panel: once at the start of a new game, with the first level
  * frozen until the player presses something, and whenever the game is
@@ -1641,17 +1642,53 @@ static int mt_autofire(void)
 	return mt_setting(MT_SETTING_AUTOFIRE) & 3;
 }
 
+/* Autofire for the quick specials (varz.c), a setting of its own. */
+bool mt_autofire_specials(void)
+{
+	return !play_demo && !record_demo && mt_setting(MT_SETTING_AUTOFIRE_SPECIALS) != 0;
+}
+
+/* Flip autofire `which` (0 main guns, 1 sidekicks, 2 quick specials). */
+static bool mt_autofire_flip(int which)
+{
+	if (which == 2)
+	{
+		const bool on = mt_setting(MT_SETTING_AUTOFIRE_SPECIALS) == 0;
+		mt_set_setting(MT_SETTING_AUTOFIRE_SPECIALS, on ? 1 : 0);
+		return on;
+	}
+	const int a = mt_setting(MT_SETTING_AUTOFIRE) ^ (1 << which);
+	mt_set_setting(MT_SETTING_AUTOFIRE, a);
+	return (a >> which) & 1;
+}
+
 static void mt_autofire_toggle(int which, bool down)
 {
 	if (down && !mt_toggle_held[which])
 	{
-		const int a = mt_setting(MT_SETTING_AUTOFIRE) ^ (1 << which);
-		mt_set_setting(MT_SETTING_AUTOFIRE, a);
+		static const char *const what[3] = { "main guns", "sidekicks", "specials" };
+		const bool on = mt_autofire_flip(which);
 		char text[64];
-		snprintf(text, sizeof(text), "Autofire %s: %s", which == 0 ? "main guns" : "sidekicks", (a >> which) & 1 ? "on" : "off");
+		snprintf(text, sizeof(text), "Autofire %s: %s", what[which], on ? "on" : "off");
 		JE_drawTextWindow(text);
 	}
 	mt_toggle_held[which] = down;
+}
+
+/* While paused: is `sc` one of the autofire keys? Flips it (the panel shows
+ * the new setting) and returns true, so the key doesn't resume the game. */
+static bool mt_pause_autofire_key(SDL_Scancode sc)
+{
+	static const int acts[3] = { MT_ACT_AUTOFIRE_MAIN, MT_ACT_AUTOFIRE_SIDEKICKS, MT_ACT_AUTOFIRE_SPECIALS };
+	for (int w = 0; w < 3; ++w)
+		for (int s = 0; s < 2; ++s)
+			if (mt_key_binding(acts[w], s) == (int)sc)
+			{
+				mt_autofire_flip(w);
+				mt_toggle_held[w] = true;   /* still held on resuming: no second flip */
+				return true;
+			}
+	return false;
 }
 
 static bool mt_mouse_direct(void)
@@ -3648,6 +3685,17 @@ void JE_pauseGame(void)
 		push_joysticks_as_keyboard();
 		service_SDL_events(true);
 
+#ifdef METALTYRIAN
+		if (newkey && !superPause && mt_pause_autofire_key(lastkey_scan))
+		{
+			/* 1 / 2 / 3 while paused: change autofire, stay paused, and
+			 * redraw so the panel shows it (John, 2026-10-19). */
+			VGAScreen = VGAScreenSeg;
+			mt_controls_overlay(255, mt_lefty ? MT_CONTROLS_LEFTY : 0);
+			JE_showVGA();
+		}
+		else
+#endif
 		if ((newkey && lastkey_scan != SDL_SCANCODE_LCTRL && lastkey_scan != SDL_SCANCODE_RCTRL && lastkey_scan != SDL_SCANCODE_LALT && lastkey_scan != SDL_SCANCODE_RALT) ||
 		    JE_mousePosition(&mouseX, &mouseY) > 0)
 		{
@@ -4041,6 +4089,7 @@ redo:
 					mt_bomb_pressed = mt_bomb_pressed || MT_KK(MT_ACT_BOMB);
 					mt_autofire_toggle(0, MT_KK(MT_ACT_AUTOFIRE_MAIN));
 					mt_autofire_toggle(1, MT_KK(MT_ACT_AUTOFIRE_SIDEKICKS));
+					mt_autofire_toggle(2, MT_KK(MT_ACT_AUTOFIRE_SPECIALS));
 #undef MT_KK
 #undef MT_K
 				}
