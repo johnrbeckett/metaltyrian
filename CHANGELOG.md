@@ -6,6 +6,9 @@
 - New: Autofire Specials, a third switch (3, or 8 left-handed; Setup > Controls; the Mac Controls menu). On, the quick specials fire by themselves at that pace, no button held. Off by default. The controls panel shows it.
 - While paused, the autofire keys switch autofire and the panel updates; any other key resumes.
 - The Keys screen has a row for the new key.
+- The title's gold no longer burns to white: the glow's hot-pixel boost stays off the high-resolution art (as the bloom already did), and the brightness lift eases into the highlights instead of clipping, keeping their colour.
+- Retro: no scanlines or grille on the high-resolution title and pictures (they showed as thin stripes across the gold logo), and the scanlines are smoothed per screen pixel, so no moire stripes on screens like the MacBook Air's.
+- A little brighter on screens without HDR headroom (15% to the eye instead of 10%), where the glow can't add its own lift.
 
 ## 1.0.2, 2026-10-19
 

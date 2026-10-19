@@ -114,6 +114,17 @@ static float3 title_logo(float3 under, texture2d<float> tex, float4 box, float a
     return mix(under, c.rgb, c.a);
 }
 
+// A soft top: the brightest values ease towards 1 instead of clipping, and a
+// colour that would overflow is scaled as a whole, so bright gold stays gold
+// rather than burning to white (John, 2026-10-19). Below 0.8 nothing changes.
+static float3 soft_top(float3 c) {
+    float m = max(c.r, max(c.g, c.b));
+    const float k = 0.8;
+    if (m <= k) return c;
+    float nm = k + (1.0 - k) * tanh((m - k) / (1.0 - k));
+    return c * (nm / m);
+}
+
 static float hotness(float3 lin) {
     float peak = max(lin.r, max(lin.g, lin.b));
     float sat = peak - min(lin.r, min(lin.g, lin.b));
@@ -223,26 +234,40 @@ fragment float4 display_frag(VOut in [[stage_in]],
         linc += (linc * 0.5 + luma(linc) * 0.5 + 0.06) * L * shape;
     }
 
+    // The whole picture brighter to the eye (John: "a little dim"): 10% on a
+    // screen with HDR headroom (1.10^2.2 = 1.233 in this linear light), 15% on
+    // one without (1.15^2.2 = 1.36; a MacBook Air looked dim, 2026-10-19),
+    // where the glow can't add its own lift. Before the glow, so the effects
+    // keep their punch on top; the soft top keeps highlights from clipping.
+    float lift = mix(1.36, 1.233, saturate(p.headroom - 1.0));
     if (p.mode > 0.5) {
         // Authentic VGA: faint double-scanned lines, a fine aperture grille.
-        float fy = fract(in.uv.y * p.vgaLines);
-        float prof = 0.72 + 0.28 * exp(-((fy - 0.5) * (fy - 0.5)) / (2.0 * 0.30 * 0.30));
+        // The line profile is averaged over each screen pixel, so a screen
+        // whose height isn't a whole multiple of the lines shows no moire
+        // stripes. The high-resolution art (title, pictures) isn't VGA pixels
+        // and gets no lines or grille (they striped the gold logo).
+        float sy = in.uv.y * p.vgaLines, w = fwidth(sy), prof = 0.0;
+        for (int i = 0; i < 4; i++) {
+            float fy = fract(sy + w * ((float(i) + 0.5) / 4.0 - 0.5));
+            prof += 0.72 + 0.28 * exp(-((fy - 0.5) * (fy - 0.5)) / (2.0 * 0.30 * 0.30));
+        }
+        prof *= 0.25;
         float3 mask = float3(0.86);
         mask[uint(in.pos.x) % 3u] = 1.0;
         // The scanlines and grille take about a sixth of the light (x1.21
-        // gives it back), times the same lift as Sharp.
-        linc = linc * prof * mask * (1.21 * 1.233);
+        // gives it back).
+        linc *= mix(prof * mask * 1.21, float3(1.0), art) * lift;
     } else {
-        // The whole picture 10% brighter to the eye (John: "a little dim"):
-        // 1.10 in display terms is 1.10^2.2 = 1.233 in this linear light.
-        // Before the glow, so the effects keep their punch on top.
-        linc *= 1.233;
+        linc *= lift;
     }
+    linc = soft_top(linc);
 
     if (p.hdr > 0.5) {
         // Lasers, fire and engines: lift the pixel a little into EDR, add a soft bloom.
         float edr = min(max(p.headroom - 1.0, 0.0), 1.5);
-        float boost = 1.0 + hotness(linc) * edr * 0.35 * p.glow;
+        // (Like the glow, not on the high-resolution art: there it burned the
+        // title's bright gold to white.)
+        float boost = 1.0 + hotness(linc) * edr * 0.35 * p.glow * (1.0 - art);
         // (The glow is made from the game's own picture, so not on the art.)
         float3 g = (glowN.sample(lin, in.uv).rgb * 0.55 + glowW.sample(lin, in.uv).rgb * 0.35) * (1.0 - art);
         linc = linc * boost + g * p.glow;
