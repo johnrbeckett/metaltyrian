@@ -3979,7 +3979,14 @@ void intro_logos(void)
 
 	SDL_FillRect(VGAScreen, NULL, 0);
 
+#ifdef METALTYRIAN
+	/* The original flashed the whole screen white here and faded the first
+	 * logo in from white: glaring on a big screen (John, 2026-10-19). Fade
+	 * in from black, as the second logo does. */
+	fade_black(1);
+#else
 	fade_white(25);
+#endif
 
 	JE_loadPic(VGAScreen, 10, false);
 	JE_showVGA();
