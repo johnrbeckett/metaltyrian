@@ -7,7 +7,7 @@ original authors.
 
 ![MetalTyrian title screen](Documentation/Images/title.png)
 
-Version 1.0.4. Built on the game code of [OpenTyrian](https://github.com/opentyrian/opentyrian)
+Version 1.0.5. Built on the game code of [OpenTyrian](https://github.com/opentyrian/opentyrian)
 and [OpenTyrian2000](https://github.com/KScl/opentyrian2000).
 
 ## Download

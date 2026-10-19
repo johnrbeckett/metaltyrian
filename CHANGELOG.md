@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.5, 2026-10-19
 
 - Title screen: no faint lines along the edges of the logos' boxes (seen on a MacBook Air, in Sharp and Retro).
 - The score, lives and special's soft shadow is cast by the crisp text, so no ghost of the old pixel digits beside it.
