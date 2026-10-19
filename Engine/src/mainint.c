@@ -3773,7 +3773,14 @@ void mt_controls_start_wait(void)
 		setDelay(2);
 		push_joysticks_as_keyboard();
 		service_SDL_events(true);
-		if (newkey || newmouse)
+		if (newkey && mt_pause_autofire_key(lastkey_scan))
+		{
+			/* 1 / 2 / 3: change autofire and keep waiting, as when paused. */
+			mt_edge_repeat();
+			mt_controls_overlay(255, (mt_lefty ? MT_CONTROLS_LEFTY : 0) | MT_CONTROLS_START);
+			JE_showVGA();
+		}
+		else if (newkey || newmouse)
 			done = true;
 		wait_delay();
 	} while (!done);

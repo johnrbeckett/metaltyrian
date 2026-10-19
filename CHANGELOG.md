@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The autofire keys (1, 2, 3 or 0, 9, 8) also work on the controls panel that starts a new game, instead of starting it; any other key starts as before.
+
 ## 1.0.3, 2026-10-19
 
 - Autofire no longer fires the special weapon with the guns: in 1.0.2 it made the quick specials too strong. Holding Fire repeats a quick special about three times a second, a steady tapper's pace; slow ones still need a tap.
