@@ -74,9 +74,9 @@ final class ControlsOverlay {
             [.key(name(MT_ACT_AUTOFIRE_MAIN)), .label("Autofire main: " + (mainOn ? "on" : "off"), highlight: mainOn),
              .key(name(MT_ACT_AUTOFIRE_SIDEKICKS)), .label("Autofire sidekicks: " + (sideOn ? "on" : "off"), highlight: sideOn)],
         ]
-        // How the special weapon fires (varz.c mt_special_quick): quick ones
-        // keep going while Fire is down, autofire included; slow ones need a tap.
-        rows.append([.key(name(MT_ACT_FIRE)), .label("special: quick ones keep firing, slow ones need a tap", highlight: false)])
+        // How the special weapon fires (varz.c mt_special_quick): autofire
+        // never fires it; hold Fire to repeat a quick one, tap for a slow one.
+        rows.append([.key(name(MT_ACT_FIRE)), .label("special: hold to repeat quick ones, tap slow ones", highlight: false)])
         // A new game's first level waits on this panel.
         if start {
             rows.append([.label("Press fire to start", highlight: true)])

@@ -695,8 +695,12 @@ void JE_specialComplete(JE_byte playerNum, JE_byte specialType)
 }
 
 #ifdef METALTYRIAN
+/* Held Fire repeats a quick special every 12 frames: about 3 a second at
+ * the game's ~35 frames a second. */
+#define MT_SPECIAL_HOLD_FRAMES 11
+
 /* A "quick" special is ready again within about a second (30 frames) of
- * firing, so it keeps going while Fire is down, autofire included. Slow
+ * firing, so it repeats while the player holds Fire. Slow
  * ones (Flare and the rest, ~7 s; MegaLaser, Missile Pod, ~3-5 s; Super
  * Pretzel; Zinglon) still need a fresh press. Worked out from the data. */
 static bool mt_special_quick(JE_byte t)
@@ -793,14 +797,15 @@ void JE_doSpecialShot(JE_byte playerNum, uint *armor, uint *shield)
 			fireButtonHeld = false;
 		}
 #ifdef METALTYRIAN
-		/* Quick specials keep firing while Fire is down, autofire included
-		 * (John, 2026-10-19: no frantic tapping). Slow ones go off on a fresh
-		 * press of the player's own Fire: with main-gun autofire the guns'
-		 * Fire is always held, so autofire alone never spends them (and
-		 * before, the special fired once and never again). */
-		static int mt_special_hold = 0;  /* Repulsor/Attractor have no repeat of their own */
+		/* The special answers the player's own Fire, never autofire (with
+		 * main-gun autofire the guns' Fire is always held; before 1.0.1 the
+		 * special then fired once and never again). Holding Fire repeats a
+		 * quick special at about 3 a second, a steady tapper's pace, so no
+		 * frantic tapping and no more power than tapping (John, 2026-10-19).
+		 * Slow specials need a fresh press. A tap always fires at once. */
+		static int mt_special_hold = 0;  /* frames until a held repeat */
 		const bool quick = mt_special_quick(player[0].items.special);
-		const bool fireDown = quick ? button[1-1] : mt_fire_manual;
+		const bool fireDown = mt_fire_manual;
 		if (mt_special_hold > 0)
 			mt_special_hold--;
 #else
@@ -815,10 +820,7 @@ void JE_doSpecialShot(JE_byte playerNum, uint *armor, uint *shield)
 		{
 			fireButtonHeld = true;
 			JE_specialComplete(playerNum, player[0].items.special);
-			/* A special with no wait of its own would go every frame when
-			 * held; hold it to about 8 a second, a fast tapper's pace. */
-			if (shotRepeat[SHOT_SPECIAL] == 0 && flareDuration == 0)
-				mt_special_hold = 3;
+			mt_special_hold = MT_SPECIAL_HOLD_FRAMES;  /* a slower special's own wait still rules */
 		}
 #else
 		else if (shotRepeat[SHOT_SPECIAL] == 0 && !fireButtonHeld && !(flareDuration > 0) && specialWait == 0)

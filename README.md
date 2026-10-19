@@ -61,11 +61,11 @@ buttons in the Mac's System Settings > Mouse > Primary mouse button, and the
 game follows. Autofire is also under Setup > Controls; with it on, weapons that
 build up a charge fire at their lowest charge, so turn it off to charge them.
 The special weapon (its icon top left, with a lamp that's green when it's
-ready) fires with Fire. Quick specials, the ones ready again within about a
-second (Pearl Wind, Ice Beam, Pulse Blast, Dual Vulcan and the like), keep
-firing while Fire is held, and with autofire on they fire along with the guns.
-Slow ones (Flare, MegaLaser, Missile Pod and the like) need a fresh tap of
-Fire, so autofire never spends them by itself.
+ready) fires with your own press of Fire; autofire never fires it. Holding
+Fire repeats a quick special (one that's ready again within about a second,
+such as Pearl Wind, Ice Beam, Pulse Blast or Dual Vulcan) about three times a
+second, so there's no need for frantic tapping. Slow ones (Flare, MegaLaser,
+Missile Pod and the like) need a fresh tap.
 
 ### Settings
 

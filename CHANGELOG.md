@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Autofire no longer fires the special weapon: in 1.0.2 it made the quick specials too strong. Holding Fire yourself repeats a quick special about three times a second, a steady tapper's pace; slow ones still need a tap. The controls panel says so.
+
 ## 1.0.2, 2026-10-19
 
 - Screenshots on GitHub and a full list of what MetalTyrian changes from OpenTyrian (Documentation/CHANGES.md).
