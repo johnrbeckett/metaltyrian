@@ -109,8 +109,12 @@ static float3 title_logo(float3 under, texture2d<float> tex, float4 box, float a
     float boxAspect = (box.z * outSize.x / 320.0) / (box.w * outSize.y / 200.0);
     if (boxAspect > aspect) l.x = 0.5 + (l.x - 0.5) * (boxAspect / aspect);
     else l.y = 0.5 + (l.y - 0.5) * (aspect / boxAspect);
-    if (any(l < 0.0) || any(l > 1.0)) return under;
+    // Sampled before the box test, for every pixel: the mip level comes from
+    // neighbouring pixels, and with the sample skipped outside the box the
+    // pixels along its edge got a wrong, blurry level, which drew faint lines
+    // along the box (seen on a MacBook Air, John 2026-10-19).
     float4 c = tex.sample(s, l);
+    if (any(l < 0.0) || any(l > 1.0)) return under;
     return mix(under, c.rgb, c.a);
 }
 
@@ -193,11 +197,14 @@ fragment float4 display_frag(VOut in [[stage_in]],
         for (int j = -2; j <= 2; j++) {
             for (int i = -2; i <= 2; i++) {
                 float w = exp(-float(i * i + j * j) / 3.0);
-                acc += floatMask.sample(lin, sp + float2(i, j) * t * 0.8).r * w;
+                float2 q = sp + float2(i, j) * t * 0.8;
+                // The crisp letters cast it, not the game's pixel letters
+                // under them (their shadow showed as a ghost of the old digits).
+                acc += max(floatMask.sample(lin, q).r, p.textOn * overlay.sample(lin, q).a) * w;
                 wsum += w;
             }
         }
-        float self = floatMask.sample(mpt, in.uv).r;
+        float self = max(floatMask.sample(mpt, in.uv).r, p.textOn * overlay.sample(lin, in.uv).a);
         c *= 1.0 - 0.65 * (acc / wsum) * (1.0 - self);
     }
 

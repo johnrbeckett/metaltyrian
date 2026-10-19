@@ -313,7 +313,9 @@ final class Renderer: NSObject, MTKViewDelegate {
                     for y in max(0, hy)..<min(200, hy + hh) {
                         for x in max(0, hx)..<min(320, hx + hw) {
                             let k = y * 320 + x
-                            floatMask[k] = titleForeground[k] != 0 ? 255 : 0
+                            // Crisp letters cast their own shadow (in the shader),
+                            // so the pixel letters under them don't.
+                            floatMask[k] = titleForeground[k] != 0 && !(textOn && textMask[k] != 0) ? 255 : 0
                             titleForeground[k] = 0
                         }
                     }
